@@ -1,0 +1,14 @@
+{
+  "name": "dobby-foundation",
+  "owner": {
+    "name": "Daniel"
+  },
+  "description": "Portable ways-of-work for ~/dobby/ sibling projects — the living skills (groom, doc-hygiene, standup/weekly reporting, PR babysitting, build-order sync, live-smoke, Vercel-preview pruning) distributed from one versioned place.",
+  "plugins": [
+    {
+      "name": "ways-of-work",
+      "source": "./plugins/ways-of-work",
+      "description": "The scrum cadence + planning/ops skills: groom (planning front door), doc-hygiene, standup-post, weekly-recap, babysit-pr, build-order-sync, vercel-prune, live-smoke, pmo-report."
+    }
+  ]
+}
