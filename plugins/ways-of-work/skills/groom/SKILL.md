@@ -200,11 +200,13 @@ kill-switch story rides the same `HIGH ⇒ Daniel merges`. See the ADR
    ```
    node skills/groom/scaffold-epic.mjs --slug <epic-slug> --area <NN> \
      --macro <NN-macro> --title "<Epic title>" --risk <low|high> \
-     --sprints "S1 title;S2 title;S3 title"
+     --type <feature|spike|bug|chore> --sprints "S1 title;S2 title;S3 title"
    ```
-   It creates `Roadmap/<NN-macro>/<epic-slug>/README.md` + `sprint-1..N.md` + a `RETROSPECTIVE.md` stub
-   from `skills/groom/templates/`, and prints the exact path-scoped commit command. Fill the generated
-   files with the real stories / reuse list / QA stages — the script makes the skeleton, you make the content.
+   `--type` should match the Stage 2 classification decided earlier (default `feature` if omitted — don't
+   leave it at the default for a Chore/Bug/Spike epic). It creates `Roadmap/<NN-macro>/<epic-slug>/README.md`
+   + `sprint-1..N.md` + a `RETROSPECTIVE.md` stub from `skills/groom/templates/`, and prints the exact
+   path-scoped commit command. Fill the generated files with the real stories / reuse list / QA stages —
+   the script makes the skeleton, you make the content.
 3. **Update the seed:** set its frontmatter `epic: "<NN-macro>/<epic-slug>"` (and `status: scaffolded` for
    tidiness). **Once `epic:` is set the seed is funnel-only** — the **epic README frontmatter `status:`** (the
    scaffolder writes it `scaffolded`) is now the authoritative status, advanced to `shipped` at epic close.
