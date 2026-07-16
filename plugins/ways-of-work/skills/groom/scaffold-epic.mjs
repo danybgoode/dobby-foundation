@@ -8,7 +8,9 @@
 //     --macro 02-checkout-and-payments --title "Checkout state hardening" \
 //     --risk high --sprints "Durable payment state;Block ship before paid;One coupon-aware total"
 //
-// Flags: --type <feature|spike|chore|epic> (default feature) · --dry-run (print, write nothing)
+// Flags: --type <feature|spike|bug|chore> (default feature, matches SKILL.md's Stage-2 classification
+//        table exactly — rendered Capitalized into the epic README's header "Class:" field)
+//        · --dry-run (print, write nothing)
 // It does NOT commit — it prints the exact path-scoped git command for you to run.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -47,7 +49,13 @@ const area = String(args.area);
 const macro = String(args.macro);
 const title = String(args.title);
 const risk = String(args.risk || 'high');
-const type = String(args.type || 'feature');
+const typeRaw = String(args.type || 'feature').toLowerCase();
+const VALID_TYPES = ['feature', 'spike', 'bug', 'chore'];
+if (!VALID_TYPES.includes(typeRaw)) {
+  console.error(`scaffold-epic: --type must be one of ${VALID_TYPES.join('|')} (got "${typeRaw}") — matches SKILL.md's Stage-2 classification table.`);
+  process.exit(1);
+}
+const type = typeRaw[0].toUpperCase() + typeRaw.slice(1); // rendered Capitalized in the header's Class: field
 const dryRun = !!args['dry-run'];
 const date = new Date().toISOString().slice(0, 10);
 const sprints = String(args.sprints).split(';').map((s) => s.trim()).filter(Boolean);

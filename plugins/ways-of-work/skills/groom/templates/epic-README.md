@@ -5,10 +5,17 @@ slug: {{SLUG}}
 
 # Epic: {{TITLE}}
 
-> **Area:** {{MACRO}} · **Risk:** {{RISK}} · **Scope seed:** [`00-ideas/seeds/{{SLUG}}.md`](../../00-ideas/seeds/{{SLUG}}.md)
-<!-- Optional: if this epic was tagged at grooming (see spike-role-archetypes.md), append
-     " · **Archetype:** <Prototyper|Builder|Sweeper|Grower|Maintainer>" to the line above.
-     Omit entirely for the Builder default — untagged is fine. -->
+> **Area:** {{MACRO}} · **Risk:** {{RISK}} · **Class:** {{TYPE}} · **Scope seed:** [`00-ideas/seeds/{{SLUG}}.md`](../../00-ideas/seeds/{{SLUG}}.md)
+<!-- Class (above) is the Stage-2 classification: Feature, Spike, Bug, or Chore — see SKILL.md's
+     Stage 2 table; sourced from scaffold-epic.mjs's --type flag (a fixed 4-value enum, not free
+     text — a longer description belongs in ## Why, not here).
+     Optional: if this epic was ALSO tagged with an archetype at grooming (see spike-role-archetypes.md),
+     append " · **Archetype:** <Prototyper|Builder|Sweeper|Grower|Maintainer>" after Class. Omit entirely
+     for the Builder default — untagged is fine.
+     Scope-seed link: always points at seeds/ (the forward path per 00-ideas/README.md — `2. readyforscope/`
+     is documented legacy). If this epic was scaffolded from a readyforscope doc with no seeds/ entry,
+     link there instead and migrate to seeds/ when convenient — don't fabricate a seeds/ file that doesn't
+     exist. -->
 
 ## Why
 <!-- One paragraph: the outcome this epic delivers and for whom. Plain product language, no tech. -->
