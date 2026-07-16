@@ -1,0 +1,29 @@
+#!/bin/sh
+# TEMPLATE FILL-IN — rename to `pre-push` (drop `.example`) once your project has real app code
+# and a `ci.yml` (not `ci.yml.example`) to mirror. Advisory pattern — recommended to NEVER block
+# a push (exit 0 regardless): a slow/failed local check shouldn't hold up your git workflow, CI
+# stays the real gate. See the origin project's apps/miyagisanchez/.githooks/pre-push or
+# apps/backend/.githooks/pre-push for two filled-in examples (tsc + build, advisory).
+#
+# Fill in below: whatever your ci.yml's typecheck-build (and optionally e2e) job runs, run it
+# here too, matching the same command order. If your e2e suite needs local infra (a DB, a
+# local server) that isn't always running, gate it — check readiness first and skip with a
+# message rather than trying to spin infra up from inside a git hook (surprising, slow,
+# fragile). See apps/golden-beans-style repos' pre-push for a worked example of that gating.
+#
+# Also worth reading before deciding whether you need this at all: GitHub Actions minutes are
+# only METERED for PRIVATE repos — if this project is/becomes PUBLIC, its CI is already free and
+# unlimited, so this hook is a nice-to-have for faster feedback, not a cost necessity. Check
+# `gh repo view --json isPrivate`.
+
+if ! command -v node >/dev/null 2>&1; then
+  exit 0
+fi
+
+# TEMPLATE FILL-IN — example shape:
+# echo "pre-push: type-checking..." >&2
+# if ! npx tsc --noEmit; then
+#   echo "pre-push: tsc --noEmit failed — advisory only, push proceeding. ci.yml will also catch this." >&2
+# fi
+
+exit 0

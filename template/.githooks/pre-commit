@@ -1,21 +1,48 @@
 #!/bin/sh
-# Opt-in pre-commit guard for the generated status board. Enable once per clone with:
+# Local-first pre-commit gate — BLOCKING. Auto-enabled once your project has a package.json:
+# add `"prepare": "git config core.hooksPath .githooks"` to its "scripts" block, so
+# `npm install`/`npm ci` wires this up with no manual per-clone step (README.md's spawn
+# checklist has a reminder for this). Until then, enable once per clone manually with:
 #   git config core.hooksPath .githooks
-# Mirrors the CI check (.github/workflows/build-order-guard.yml) locally: if this commit
-# touches the board's inputs (Roadmap/** or the scripts), it fails unless BUILD-ORDER.md
-# is freshly generated. Fix: `node scripts/build-order.mjs` then re-stage it.
 #
-# CI is the real gate; this hook just catches drift before the (direct-to-main) commit lands.
+# Mirrors the fast, pure-node CI guards in guards.yml (build-order + scripts/ node:test) —
+# these bill a GitHub Actions minimum of 1 minute per job even for a 15-second check, so
+# running them here first (free, instant) before they ever reach CI is the whole point of
+# this pattern. guards.yml stays as the PR-triggered fallback safety net.
+#
+# Bypass with `git commit --no-verify` if you genuinely need to.
 
 changed=$(git diff --cached --name-only)
-echo "$changed" | grep -qE '^(Roadmap/|scripts/build-order\.mjs|scripts/roadmap-to-notion\.mjs)' || exit 0
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "pre-commit: node not found — skipping build-order check." >&2
+  echo "pre-commit: node not found — skipping local guards (GH Actions PR check still applies)." >&2
   exit 0
 fi
 
-if ! node scripts/build-order.mjs --check; then
-  echo "pre-commit: BUILD-ORDER.md is stale. Run 'node scripts/build-order.mjs' and stage it." >&2
+fail=0
+
+if echo "$changed" | grep -qE '^(Roadmap/|scripts/build-order\.mjs|scripts/roadmap-to-notion\.mjs)'; then
+  if ! node scripts/build-order.mjs --check; then
+    echo "pre-commit: build-order failed — BUILD-ORDER.md is stale. Run 'node scripts/build-order.mjs' and stage it." >&2
+    fail=1
+  fi
+fi
+
+has_script_tests=false
+for f in scripts/*.test.mjs scripts/lib/*.test.mjs; do
+  [ -e "$f" ] && has_script_tests=true
+done
+
+if echo "$changed" | grep -qE '^scripts/' && [ "$has_script_tests" = true ]; then
+  if ! node --test 'scripts/lib/*.test.mjs' 'scripts/*.test.mjs'; then
+    echo "pre-commit: scripts/ node:test failed — see output above." >&2
+    fail=1
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: one or more checks failed. Fix and re-stage, or 'git commit --no-verify' to bypass." >&2
   exit 1
 fi
+
+exit 0
