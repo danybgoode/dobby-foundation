@@ -236,17 +236,19 @@ its output as-is.
 script is unavailable, not the primary path:**
 
 ```
-Read apps/miyagisanchez/AGENTS.md, Roadmap/WAYS-OF-WORKING.md and Roadmap/LEARNINGS.md. Skim team memory.
+Read AGENTS.md, Roadmap/WAYS-OF-WORKING.md and Roadmap/LEARNINGS.md. Skim team memory.
 Then read Roadmap/<NN-macro>/<epic-slug>/README.md and Roadmap/<NN-macro>/<epic-slug>/sprint-<N>.md.
 
 You're building Sprint <N> of "<epic title>". Enter plan mode, confirm the plan as user stories with me,
-then branch feat/<epic-slug> off latest main and build one story at a time per WAYS-OF-WORKING.
+then branch feat/<epic-slug> off latest main and build one story at a time per WAYS-OF-WORKING. If you're one
+of several builders running in parallel, work in your own isolated `git worktree`, not the shared root
+checkout.
 Reuse before rebuild (see "What already exists"). Escalate rather than guess: stop and ask / hand back to
 Opus on payments / checkout / fulfillment / auth / DB migrations / shared infra / money, plan ambiguity, a
 decision the plan doesn't cover, or 2+ failed attempts at the same problem — default to escalate when unsure
 (WAYS-OF-WORKING → Model tiers). Commit per story with path-limited adds
 (`git add <your files>` + `git commit -- <those paths>`, never `git add -A` — a shared worktree races the
-index). App copy is es-MX by default (es/en only on the bilingual allow-list — AGENTS rule #5). Add one api spec per testable story; name the
+index). Follow this project's own copy/localization conventions (see AGENTS.md). Add one api spec per testable story; name the
 QA/smoke stage and state any browser smoke owed to me. When the deterministic gate (tsc + build + Playwright
 api) is green, open a draft PR declaring the risk tier — and write the SPRINT SMOKE WALKTHROUGH (below) into
 sprint-<N>.md before you call the sprint done.
@@ -255,6 +257,12 @@ sprint-<N>.md before you call the sprint done.
 The invariant preamble (line 1 of the prompt — the orientation reads + skim memory) is the same every
 session; it stays in the prompt so a *fresh* Claude Code session re-orients with zero prior context. Keep
 the sprint-specific delta (this epic, this sprint, its reuse list, its risk) as the part that actually varies.
+
+**Orchestrating more than one builder at once?** Before spawning a second parallel kickoff, read
+WAYS-OF-WORKING → *Wakeup-resilient orchestration* — the three survival rules in one line: isolated
+worktrees per builder, worker death is a normal case (diff the tree, resume the same agent id from its
+transcript with a state recap, never re-spawn cold), and verify by re-deriving actual repo state, never
+by trusting a worker's own completion report.
 
 **Model tiers:** run the groom/plan and any spike on **Opus 4.8**; the per-sprint build runs on **Sonnet 5**
 once the plan is approved — the kickoff already opens in plan mode, so judgment still happens up front, and
