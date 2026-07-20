@@ -3,8 +3,8 @@
 // sprint. Planning-only helper for the `groom` skill (Stage 8). The invariant preamble (the
 // orientation reads, plan-mode, escalate-don't-guess triggers, etc.) lives in
 // `templates/kickoff.md` — this script's whole point is that boilerplate stops being retyped by
-// hand per sprint; only the sprint-specific delta (epic title, sprint number/title, story list)
-// is read out of the epic's own docs and substituted in.
+// hand per sprint; only the sprint-specific delta (epic title, sprint number + its own title,
+// story list) is read out of the epic's own docs and substituted in.
 //
 // Usage:
 //   node skills/groom/emit-kickoff.mjs --epic <slug> --sprint N [--repo-root <path>]
@@ -59,25 +59,42 @@ export function parseFrontmatter(text) {
   return out;
 }
 
-// The epic README's H1 is `# Epic: <title>` — strip the `Epic: ` prefix.
+// Strips a leading `---`…`---` frontmatter fence, if present, returning only the body. Frontmatter
+// commonly carries trailing `# comment` annotations on its own lines (e.g. `status: in-progress   #
+// AUTHORITATIVE epic status …`, or a bare `# note` line) — those must never be mistaken for the H1,
+// so every H1 search below runs against this stripped body, not the raw file text.
+export function stripFrontmatter(text) {
+  const lines = text.split('\n');
+  if (lines[0].trim() !== '---') return text;
+  const end = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
+  if (end === -1) return text;
+  return lines.slice(end + 1).join('\n');
+}
+
+// The epic README's H1 is `# Epic: <title>` — strip the `Epic: ` prefix. Searches only the body
+// AFTER the frontmatter fence (see stripFrontmatter) so a `# `-led YAML comment can't win first.
 export function parseEpicTitle(text) {
-  const m = text.match(/^#\s+(.+)$/m);
+  const m = stripFrontmatter(text).match(/^#\s+(.+)$/m);
   if (!m) return null;
   const raw = m[1].trim();
   return raw.replace(/^Epic:\s*/, '');
 }
 
-// The sprint doc's H1 is `# <epic title> — Sprint <N>: <sprint title>`.
+// The sprint doc's H1 is `# <epic title> — Sprint <N>: <sprint title>`. The separator accepts a
+// hyphen, en-dash, or em-dash ([-–—]) — an author typing a plain "-" must not crash the generator.
 export function parseSprintHeader(text) {
-  const m = text.match(/^#\s+(.+?)\s+—\s+Sprint\s+(\d+):\s+(.+)$/m);
+  const m = stripFrontmatter(text).match(/^#\s+(.+?)\s+[-–—]\s+Sprint\s+(\d+):\s+(.+)$/m);
   if (!m) return null;
   return { epicTitle: m[1].trim(), sprintNum: m[2], sprintTitle: m[3].trim() };
 }
 
-// Story headings are `### Story N.M — <title>` — return the full heading text (minus `### `).
+// Story headings are `### Story N.M — <title>` — return the full heading text (minus `### `). The
+// separator accepts a hyphen, en-dash, or em-dash ([-–—]): the em-dash-only regex this replaced
+// silently dropped every story typed with a plain "-", producing a complete-looking kickoff with
+// NO stories at all — the worst failure shape (silent, plausible-looking output).
 export function parseStoryHeadings(text) {
   const out = [];
-  const re = /^###\s+(Story\s+\d+\.\d+\s+—\s+.+)$/gm;
+  const re = /^###\s+(Story\s+\d+\.\d+\s+[-–—]\s+.+)$/gm;
   let m;
   while ((m = re.exec(text))) out.push(m[1].trim());
   return out;
@@ -88,12 +105,13 @@ export function buildStoryList(headings) {
   return headings.map((h) => `- ${h}`).join('\n');
 }
 
-export function buildKickoff({ macro, slug, sprintNum, epicTitle, storyList, templateText }) {
+export function buildKickoff({ macro, slug, sprintNum, epicTitle, sprintTitle, storyList, templateText }) {
   return sub(templateText, {
     MACRO: macro,
     SLUG: slug,
     N: String(sprintNum),
     EPIC_TITLE: epicTitle,
+    SPRINT_TITLE: sprintTitle,
     STORY_LIST: storyList,
   });
 }
@@ -167,7 +185,7 @@ function main() {
   if (!existsSync(templatePath)) die(`missing template: ${templatePath}`);
   const templateText = readFileSync(templatePath, 'utf8');
 
-  const out = buildKickoff({ macro, slug, sprintNum, epicTitle, storyList, templateText });
+  const out = buildKickoff({ macro, slug, sprintNum, epicTitle, sprintTitle: sprintHeader.sprintTitle, storyList, templateText });
   process.stdout.write(out);
 }
 

@@ -8,6 +8,7 @@ import {
   parseArgs,
   sub,
   parseFrontmatter,
+  stripFrontmatter,
   parseEpicTitle,
   parseSprintHeader,
   parseStoryHeadings,
@@ -47,6 +48,35 @@ test('parseEpicTitle: returns null when no H1 present', () => {
   assert.equal(parseEpicTitle('no heading here\n'), null);
 });
 
+test('stripFrontmatter: removes the fenced block, leaves the body untouched', () => {
+  const text = '---\nstatus: x\n---\n\n# Real Title\n\nbody\n';
+  assert.equal(stripFrontmatter(text), '\n# Real Title\n\nbody\n');
+});
+
+test('stripFrontmatter: no leading fence returns the text unchanged', () => {
+  assert.equal(stripFrontmatter('# Real Title\n'), '# Real Title\n');
+});
+
+// Cross-agent review (Antigravity, PR #4) blocking finding: a `# `-led YAML comment INSIDE the
+// frontmatter block (real-world example: ssrf-dns-pinning's README has
+// `status: in-progress   # AUTHORITATIVE epic status (SSOT) — …`) used to win the H1 regex before
+// the real title, silently poisoning EPIC_TITLE. parseEpicTitle must search only the body after
+// the frontmatter fence.
+test('parseEpicTitle: a "# " comment INSIDE frontmatter is not mistaken for the H1', () => {
+  const text = [
+    '---',
+    'status: in-progress   # AUTHORITATIVE epic status (SSOT) — comment with a bare # word',
+    'slug: ssrf-dns-pinning',
+    '# a bare full-line comment, also inside frontmatter',
+    '---',
+    '',
+    '# Epic: SSRF hardening — DNS-pin the resolved IP instead of resolve-then-fetch',
+    '',
+    '## Why',
+  ].join('\n');
+  assert.equal(parseEpicTitle(text), 'SSRF hardening — DNS-pin the resolved IP instead of resolve-then-fetch');
+});
+
 test('parseSprintHeader: parses epic title, sprint number, and sprint title', () => {
   const text = '# Process token-diet — Sprint 1: Script the boilerplate, flip the review policy\n\n**Status:** not started\n';
   const h = parseSprintHeader(text);
@@ -67,6 +97,24 @@ test('parseSprintHeader: epic title itself containing an em-dash still parses (n
 
 test('parseSprintHeader: returns null when the H1 does not match the expected shape', () => {
   assert.equal(parseSprintHeader('# Just a title\n'), null);
+});
+
+// Cross-agent review should-fix: the separator regex used to mandate an em-dash and CRASHED
+// ("couldn't parse the H1") on a plain hyphen or en-dash. Loosened to accept all three.
+test('parseSprintHeader: accepts a plain hyphen separator, not just an em-dash', () => {
+  const h = parseSprintHeader('# Process token-diet - Sprint 1: Script the boilerplate\n');
+  assert.deepEqual(h, { epicTitle: 'Process token-diet', sprintNum: '1', sprintTitle: 'Script the boilerplate' });
+});
+
+test('parseSprintHeader: accepts an en-dash separator too', () => {
+  const h = parseSprintHeader('# Process token-diet – Sprint 1: Script the boilerplate\n');
+  assert.deepEqual(h, { epicTitle: 'Process token-diet', sprintNum: '1', sprintTitle: 'Script the boilerplate' });
+});
+
+test('parseSprintHeader: skips a frontmatter fence before finding the H1', () => {
+  const text = '---\nstatus: x   # a comment\n---\n\n# Process token-diet — Sprint 1: Title\n';
+  const h = parseSprintHeader(text);
+  assert.equal(h.epicTitle, 'Process token-diet');
 });
 
 test('parseStoryHeadings: collects every "### Story N.M — <title>" heading in order', () => {
@@ -90,6 +138,35 @@ test('parseStoryHeadings: empty array when none found', () => {
   assert.deepEqual(parseStoryHeadings('## Stories\nnone here\n'), []);
 });
 
+// Cross-agent review blocking finding: the em-dash-only regex silently DROPPED every story
+// heading typed with a plain hyphen — no error, just a complete-looking kickoff with zero
+// stories (the worst failure shape: silent + plausible). Loosened to accept hyphen/en-dash/em-dash.
+test('parseStoryHeadings: a plain-hyphen heading is not silently dropped', () => {
+  const text = '### Story 1.1 - Kickoff-prompt generator\nbody\n### Story 1.2 - Smoke skeleton\n';
+  assert.deepEqual(parseStoryHeadings(text), [
+    'Story 1.1 - Kickoff-prompt generator',
+    'Story 1.2 - Smoke skeleton',
+  ]);
+});
+
+test('parseStoryHeadings: an en-dash heading is also accepted', () => {
+  const text = '### Story 1.1 – Kickoff-prompt generator\n';
+  assert.deepEqual(parseStoryHeadings(text), ['Story 1.1 – Kickoff-prompt generator']);
+});
+
+test('parseStoryHeadings: mixed dash styles in the same doc all parse', () => {
+  const text = [
+    '### Story 1.1 — Em-dash story',
+    '### Story 1.2 - Hyphen story',
+    '### Story 1.3 – En-dash story',
+  ].join('\n');
+  assert.deepEqual(parseStoryHeadings(text), [
+    'Story 1.1 — Em-dash story',
+    'Story 1.2 - Hyphen story',
+    'Story 1.3 – En-dash story',
+  ]);
+});
+
 test('buildStoryList: renders a bullet per heading', () => {
   const out = buildStoryList(['Story 1.1 — A', 'Story 1.2 — B']);
   assert.equal(out, '- Story 1.1 — A\n- Story 1.2 — B');
@@ -100,15 +177,19 @@ test('buildStoryList: says so plainly when there are no headings', () => {
   assert.match(out, /no `### Story N\.M/);
 });
 
-test('buildKickoff: substitutes macro/slug/sprint/epic-title/story-list into the template', () => {
-  const templateText = 'Roadmap/{{MACRO}}/{{SLUG}}/sprint-{{N}}.md — "{{EPIC_TITLE}}"\n{{STORY_LIST}}';
+test('buildKickoff: substitutes macro/slug/sprint/epic-title/sprint-title/story-list into the template', () => {
+  const templateText = 'Roadmap/{{MACRO}}/{{SLUG}}/sprint-{{N}}.md — "{{EPIC_TITLE}}" — "{{SPRINT_TITLE}}"\n{{STORY_LIST}}';
   const out = buildKickoff({
     macro: '09-platform-infra',
     slug: 'process-token-diet',
     sprintNum: '1',
     epicTitle: 'Process token-diet',
+    sprintTitle: 'Script the boilerplate, flip the review policy',
     storyList: '- Story 1.1 — A',
     templateText,
   });
-  assert.equal(out, 'Roadmap/09-platform-infra/process-token-diet/sprint-1.md — "Process token-diet"\n- Story 1.1 — A');
+  assert.equal(
+    out,
+    'Roadmap/09-platform-infra/process-token-diet/sprint-1.md — "Process token-diet" — "Script the boilerplate, flip the review policy"\n- Story 1.1 — A'
+  );
 });

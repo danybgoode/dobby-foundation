@@ -13,5 +13,5 @@ QA/smoke stage and state any browser smoke owed to me. When the deterministic ga
 api) is green, open a draft PR declaring the risk tier — and write the SPRINT SMOKE WALKTHROUGH (below) into
 sprint-{{N}}.md before you call the sprint done.
 
-Sprint {{N}} of "{{EPIC_TITLE}}" — stories:
+Sprint {{N}} of "{{EPIC_TITLE}}" — "{{SPRINT_TITLE}}" — stories:
 {{STORY_LIST}}
