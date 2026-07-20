@@ -21,18 +21,19 @@
 - **deterministic gate:** `tsc --noEmit` + `npm run build` + Playwright `api` green before merge
 
 ## Sprint {{N}} — Smoke walkthrough (do these in order)
-Env: production · https://miyagisanchez.com   (or the preview URL while testing pre-merge)
+Env: production · https://<your-domain>   (or the preview URL while testing pre-merge)
 
-1. Go to https://miyagisanchez.com/<page-or-path>
+1. Go to https://<your-domain>/<page-or-path>
    → <observable expected result>
-2. In the seller portal, go to https://miyagisanchez.com/s/<test-shop>/manage/<settings-page>
+2. In <the relevant authed area>, go to https://<your-domain>/<authed-path>
    → <observable expected result>
-3. (money path — owed to Daniel by name) Add <item> to cart → checkout as guest → pay with a
-   Stripe test card 4242 4242 4242 4242.
-   → Order confirmation email arrives, branded to the shop; the seller's order screen shows <field>.
+3. (money path — owed to <product owner> by name) <the money-path steps for your project> using a
+   test-mode payment credential.
+   → <observable expected result>
 
 <!-- Delete whichever pre-filled steps don't apply to this sprint; add more using the same shape
      (real clickable URL + one observable result). Flag any money/auth/checkout step by name —
-     those are owed to Daniel (an automated browser smoke can't fully cover them). -->
+     those are owed to your project's product owner (an automated browser smoke can't fully cover
+     them). -->
 
 If any step fails, note the step number + what you saw — that's the bug report.
