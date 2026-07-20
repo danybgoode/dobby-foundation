@@ -220,7 +220,20 @@ kill-switch story rides the same `HIGH ⇒ Daniel merges`. See the ADR
    `BUILD-ORDER.md`. Docs are low-risk tier.
 
 ## Stage 8 — Emit the per-sprint Claude Code kickoff prompts
-One per sprint, ready to paste into a fresh Claude Code session:
+One per sprint, ready to paste into a fresh Claude Code session. **Run the generator, don't
+hand-write it:**
+
+```
+node skills/groom/emit-kickoff.mjs --epic <epic-slug> --sprint <N>
+```
+
+It searches `Roadmap/*/<epic-slug>/` for the epic dir, reads that epic's README.md (frontmatter +
+H1 title) and `sprint-<N>.md` (H1 + `### Story N.M — <title>` headings), substitutes the
+sprint-specific delta into `templates/kickoff.md`, and prints the finished prompt to stdout. Paste
+its output as-is.
+
+**The documented shape below is the SSOT the generator reproduces — it's the fallback if the
+script is unavailable, not the primary path:**
 
 ```
 Read apps/miyagisanchez/AGENTS.md, Roadmap/WAYS-OF-WORKING.md and Roadmap/LEARNINGS.md. Skim team memory.

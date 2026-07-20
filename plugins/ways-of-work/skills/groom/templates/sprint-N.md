@@ -23,9 +23,16 @@
 ## Sprint {{N}} — Smoke walkthrough (do these in order)
 Env: production · https://miyagisanchez.com   (or the preview URL while testing pre-merge)
 
-1. <action with a real clickable URL>
+1. Go to https://miyagisanchez.com/<page-or-path>
    → <observable expected result>
+2. In the seller portal, go to https://miyagisanchez.com/s/<test-shop>/manage/<settings-page>
+   → <observable expected result>
+3. (money path — owed to Daniel by name) Add <item> to cart → checkout as guest → pay with a
+   Stripe test card 4242 4242 4242 4242.
+   → Order confirmation email arrives, branded to the shop; the seller's order screen shows <field>.
 
-<!-- Flag money/auth/checkout steps by name — those are owed to Daniel (an automated browser smoke can't fully cover them). -->
+<!-- Delete whichever pre-filled steps don't apply to this sprint; add more using the same shape
+     (real clickable URL + one observable result). Flag any money/auth/checkout step by name —
+     those are owed to Daniel (an automated browser smoke can't fully cover them). -->
 
 If any step fails, note the step number + what you saw — that's the bug report.
