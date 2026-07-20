@@ -54,7 +54,14 @@ export function parseFrontmatter(text) {
   const out = {};
   for (const line of lines.slice(1, end)) {
     const m = line.match(/^(\w+):\s*(.*)$/);
-    if (m) out[m[1]] = m[2].trim();
+    // Strip a YAML inline comment (whitespace + `#` … to end-of-line) before
+    // trimming: frontmatter routinely annotates values, e.g.
+    // `status: in-progress   # AUTHORITATIVE …`. Without this, a comment on
+    // the `slug:` line would make `frontmatter.slug !== slug` a false mismatch
+    // and crash the run on otherwise-fine data. Only an UNquoted value is
+    // parsed here (these frontmatters never quote), so this can't eat a `#`
+    // inside a quoted string.
+    if (m) out[m[1]] = m[2].replace(/\s+#.*$/, '').trim();
   }
   return out;
 }

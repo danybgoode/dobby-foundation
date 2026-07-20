@@ -39,6 +39,14 @@ test('parseFrontmatter: no leading fence returns empty object', () => {
   assert.deepEqual(parseFrontmatter('# Epic: My Epic\n'), {});
 });
 
+test('parseFrontmatter: strips a YAML inline comment from a value (would otherwise false-mismatch the slug check)', () => {
+  const text =
+    '---\nstatus: in-progress   # AUTHORITATIVE epic status (SSOT)\nslug: my-epic   # note\n---\n\n# Epic: My Epic\n';
+  const fm = parseFrontmatter(text);
+  assert.equal(fm.status, 'in-progress');
+  assert.equal(fm.slug, 'my-epic');
+});
+
 test('parseEpicTitle: strips the "Epic: " prefix from the H1', () => {
   const text = '---\nstatus: scaffolded\nslug: x\n---\n\n# Epic: Process token-diet\n\n## Why\n';
   assert.equal(parseEpicTitle(text), 'Process token-diet');
