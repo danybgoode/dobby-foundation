@@ -233,6 +233,20 @@ project's `apps/*/e2e/README.md` for a worked example):
   different speeds, merge latest `main` into your branch before/while a PR is open; merge the
   data-producing repo first when a consuming repo depends on its data; make the consumer degrade
   gracefully. See `LEARNINGS.md → Multi-agent & async deploy coordination`.
+- **Wakeup-resilient orchestration — worker death is a normal case, not an incident.** Running a
+  multi-agent batch (several builders spawned in parallel), three rules make death-mid-task
+  survivable instead of a per-session rediscovery: (1) **spawn each builder on its own isolated
+  `git worktree`**, never the shared root checkout — a killed agent's in-progress tree then can't
+  collide with anyone else's. (2) **A killed/rate-limited worker's uncommitted tree is evidence,
+  not garbage** — before discarding or re-spawning, diff it; it's often a coherent, attributable
+  answer to whatever it was mid-task on. If the same agent id is still resumable, **message it to
+  resume with a one-paragraph state recap** (paste its actual `git status`/`git diff` output) rather
+  than spawning a cold replacement — a resumed agent's first instinct is to trust its pre-kill
+  memory, and the pasted state is what corrects that. (3) **Verify by re-deriving actual repo state,
+  never by trusting a worker's own completion report.** A subagent that dies mid-task from a shared
+  rate limit still returns a plausible-sounding `result` — that text is its last tool-call
+  narration, not proof of completion. After any subagent/fork batch, re-derive directly (`git
+  status`/`diff`/`log`, re-run the type-checker/build/tests) before treating it as done.
 
 ---
 
