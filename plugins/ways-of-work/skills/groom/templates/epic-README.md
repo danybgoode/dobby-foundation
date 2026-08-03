@@ -45,6 +45,8 @@ slug: {{SLUG}}
 - [ ] Team memory + `MEMORY.md` index updated
 - [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
 - [ ] **Kill-switch (only if one was planned at grooming — Stage 6b):** the flag slice shipped + the flag
-      exists in Flagsmith / Edge Config with the stated polarity. *Verify-only — not a new gate; whether a
-      high-risk epic needs one is decided at grooming, not here.*
+      exists **in this project's own flag provider, in every env**, with the stated polarity (this
+      project's AGENTS.md / WAYS-OF-WORKING names the mechanism — a flag is invisible until it's
+      created there). *Verify-only — not a new gate; whether a high-risk epic needs one is decided at
+      grooming, not here.*
 - [ ] Feature branch deleted; **this README's frontmatter `status: shipped`** (the SSOT — the board & Notion derive from it; run `node scripts/build-order.mjs`)

@@ -1,0 +1,56 @@
+name: CI
+
+# This repo had NO CI until the harness-portability fast-follow. It ships a plugin and a spawn
+# template to every consuming project, so a bad merge here propagates silently — "it's only docs"
+# is exactly how the origin-project residue survived for months.
+#
+# Deliberately minimal and zero-dependency: no install step, no lockfile, no package.json. Every
+# check below runs straight from `node`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The grep-to-zero guard against origin-project residue. Fails on a new leak, and also on a
+      # stale allowlist entry — see the header of the script for the reasoning.
+      - name: Plugin leak guard
+        run: node scripts/check-plugin-leaks.mjs
+
+      # The groom kickoff generator's own unit tests. They existed before this workflow and had
+      # nothing running them.
+      - name: groom emit-kickoff tests
+        run: node plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs
+
+      # The scaffolder renders three templates into every new epic in every consuming project. A
+      # broken placeholder here is invisible until someone scaffolds an epic, so render one and
+      # assert nothing was left unsubstituted.
+      - name: Scaffolder smoke
+        run: |
+          node plugins/ways-of-work/skills/groom/scaffold-epic.mjs \
+            --slug ci-smoke --area 09 --macro 09-platform-infra \
+            --title "CI smoke" --risk low --type chore --sprints "S1 one;S2 two"
+          out=plugins/ways-of-work/Roadmap/09-platform-infra/ci-smoke
+          test -f "$out/README.md"
+          test -f "$out/sprint-1.md"
+          test -f "$out/sprint-2.md"
+          test -f "$out/RETROSPECTIVE.md"
+          if grep -rn '{{' "$out"; then
+            echo "scaffolder left unsubstituted placeholders (above)" >&2
+            exit 1
+          fi
+          rm -rf plugins/ways-of-work/Roadmap
+          echo "scaffolder smoke: 4 files rendered, no unsubstituted placeholders."

@@ -39,6 +39,23 @@ inside the same operating system without forking it. The full rationale lives in
 seed under `Roadmap/00-ideas/seeds/`, found by slug — seeds carry their lifecycle in frontmatter
 (`status:`), so there are no stage folders to look in.
 
+## Guard — keep it portable
+
+```
+node scripts/check-plugin-leaks.mjs
+```
+
+Everything under `plugins/`, `template/`, `.claude-plugin/` and this README ships to consuming
+projects, so it must not name the project this was extracted from — its app paths, repo list, auth
+provider, chat destination, or any person. The guard sweeps for that residue and fails CI on a new
+match. A skill should state the **shape** it needs as a named `TEMPLATE FILL-IN` and let the
+consuming project supply the value; the concrete values belong in *that* project's own docs.
+
+Deliberate matches (provenance prose, the `author` fields) live in the script's `ALLOW` list, each
+with a written reason. A stale `ALLOW` entry fails too — the allowlist has to keep describing the
+repo as it actually is. CI also runs the groom generator's tests and renders a throwaway epic to
+prove the scaffolder templates still substitute.
+
 ## Gotcha
 
 Each skill in `plugins/ways-of-work/skills/` wraps a repo-local script (`scripts/<name>.mjs`) that
