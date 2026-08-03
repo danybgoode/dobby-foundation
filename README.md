@@ -34,9 +34,10 @@ Or checked into a project's `.claude/settings.json` (team-shared, zero manual st
 
 Extracted from `medusa-bonsai` (`danybgoode/miyagi-product-management`) as the S0 workstream of the
 `dobby-foundation — portable ways-of-work` epic
-(`Roadmap/09-platform-infra/dobby-foundation/`), so the Golden Beans Growth Engine (and any future
-project) can build inside the same operating system without forking it. See that repo's scope doc
-(`Roadmap/00-ideas/2. readyforscope/golden-beans-growth-engine.md`) for the full rationale.
+(`Roadmap/09-platform-infra/dobby-foundation/`), so a second project (and any future one) can build
+inside the same operating system without forking it. The full rationale lives in that repo's scope
+seed under `Roadmap/00-ideas/seeds/`, found by slug — seeds carry their lifecycle in frontmatter
+(`status:`), so there are no stage folders to look in.
 
 ## Gotcha
 

@@ -3,7 +3,7 @@ name: build-order-sync
 description: >
   Regenerates Roadmap/00-ideas/BUILD-ORDER.md when it has drifted from the SSOT (each epic README's
   frontmatter status:) and opens a claude/ docs PR with the fix — never hand-edits the board. Use when
-  Daniel asks to "sync the build order", "regenerate BUILD-ORDER.md", "check board drift", "is the
+  the product owner asks to "sync the build order", "regenerate BUILD-ORDER.md", "check board drift", "is the
   build-order board stale", "open a build-order PR", or as the nightly ops routine's first step. Runs
   scripts/build-order-sync.mjs, which does the check, the regen, and (on real drift) the branch/commit/
   push/PR — this skill just invokes it and reports the result.
@@ -16,7 +16,7 @@ description: >
 > just that regenerated file.
 
 ## When to run me
-Daniel asks to check/regenerate the build-order board, or the nightly **ops-nightly** routine
+The product owner asks to check/regenerate the build-order board, or the nightly **ops-nightly** routine
 (`scripts/routines/ops-nightly.prompt.md`) invokes me as its first step.
 
 ## What already exists (reuse, don't rebuild)
