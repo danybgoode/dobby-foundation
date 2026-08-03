@@ -466,8 +466,8 @@ async function main() {
   //   node roadmap-to-notion.mjs --pr <epic-slug> --clear     # PR closed/merged → drop the overlay
   //   add --dry to preview the targeted rows from the projection without touching Notion (smoke-safe).
   if (mode === 'pr') {
-    const PR_PROP = 'Lifecycle';     // a NEW Notion Select, separate from docs-derived Status (Daniel ratifies)
-    const PR_LINK_PROP = 'PR link';  // a NEW Notion URL property                            (Daniel ratifies)
+    const PR_PROP = 'Lifecycle';     // a NEW Notion Select, separate from docs-derived Status (owner ratifies)
+    const PR_LINK_PROP = 'PR link';  // a NEW Notion URL property                            (owner ratifies)
     const prSlugs = [...new Set(
       args.flatMap((a, i) => (a === '--pr' && args[i + 1] ? args[i + 1].split(',') : []))
           .map((s) => s.trim()).filter(Boolean),
