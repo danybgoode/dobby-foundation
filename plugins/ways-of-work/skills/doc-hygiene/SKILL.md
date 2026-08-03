@@ -1,12 +1,13 @@
 ---
 name: doc-hygiene
 description: >
-  Keeps the always-read session-start docs (apps/miyagisanchez/AGENTS.md,
-  Roadmap/WAYS-OF-WORKING.md, Roadmap/LEARNINGS.md, Roadmap/README.md poster) from re-bloating after
-  the one-time de-noise sweep. Use when Daniel asks to "check doc hygiene", "measure LEARNINGS size",
-  "is LEARNINGS bloated again", "run the doc hygiene report", or as the weekly Routine C hygiene pass.
-  Runs scripts/doc-hygiene.mjs, reviews its flagged candidates against the source docs, and emits a
-  dated advisory report. Never edits Roadmap docs — proposals only, Daniel/the builder hand-merges.
+  Keeps the always-read session-start docs (this project's AGENTS.md, Roadmap/WAYS-OF-WORKING.md,
+  Roadmap/LEARNINGS.md, Roadmap/README.md poster) from re-bloating after the one-time de-noise sweep.
+  Use when the product owner asks to "check doc hygiene", "measure LEARNINGS size", "is LEARNINGS
+  bloated again", "run the doc hygiene report", or as the weekly Routine C hygiene pass. Runs
+  scripts/doc-hygiene.mjs, reviews its flagged candidates against the source docs, and emits a dated
+  advisory report. Never edits Roadmap docs — proposals only, the product owner or the builder
+  hand-merges.
 ---
 
 # Doc hygiene — rolling maintenance for the always-read set (Cowork or Claude Code)
@@ -17,7 +18,7 @@ description: >
 > standing `HYGIENE-REPORT-*.md` convention from Routine C.
 
 ## When to run me
-Daniel asks to check doc hygiene, measure the always-read set, or investigate whether `LEARNINGS.md`/
+The product owner asks to check doc hygiene, measure the always-read set, or investigate whether `LEARNINGS.md`/
 the poster are bloating again — or the weekly **Routine C** roadmap-hygiene pass invokes me as its
 fourth step (`scripts/routines/roadmap-hygiene.prompt.md`).
 
@@ -48,8 +49,8 @@ where to look**, not to assert staleness. For each flagged item:
 - **Near-duplicate bullets**: read both bullets in context. A shared topic with different why/date/
   source is *not* a duplicate — the LEARNINGS discipline (below) explicitly wants related lessons kept
   as separate bullets when they're separate incidents.
-- **Dead path reference**: check both app roots (`apps/miyagisanchez/`, `apps/backend/`) before
-  concluding a path is gone — this checkout is not authoritative for either app's own `main` (they're
+- **Dead path reference**: check **every** app root the project has before concluding a path is gone —
+  in a multi-app setup this checkout may not be authoritative for each app's own `main` (they can be
   separate, gitignored repos here). A bullet describing a **swap** (e.g. "converted `app/robots.ts` →
   `app/robots.txt/route.ts`") will *always* flag the old path — that's the bullet correctly documenting
   history, not staleness.
@@ -60,7 +61,7 @@ where to look**, not to assert staleness. For each flagged item:
 
 ## Stage 3 — Emit the report, propose, don't touch
 Write the dated report (the script does this automatically unless `--check`). If Stage 2 turned up a
-genuine candidate worth acting on, **propose it in the report** (or, if invoked ad hoc by Daniel, describe
+genuine candidate worth acting on, **propose it in the report** (or, if invoked ad hoc, describe
 the specific edit you'd make) — do not edit `LEARNINGS.md`/`README.md` yourself as part of this skill.
 An actual edit is a separate, explicit, human-reviewed change (same as the original sweep: reviewed diff
 + a "removed & why" note + before/after counts, no silent deletions).

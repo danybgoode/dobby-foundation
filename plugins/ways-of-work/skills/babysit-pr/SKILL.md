@@ -2,9 +2,9 @@
 name: babysit-pr
 description: >
   Advisory PR watch for a single open PR — retries flaky CI (re-runs failed workflow runs) and
-  surfaces merge conflicts via one comment; never merges, never a required check. Use when Daniel
-  asks to "babysit this PR", "check on open PRs", "retry flaky CI", "is this PR stuck", "why isn't
-  this PR moving", or as the nightly ops routine's third step (once per open PR across the 3 repos).
+  surfaces merge conflicts via one comment; never merges, never a required check. Use when the product
+  owner asks to "babysit this PR", "check on open PRs", "retry flaky CI", "is this PR stuck", "why isn't
+  this PR moving", or as the nightly ops routine's third step (once per open PR across the project's repos).
   Runs scripts/babysit-pr.mjs, which does the gh reads, the retry, and the comment post. A clean PR
   (no conflict, no failing checks) gets NO comment — this tool never adds nightly noise to a healthy PR.
 ---
@@ -13,8 +13,8 @@ description: >
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/babysit-pr.mjs`, which
 > ships in the *consuming project's* `scripts/` dir, not inside this plugin — a project spawned from
-> the `dobby-foundation` template gets it via `template/scripts/`; medusa-bonsai already has it. If
-> the script is missing, say so and stop rather than reimplementing its logic inline.
+> the `dobby-foundation` template gets it via `template/scripts/`. If the script is missing, say so
+> and stop rather than reimplementing its logic inline.
 
 > This skill's only writes are: re-running an already-FAILED workflow run (`gh run rerun --failed`)
 > and posting ONE plain PR comment. It never calls `gh pr merge`, never rebases/force-pushes a branch,
@@ -22,8 +22,9 @@ description: >
 > required check, and that's deliberate.
 
 ## When to run me
-Daniel asks about a stuck/flaky PR, or the nightly **ops-nightly** routine invokes me once per open PR
-across all 3 repos (it lists the open PRs itself; this skill handles one PR per invocation).
+The product owner asks about a stuck/flaky PR, or the nightly **ops-nightly** routine invokes me once per
+open PR across `<REPOS>` — the project's own repo list, the same one `standup-post` and `weekly-recap`
+use (the routine lists the open PRs itself; this skill handles one PR per invocation).
 
 ## What already exists (reuse, don't rebuild)
 - **`scripts/babysit-pr.mjs`** — the mechanical part: `node scripts/babysit-pr.mjs <PR#> --repo
@@ -63,9 +64,9 @@ PR/repo across nights is a `gh` scope problem, not a flake in the PR itself.
 - **Comment-only is a structural guarantee, not just policy** — a plain `gh pr comment` carries no
   commit-status, so it cannot be wired into branch protection as a required check even by accident.
   Keep it that way: never add a status-check/check-run call to this script.
-- **A clean PR posts nothing, on purpose** — nightly execution across every open PR in 3 repos would
+- **A clean PR posts nothing, on purpose** — nightly execution across every open PR in every repo would
   otherwise spam a comment on every healthy PR every night. Silence on a clean PR is success, mirroring
   `smoke-triage`'s "green → no PR" and `roadmap-hygiene`'s "nothing to flag → no PR."
-- **`--repo` is always required** — this skill has no default repo (it watches PRs across
-  `miyagi-product-management`, `miyagisanchezcommerce`, and `medusa-bonsai-backend`); the caller
-  (Daniel or the routine's PR-enumeration step) always supplies it explicitly.
+- **`--repo` is always required** — this skill has no default repo, deliberately: it watches PRs across
+  all of `<REPOS>`, so the caller (the product owner, or the routine's PR-enumeration step) always
+  supplies it explicitly rather than inheriting one repo's default.

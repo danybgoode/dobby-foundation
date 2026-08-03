@@ -12,19 +12,20 @@ slug: {{SLUG}}
      Optional: if this epic was ALSO tagged with an archetype at grooming (see spike-role-archetypes.md),
      append " · **Archetype:** <Prototyper|Builder|Sweeper|Grower|Maintainer>" after Class. Omit entirely
      for the Builder default — untagged is fine.
-     Scope-seed link: always points at seeds/ (the forward path per 00-ideas/README.md — `2. readyforscope/`
-     is documented legacy). If this epic was scaffolded from a readyforscope doc with no seeds/ entry,
-     link there instead and migrate to seeds/ when convenient — don't fabricate a seeds/ file that doesn't
-     exist. -->
+     Scope-seed link: always points at seeds/ — lifecycle lives in the seed's `status:` frontmatter, not
+     in a folder path (see 00-ideas/README.md). If this epic was scaffolded from a doc that has no seeds/
+     entry, link that doc instead and migrate it to seeds/ when convenient — don't fabricate a seeds/ file
+     that doesn't exist. -->
 
 ## Why
 <!-- One paragraph: the outcome this epic delivers and for whom. Plain product language, no tech. -->
 
-## Medusa-first note
-<!-- Does Medusa already model this? Which primitive backs it? (AGENTS rule #1) -->
+## Platform-first note
+<!-- Does the platform's own system of record already model this? Which primitive backs it?
+     (This project's AGENTS.md data-ownership rule.) -->
 
 ## What already exists (reuse, don't rebuild)
-<!-- Concrete files / routes / primitives the Medusa-first reframe surfaced. -->
+<!-- Concrete files / routes / primitives the platform-first reframe surfaced. -->
 -
 
 ## Scope — stories

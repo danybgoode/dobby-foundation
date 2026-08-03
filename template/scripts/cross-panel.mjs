@@ -5,8 +5,8 @@
 // into a DIFFERENT model family's CLI (Codex or Antigravity) with an architecture LENS prompt
 // (scripts/cross-panel.prompt.md), then PRINTS the critique. It is dev tooling, not app code, and is:
 //   • SINGLE-PASS — one read per lens, no debate / iterate-to-convergence loop (our #1 token sink).
-//   • PRINT-ONLY — it NEVER edits the doc. Daniel commits any takeaways himself as a normal doc commit.
-//   • ADVISORY ONLY — never gates. Daniel's scope-doc approval remains the only gate (planning has no CI).
+//   • PRINT-ONLY — it NEVER edits the doc. The product owner commits any takeaways as a normal doc commit.
+//   • ADVISORY ONLY — never gates. The product owner's scope-doc approval remains the only gate (planning has no CI).
 //
 // Usage:
 //   node scripts/cross-panel.mjs <scope-doc> --agent codex|antigravity --lens architect-purist [--dry-run]

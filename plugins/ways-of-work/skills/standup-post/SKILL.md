@@ -1,48 +1,57 @@
 ---
 name: standup-post
 description: >
-  Posts a delta-only daily standup to Telegram, aggregating overnight signals across all three repos
-  (root miyagi-product-management, miyagisanchezcommerce, medusa-bonsai-backend): opened/merged PRs +
-  CI status, the latest browser-smoke.yml run, BUILD-ORDER.md drift, open-PR state, and the stale
-  Vercel-preview count. Use when Daniel asks to "post the standup", "run the daily standup", "what
-  happened overnight", or as the nightly ops routine's one step. Runs scripts/standup.mjs, which does
-  all the aggregation, diffing (against the `claude/standup-log` branch), SmallDocs story-deck link
-  generation, and the actual Telegram send. Read-only aggregation + one Telegram post + a log commit —
-  never merges, never gates, never touches any repo's code.
+  Posts a delta-only daily standup to a chat destination, aggregating overnight signals across every
+  repo the project spans: opened/merged PRs + CI status, the latest browser-smoke workflow run,
+  BUILD-ORDER.md drift, open-PR state, and the stale preview-deployment count. Use when the product
+  owner asks to "post the standup", "run the daily standup", "what happened overnight", or as the
+  nightly ops routine's one step. Runs scripts/standup.mjs, which does all the aggregation, diffing
+  (against the `claude/standup-log` branch), story-deck link generation, and the actual send.
+  Read-only aggregation + one chat post + a log commit — never merges, never gates, never touches
+  any repo's code.
 ---
 
-# standup-post — the daily Telegram standup
+# standup-post — the daily standup post
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/standup.mjs` (plus
 > `scripts/build-order.mjs --check` and `scripts/vercel-prune-previews.mjs` for its drift/preview
 > signals), which ship in the *consuming project's* `scripts/` dir, not inside this plugin — a
-> project spawned from the `dobby-foundation` template gets them via `template/scripts/`;
-> medusa-bonsai already has them. **The 3-repo list above (`miyagi-product-management`,
-> `miyagisanchezcommerce`, `medusa-bonsai-backend`) is medusa-bonsai's own project config, not
-> universal** — a consuming project supplies its own repo list. If a script is missing, say so and
-> stop rather than reimplementing its logic inline.
+> project spawned from the `dobby-foundation` template gets them via `template/scripts/`. If a
+> script is missing, say so and stop rather than reimplementing its logic inline.
 
-> This skill never merges a PR, retries CI, or edits any repo's code. Its only writes are a Telegram
+> This skill never merges a PR, retries CI, or edits any repo's code. Its only writes are a chat
 > message and an append to `scripts/standups.log` (committed + pushed so the next run — including a
 > fresh nightly-routine session — can diff against it).
 
+## Project config — TEMPLATE FILL-IN
+
+Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
+say which and stop.
+
+| Value | What it is |
+|---|---|
+| `<REPOS>` | every repo this standup aggregates over — the project's own repo list, one or many. `weekly-recap`, `babysit-pr` and `pmo-report` read the **same** list; define it once for the project, don't fork a per-skill copy. |
+| `<CHAT_DESTINATION>` | where the post lands — the chat id in `TELEGRAM_CHAT_ID` (or this skill's `config.json`), and the bot that owns it |
+| `<SMOKE_WORKFLOW_REPO>` | which repo actually runs the browser-smoke workflow (often only the frontend one — see Gotchas) |
+| `<STORY_DECK>` | the story-deck/summary link generator the script appends to the post, if the project has one |
+
 ## When to run me
-Daniel asks for a standup / "what happened overnight", or the nightly **ops-nightly** routine
-(`scripts/routines/ops-nightly.prompt.md`) invokes me as its one step.
+The product owner asks for a standup / "what happened overnight", or the nightly **ops-nightly**
+routine (`scripts/routines/ops-nightly.prompt.md`) invokes me as its one step.
 
 ## What already exists (reuse, don't rebuild)
 - **`scripts/standup.mjs`** — the mechanical part. Run it, always: `node scripts/standup.mjs` (gathers,
-  diffs, posts the plain standup plus a `SmallDocs standup:` story-deck link, commits the log) or
-  `node scripts/standup.mjs --dry-run` (gathers + prints the same message, skips Telegram and the git
+  diffs, posts the plain standup plus the `<STORY_DECK>` link, commits the log) or
+  `node scripts/standup.mjs --dry-run` (gathers + prints the same message, skips the send and the git
   commit — use this to sanity-check without touching anything).
-- **`gh` CLI** — the PR/CI/workflow-run signals. Must be authenticated with read access to all 3 repos;
-  a repo it can't reach degrades to "unavailable" in that section, it doesn't fail the whole run.
+- **`gh` CLI** — the PR/CI/workflow-run signals. Must be authenticated with read access to every repo in
+  `<REPOS>`; a repo it can't reach degrades to "unavailable" in that section, it doesn't fail the whole run.
 - **`scripts/build-order.mjs --check`** — the build-order drift signal. Don't re-implement its diff logic.
 - **`scripts/vercel-prune-previews.mjs`** (dry-run, `--age 7`) — the stale-preview count. Never pass
   `--apply` from this skill.
-- **`apps/miyagisanchez/lib/telegram.ts`** — the reference HTTP-call shape (`sendMessage`, `parse_mode:
-  'HTML'`, escape `&`/`<`/`>`) that `standup.mjs` reimplements standalone (this script has no access to
-  the app's build).
+- **The app's own chat-client module**, if it has one — the reference HTTP-call shape (`sendMessage`,
+  `parse_mode: 'HTML'`, escape `&`/`<`/`>`) that `standup.mjs` reimplements standalone, since this script
+  has no access to the app's build.
 
 ## Stage 1 — ensure config
 `standup.mjs` resolves the chat id two ways, in order: `skills/standup-post/config.json`'s `chat_id`
@@ -51,23 +60,23 @@ env var is the one that actually works** — `config.json` is gitignored and a r
 a fresh checkout every run, so a locally-written `config.json` never survives to the next run. Set
 `TELEGRAM_CHAT_ID` on the routine's environment (the same var its optional failure-ping already needs —
 one setting covers both). `config.json` remains the right mechanism for a local/interactive run:
-1. Use `AskUserQuestion` to ask Daniel for the Telegram chat id (the same MiyagiDevopsTele bot/chat the
-   deploy notifiers and routine failure-pings already use).
+1. Use `AskUserQuestion` to ask the product owner for `<CHAT_DESTINATION>`'s chat id — normally the same
+   bot/chat the project's deploy notifiers and routine failure-pings already use.
 2. Copy `config.example.json` → `config.json` and write the answer into `chat_id`.
 
 **Never** ask for or write the bot token here — that's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
-env var, set outside this flow (Daniel's shell, or the routine's environment config).
+env var, set outside this flow (the product owner's shell, or the routine's environment config).
 
 ## Stage 2 — ensure the secret
-Confirm `TELEGRAM_BOT_TOKEN` is set in the environment. If it isn't, tell Daniel to export it (locally)
-or set it on the routine's environment (for the nightly run) — don't try to capture a secret via
-`AskUserQuestion`.
+Confirm `TELEGRAM_BOT_TOKEN` is set in the environment. If it isn't, tell the product owner to export it
+(locally) or set it on the routine's environment (for the nightly run) — don't try to capture a secret
+via `AskUserQuestion`.
 
 ## Stage 3 — run it
 `node scripts/standup.mjs`. Report back what posted — either the delta lines, or the "quiet night, no
-change" case — and mention that the Telegram message includes the `SmallDocs standup:` deck link. That
-way whoever invoked this (Daniel or the routine transcript) has a summary even without opening Telegram.
-Write it in prose as if reporting to executive level.
+change" case — and mention that the message includes the `<STORY_DECK>` link. That way whoever invoked
+this (the product owner, or the routine transcript) has a summary even without opening the chat. Write it
+in prose as if reporting to executive level.
 
 ## Stage 4 — on failure
 Surface `standup.mjs`'s stderr verbatim (it dies loud with a specific message — missing token, missing
@@ -80,15 +89,17 @@ problem, not a flake.
 - **Delta-only depends on `scripts/standups.log` surviving between runs.** If it's ever reset or
   deleted, the very next run has nothing to diff against and re-reports everything as "new" — that's
   expected recovery behavior, not a bug.
-- **`gh` needs read access to all 3 repos**, not just the one you're used to working in. A repo it can't
-  reach (auth, network, wrong repo slug) silently degrades that repo's section to "unavailable" — it
-  does not fail the whole standup. If a repo's section is consistently missing, check `gh auth status`
-  and repo access before assuming the repo itself is quiet.
+- **`gh` needs read access to every repo in `<REPOS>`**, not just the one you're used to working in. A
+  repo it can't reach (auth, network, wrong repo slug) silently degrades that repo's section to
+  "unavailable" — it does not fail the whole standup. If a repo's section is consistently missing, check
+  `gh auth status` and repo access before assuming the repo itself is quiet.
 - **`TELEGRAM_BOT_TOKEN` is a secret — it never goes in `config.json`.** Only the non-secret chat id
   lives there. If you ever see a token-looking value in `config.json`, that's a mistake to fix, not a
   new convention.
-- **`browser-smoke.yml` only exists in the frontend repo** (`miyagisanchezcommerce`) — the backend has
-  no per-branch preview / no Playwright (`WAYS-OF-WORKING.md`). Don't expect or add a backend smoke row.
+- **The browser-smoke workflow usually exists in only ONE repo** — `<SMOKE_WORKFLOW_REPO>`, typically the
+  frontend, since a backend repo often has no per-branch preview and no Playwright at all (the project's
+  `WAYS-OF-WORKING.md` is the SSOT for which). Don't expect, or add, a smoke row for a repo that has no
+  such workflow.
 - **`vercel-prune-previews.mjs`'s own default is `--age 0`**, which flags literally every
   non-production preview, including one from a PR opened yesterday — not a meaningful "stale" signal.
   `standup.mjs` deliberately passes `--age 7`. If you invoke the prune script directly for something

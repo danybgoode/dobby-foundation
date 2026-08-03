@@ -1,47 +1,55 @@
 ---
 name: weekly-recap
 description: >
-  Posts a weekly executive recap/retro to Telegram, aggregating the week's merged PRs across all three
-  repos (root miyagi-product-management, miyagisanchezcommerce, medusa-bonsai-backend), shipped/closed
-  epics (detected from README frontmatter status: flips to shipped/archived), a merges-to-main deploy
-  count per app repo, and a short retro digest pulled from each shipped epic's RETROSPECTIVE.md. Use
-  when Daniel asks to "post the weekly recap", "what shipped this week", "weekly retro", "weekly exec
-  summary", or as the weekly-recap routine's one step. Runs scripts/weekly-recap.mjs, which does all the
-  gathering (gh + git log) and the actual Telegram send. Read-only aggregation + one Telegram post + a
-  log commit — never merges, never gates, never touches any repo's code.
+  Posts a weekly executive recap/retro to a chat destination, aggregating the week's merged PRs across
+  every repo the project spans, shipped/closed epics (detected from README frontmatter status: flips to
+  shipped/archived), a merges-to-main deploy count per app repo, and a short retro digest pulled from
+  each shipped epic's RETROSPECTIVE.md. Use when the product owner asks to "post the weekly recap",
+  "what shipped this week", "weekly retro", "weekly exec summary", or as the weekly-recap routine's one
+  step. Runs scripts/weekly-recap.mjs, which does all the gathering (gh + git log) and the actual send.
+  Read-only aggregation + one chat post + a log commit — never merges, never gates, never touches any
+  repo's code.
 ---
 
-# weekly-recap — the weekly Telegram executive recap
+# weekly-recap — the weekly executive recap
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/weekly-recap.mjs`,
 > which ships in the *consuming project's* `scripts/` dir, not inside this plugin — a project
-> spawned from the `dobby-foundation` template gets it via `template/scripts/`; medusa-bonsai
-> already has it. **The 3-repo list above (`miyagi-product-management`, `miyagisanchezcommerce`,
-> `medusa-bonsai-backend`) is medusa-bonsai's own project config, not universal** — a consuming
-> project supplies its own repo list. If the script is missing, say so and stop rather than
-> reimplementing its logic inline.
+> spawned from the `dobby-foundation` template gets it via `template/scripts/`. If the script is
+> missing, say so and stop rather than reimplementing its logic inline.
 
 > This skill never merges a PR, edits an epic's status, or touches any repo's code. Its only writes are
-> a Telegram message and an append to `scripts/weekly-recaps.log` (committed + pushed so the next run —
+> a chat message and an append to `scripts/weekly-recaps.log` (committed + pushed so the next run —
 > including a fresh weekly-routine session — knows where the last window ended).
 
+## Project config — TEMPLATE FILL-IN
+
+Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
+say which and stop.
+
+| Value | What it is |
+|---|---|
+| `<REPOS>` | every repo this recap aggregates over — **the same project-level list `standup-post` uses**. Define it once for the project; don't fork a per-skill copy that drifts by next quarter. |
+| `<CHAT_DESTINATION>` | where the post lands — the chat id in `TELEGRAM_CHAT_ID` (or this skill's own `config.json`), and the bot that owns it |
+
 ## When to run me
-Daniel asks for the weekly recap / "what shipped this week" / "weekly retro", or the weekly
+The product owner asks for the weekly recap / "what shipped this week" / "weekly retro", or the weekly
 **weekly-recap** routine (`scripts/routines/weekly-recap.prompt.md`) invokes me as its one step.
 
 ## What already exists (reuse, don't rebuild)
 - **`scripts/weekly-recap.mjs`** — the mechanical part. Run it, always: `node scripts/weekly-recap.mjs`
   (gathers, posts, commits the log) or `node scripts/weekly-recap.mjs --dry-run` (gathers + prints the
-  message only — skips Telegram and the git commit; use this to sanity-check without touching anything).
+  message only — skips the send and the git commit; use this to sanity-check without touching anything).
   `--since <ISO date>` overrides the window start; pair it with `--until <ISO date>` to bound the end too
   (e.g. `--since 2026-06-01T00:00:00Z --until 2026-06-30T23:59:59Z` for "what shipped in June" — `--since`
   alone always runs through *now*, not a fixed end date).
-- **`gh` CLI** — the merged-PR signal, same 3-repo list `scripts/standup.mjs` already uses. A repo it
-  can't reach degrades to "unavailable" in its section — it does not fail the whole run.
+- **`gh` CLI** — the merged-PR signal, over the same `<REPOS>` list `scripts/standup.mjs` already uses. A
+  repo it can't reach degrades to "unavailable" in its section — it does not fail the whole run.
 - **`git log -p` on epic `README.md`s** — the shipped/closed-epic signal (frontmatter `status:` SSOT,
   same source `scripts/build-order.mjs` reads). Don't re-derive status from anywhere else.
-- **`apps/miyagisanchez/lib/telegram.ts`**'s HTTP-call shape — the reference `weekly-recap.mjs`
-  reimplements standalone (this script has no access to the app's build), same as `standup.mjs` does.
+- **The app's own chat-client module**, if it has one — the reference HTTP-call shape
+  `weekly-recap.mjs` reimplements standalone (this script has no access to the app's build), same as
+  `standup.mjs` does.
 
 ## Stage 1 — ensure config
 `weekly-recap.mjs` resolves the chat id two ways, in order: `skills/weekly-recap/config.json`'s
@@ -51,17 +59,18 @@ cloud sandbox is a fresh checkout every run, so a locally-written `config.json` 
 next run. Set `TELEGRAM_CHAT_ID` on the routine's environment (the same var its optional failure-ping
 already needs — one setting covers both). `config.json` remains the right mechanism for a
 local/interactive run:
-1. Use `AskUserQuestion` to ask Daniel for the Telegram chat id — this is the **same** MiyagiDevopsTele
-   bot/chat `standup-post` and the deploy notifiers already use, just configured independently per the
-   D-spike's per-skill `config.json` convention (don't read `standup-post`'s config directly).
+1. Use `AskUserQuestion` to ask the product owner for `<CHAT_DESTINATION>`'s chat id — normally the
+   **same** bot/chat `standup-post` and the deploy notifiers already use, just configured independently
+   per the per-skill `config.json` convention (don't read `standup-post`'s config directly).
 2. Copy `config.example.json` → `config.json` and write the answer into `chat_id`.
 
 **Never** ask for or write the bot token here — that's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
 env var, set outside this flow.
 
 ## Stage 2 — ensure the secret
-Confirm `TELEGRAM_BOT_TOKEN` is set in the environment. If it isn't, tell Daniel to export it (locally)
-or set it on the weekly-recap routine's environment — don't try to capture a secret via `AskUserQuestion`.
+Confirm `TELEGRAM_BOT_TOKEN` is set in the environment. If it isn't, tell the product owner to export it
+(locally) or set it on the weekly-recap routine's environment — don't try to capture a secret via
+`AskUserQuestion`.
 
 ## Stage 3 — run it
 `node scripts/weekly-recap.mjs`. Report back what posted — the merged-PR/deploy/shipped-epic counts and

@@ -3,7 +3,7 @@ name: prose-draft
 description: >
   First-draft internal close-out prose (retrospectives, product-poster entries, sprint-wrap
   summaries) by delegating to a cheap different-family model via the cross-agent rail. Use at
-  sprint/epic close, or when Daniel asks to "draft the retro", "draft the poster entry", "write
+  sprint/epic close, or when the product owner asks to "draft the retro", "draft the poster entry", "write
   the sprint wrap". Runs scripts/prose-draft.mjs, which gathers the epic's own docs + git log,
   applies the house-voice prompt, and prints an advisory draft to stdout. The draft is NEVER
   committed as-is — the coordinating agent edits it for factual accuracy first (drafts invent
@@ -15,8 +15,8 @@ description: >
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/prose-draft.mjs`
 > (+ `prose-draft.prompt.md`, the house-voice SSOT), which ships in the *consuming project's*
-> `scripts/` dir via `template/scripts/` — medusa-bonsai already has it. If the script is
-> missing, say so and stop rather than reimplementing its logic inline.
+> `scripts/` dir via `template/scripts/`. If the script is missing, say so and stop rather than
+> reimplementing its logic inline.
 
 ## The contract (why this is safe to delegate)
 

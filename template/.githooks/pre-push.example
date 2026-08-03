@@ -2,14 +2,14 @@
 # TEMPLATE FILL-IN — rename to `pre-push` (drop `.example`) once your project has real app code
 # and a `ci.yml` (not `ci.yml.example`) to mirror. Advisory pattern — recommended to NEVER block
 # a push (exit 0 regardless): a slow/failed local check shouldn't hold up your git workflow, CI
-# stays the real gate. See the origin project's apps/miyagisanchez/.githooks/pre-push or
-# apps/backend/.githooks/pre-push for two filled-in examples (tsc + build, advisory).
+# stays the real gate. In a monorepo, each app root can carry its own filled-in copy (typically
+# tsc + build, advisory) — this file is the shape they all start from.
 #
 # Fill in below: whatever your ci.yml's typecheck-build (and optionally e2e) job runs, run it
 # here too, matching the same command order. If your e2e suite needs local infra (a DB, a
 # local server) that isn't always running, gate it — check readiness first and skip with a
 # message rather than trying to spin infra up from inside a git hook (surprising, slow,
-# fragile). See apps/golden-beans-style repos' pre-push for a worked example of that gating.
+# fragile); print why it was skipped and note that CI still runs it on the PR.
 #
 # Also worth reading before deciding whether you need this at all: GitHub Actions minutes are
 # only METERED for PRIVATE repos — if this project is/becomes PUBLIC, its CI is already free and

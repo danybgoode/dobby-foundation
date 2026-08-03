@@ -12,12 +12,12 @@
 
 ### Story {{N}}.1 — <title>
 **As a** <role>, **I want** <capability>, **so that** <outcome>.
-**Acceptance:** <plain-language checks Daniel can run>
+**Acceptance:** <plain-language checks the product owner can run>
 **Risk:** {{RISK}}
 
 ## Sprint QA
 - **api spec(s):** <which testable story → which `e2e/*.spec.ts`>
-- **browser smoke owed:** <no · or: yes, to Daniel — name the money/auth step>
+- **browser smoke owed:** <no · or: yes, to the product owner — name the money/auth step>
 - **deterministic gate:** `tsc --noEmit` + `npm run build` + Playwright `api` green before merge
 
 ## Sprint {{N}} — Smoke walkthrough (do these in order)
