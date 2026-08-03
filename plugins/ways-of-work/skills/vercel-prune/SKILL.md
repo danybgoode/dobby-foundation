@@ -1,12 +1,12 @@
 ---
 name: vercel-prune
 description: >
-  Reports stale Vercel PREVIEW deployments for the miyagisanchez frontend project — dry-run only,
-  never deletes anything on its own. Use when Daniel asks to "check stale previews", "run vercel
-  prune", "how many dead previews are there", "clean up Vercel previews", or as the nightly ops
-  routine's second step. Wraps scripts/vercel-prune-previews.mjs with the open-PR-protected branch
-  list computed fresh each run. --apply is a SEPARATE, human-confirmed action this skill never takes
-  on its own — see Stage 3.
+  Reports stale Vercel PREVIEW deployments for a named frontend project — dry-run only, never deletes
+  anything on its own. Use when the product owner asks to "check stale previews", "run vercel prune",
+  "how many dead previews are there", "clean up Vercel previews", or as the nightly ops routine's
+  second step. Wraps scripts/vercel-prune-previews.mjs with the open-PR-protected branch list
+  computed fresh each run. --apply is a SEPARATE, human-confirmed action this skill never takes on
+  its own — see Stage 3.
 ---
 
 # vercel-prune — nightly stale-preview report (dry-run by default, apply is human-gated)
@@ -14,17 +14,29 @@ description: >
 > **Distribution note (dobby-foundation plugin):** this skill wraps
 > `scripts/vercel-prune-previews.mjs`, which ships in the *consuming project's* `scripts/` dir, not
 > inside this plugin — a project spawned from the `dobby-foundation` template gets it via
-> `template/scripts/`; medusa-bonsai already has it. **Which Vercel project it targets is
-> per-project config, not universal.** If the script is missing, say so and stop rather than
-> reimplementing its logic inline.
+> `template/scripts/`. If the script is missing, say so and stop rather than reimplementing its
+> logic inline.
 
 > **This skill's scheduled/default action is ALWAYS a dry-run report.** `--apply` is a distinct,
-> explicitly-requested action (Stage 3) that only runs when Daniel asks for it in the SAME
-> conversation — never automatically, never from the nightly routine.
+> explicitly-requested action (Stage 3) that only runs when the product owner asks for it in the
+> SAME conversation — never automatically, never from the nightly routine.
+
+## Project config — TEMPLATE FILL-IN
+
+Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
+say which and stop.
+
+| Value | What it is |
+|---|---|
+| `<VERCEL_PROJECT>` | the Vercel project whose previews this run targets. **Always pass it explicitly as `--project <VERCEL_PROJECT>`** — the underlying script carries a baked-in default from whichever project it was written for, and inheriting someone else's default silently prunes the wrong account. |
+| `<PR_REPO>` | the GitHub repo whose open PRs protect a branch from pruning — the repo that actually deploys to `<VERCEL_PROJECT>` |
+
+> One Vercel project per invocation. A project with several deployed frontends runs this once per
+> frontend, each with its own `<VERCEL_PROJECT>`/`<PR_REPO>` pair — never one run assumed to cover all.
 
 ## When to run me
-Daniel asks about stale Vercel previews, or the nightly **ops-nightly** routine invokes me as its
-second step (dry-run report only).
+The product owner asks about stale Vercel previews, or the nightly **ops-nightly** routine invokes me
+as its second step (dry-run report only).
 
 ## What already exists (reuse, don't rebuild)
 - **`scripts/vercel-prune-previews.mjs`** — does all the actual work: pages Vercel deployments, filters
@@ -35,20 +47,21 @@ second step (dry-run report only).
   review target that must never be pruned).
 
 ## Stage 1 — compute the keep-branch list
-`gh pr list --repo danybgoode/miyagisanchezcommerce --state open --json headRefName --jq
-'.[].headRefName'` → join the results into a comma-separated list (empty is fine — means no open PRs).
+`gh pr list --repo <PR_REPO> --state open --json headRefName --jq '.[].headRefName'` → join the
+results into a comma-separated list (empty is fine — means no open PRs).
 
 ## Stage 2 — the scheduled/default action: dry-run report (always this, never more)
-`node scripts/vercel-prune-previews.mjs --age 7 --keep-branch <list from Stage 1>`
+`node scripts/vercel-prune-previews.mjs --project <VERCEL_PROJECT> --age 7 --keep-branch <list from
+Stage 1>`
 
 Report back: total previews scanned, count/branches flagged for removal, and confirm the open-PR
 branches from Stage 1 are excluded from that list. **This step never passes `--apply`.**
 
-## Stage 3 — apply (ONLY when Daniel explicitly asks, in this exact conversation, to actually delete)
+## Stage 3 — apply (ONLY when the product owner explicitly asks, in this exact conversation, to actually delete)
 1. Re-run Stage 1 (branch list may have changed) + Stage 2 to restate exactly what would be deleted.
-2. Get one more explicit go-ahead from Daniel on that exact list.
-3. Re-run with `--apply` added: `node scripts/vercel-prune-previews.mjs --age 7 --keep-branch <list>
-   --apply`.
+2. Get one more explicit go-ahead from the product owner on that exact list.
+3. Re-run with `--apply` added: `node scripts/vercel-prune-previews.mjs --project <VERCEL_PROJECT>
+   --age 7 --keep-branch <list> --apply`.
 4. Report the actual delete count/failures.
 
 **Never invoke Stage 3 from the nightly routine or without a fresh, explicit ask in-conversation** —
@@ -72,6 +85,9 @@ branches from Stage 1 are excluded from that list. **This step never passes `--a
   destructive-op story. Even after the first live apply is confirmed, treat every subsequent `--apply`
   as its own explicit ask, not a standing permission — the routine structurally never runs Stage 3, so
   there's no "it's already automated, skip the check" shortcut to reach for.
-- **`--project` defaults to `miyagisanchez`** in the underlying script — this skill is scoped to that
-  one frontend project; a different Vercel project (e.g. `despachobonsai-vercel`) needs its own
-  explicit `--project` invocation and is out of this skill's default scope.
+- **The underlying script's `--project` default is inherited, not neutral.** It was written for one
+  specific Vercel project and still defaults to it, so an invocation that omits `--project` may scan
+  and flag previews in an account that has nothing to do with this project. **Always pass
+  `--project <VERCEL_PROJECT>` explicitly** — do not rely on the default being right, and do not
+  "fix" it by editing the script from this skill. Each additional Vercel project is its own explicit
+  invocation, not an extra flag on this one.
