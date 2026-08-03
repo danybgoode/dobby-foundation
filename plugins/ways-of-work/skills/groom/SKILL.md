@@ -1,11 +1,11 @@
 ---
 name: groom
 description: >
-  The front door for any new ask — feature, bug, spike, or chore. Use when Daniel
-  has a raw idea in his head (or a seed in Roadmap/00-ideas/seeds) and wants to turn
-  it into shippable, sliced work. Runs orientation → classification → "can we already
-  do this?" → disambiguation → Medusa-first reframe → slicing, lands a Definition-of-
-  Ready scope seed in 00-ideas/seeds, and on approval scaffolds + commits the epic +
+  The front door for any new ask — feature, bug, spike, or chore. Use when the product owner
+  has a raw idea in their head (or a seed in Roadmap/00-ideas/seeds) and wants to turn
+  it into shippable, sliced work. Runs orientation → appetite → classification → "can we
+  already do this?" → disambiguation → platform-first reframe → slicing, lands a Definition-
+  of-Ready pitch in 00-ideas/seeds, and on approval scaffolds + commits the epic +
   sprint docs and emits the per-sprint Claude Code kickoff prompts. Planning only —
   never writes code.
 ---
@@ -17,12 +17,12 @@ description: >
 > no code, no `tasks/` engineering log (that's Claude Code's lane). The handoff is file-based:
 > this skill writes (and commits) the epic + sprint docs; Claude Code reads them at session start.
 
-> **Be a partner, not a stenographer.** Orient, suggest ideas, pull Daniel back when an ask is
+> **Be a partner, not a stenographer.** Orient, suggest ideas, pull the product owner back when an ask is
 > bigger/smaller than it looks, and propose the lighter path. Investment in the project beats
 > order-taking. *(This is already how we work — stated here so it survives a fresh session.)*
 
 ## When to run me
-Daniel says any of: "let's groom X", "I've got an idea", "new feature/bug/spike/chore", or points at
+The product owner says any of: "let's groom X", "I've got an idea", "new feature/bug/spike/chore", or points at
 a file in `Roadmap/00-ideas/seeds/`. One ask per run.
 
 ---
@@ -31,9 +31,9 @@ a file in `Roadmap/00-ideas/seeds/`. One ask per run.
 Read, in order, before doing anything:
 1. `Roadmap/README.md` — the poster (every shipped feature, by domain). **Overlap check lives here.**
 2. `Roadmap/WAYS-OF-WORKING.md` — cadence, Definition of Ready/Done, risk tiers, QA gate.
-3. `Roadmap/LEARNINGS.md` — cross-cutting wisdom (esp. *"Medusa-first re-scopes the epic smaller"*).
-4. The relevant **macro-section README** (01–08) once the domain is known.
-5. Team memory index (`apps/miyagisanchez/memory/MEMORY.md`).
+3. `Roadmap/LEARNINGS.md` — cross-cutting wisdom (esp. *"the platform-first reframe re-scopes the epic smaller"*).
+4. The relevant **macro-section README** once the domain is known.
+5. Team memory index, if the project keeps one (its `AGENTS.md` "Start here" names it).
 
 State in one line what you loaded, then proceed.
 
@@ -41,15 +41,33 @@ State in one line what you loaded, then proceed.
 Take the raw brain-dump as given (or read it from `seeds/`). Don't clean it up yet. Mirror it back in
 one sentence: *"You want \<X\> so that \<Y\>. Right?"* — surface your understanding before refining it.
 
+## Stage 1.5 — Appetite (fix the budget before the solution)
+Before any solutioning, ask the Shape Up question inverted from estimation: **how much is this
+problem worth?** Set `appetite: S | M | L` (WAYS-OF-WORKING → *Betting & appetite* — sessions +
+an implied token band, never a time estimate). The appetite is a **creative constraint**: the
+solution designed in later stages must fit it, and if it can't, the move is to narrow the problem
+or cut scope — never to grow the appetite mid-shaping. An agent will eventually build anything if
+allowed to tokenmaxx; the appetite is what makes the work stop, zoom out, and hammer scope
+instead. Record it in the seed frontmatter.
+
 ## Stage 2 — Classify
 Pick one. The class decides the downstream path:
 
 | Class | Tell | Path |
 |---|---|---|
 | **Feature** | new buyer/seller/agent capability | scope doc → epic + sprint slicing |
-| **Spike** | "how does X work / should it be A or B" (`spike-compra-protegida`, `spike-flagsmith`) | time-boxed investigation brief → **a written decision**, not code. No slicing until the decision lands. |
-| **Bug** | promised behaviour missing/broken | **reproduce → root-cause → fix story + regression spec.** Single story unless it fans out into an epic. Hotfix variant (live money/auth/checkout breakage) → minimal fix, high-risk, Daniel merges. |
+| **Spike** | "how does X work / should it be A or B" | appetite-boxed investigation brief → **a written decision**, not code. No slicing until the decision lands. |
+| **Bug** | promised behaviour missing/broken | **reproduce → root-cause → fix story + regression spec.** Single story unless it fans out into an epic. Hotfix variant (live money/auth/checkout breakage) → minimal fix, high-risk, the product owner merges. |
 | **Chore** | tooling/infra/docs/deps, no user-facing change | **rationale → single story or small epic.** Usually low-risk; flag if it touches shared surface (`layout.tsx`, `middleware.ts`, deps) — those can break sibling PRs and must be announced. |
+
+**Lane (the economics path).** Alongside the class, name which lane this ask rides — it decides
+whether the betting table sees it (WAYS-OF-WORKING → *Betting & appetite*):
+
+| Lane | Tell | Path |
+|---|---|---|
+| **Shaped bet** | genuinely-new / strategic (usually Feature or Spike) | full pitch (problem · appetite · bill of materials · rabbit holes · no-gos) → the betting table at a wave boundary |
+| **Fixed scope** | bug, chore, well-specified story | default `appetite: S`, straight to a builder — no betting table; the escalate-don't-guess trigger is its only breaker |
+| **Reactive/ops** | incident, launch support, can't wait for a wave | no shaping; log it against the current wave's budget so the economics stay visible |
 
 > **Bug path detail.** Before proposing a fix, write the **reproduction** (exact steps + where it
 > diverges from the promise) and the **root cause** (read the model/route — many "bugs" are an
@@ -61,11 +79,11 @@ Pick one. The class decides the downstream path:
 > *before* the decision lands — a different model family's architecture second opinion on the brief:
 > `node scripts/cross-panel.mjs <brief> --lens both --agent codex` (run again with `--agent antigravity`
 > for family diversity). It's **single-pass, print-only, advisory — it never gates and never writes the
-> doc**; Daniel's decision/scope-doc approval remains the only gate. *Surface = a required offer, not an
+> doc**; the product owner's decision/scope-doc approval remains the only gate. *Surface = a required offer, not an
 > auto-run* (cost-safe, matches `cross-review`). See the full trigger model at Stage 4.
 
 **Optional archetype tag.** Alongside the class, an ask can also carry a *mode* tag — orthogonal, from the
-[role-archetypes spike decision](../../Roadmap/00-ideas/2.%20readyforscope/spike-role-archetypes.md) (trial
+role-archetypes spike decision (the origin project's `spike-role-archetypes` seed; trial
 basis). Omit it for the default (Builder); only tag when it isn't.
 
 | Archetype | What it changes |
@@ -89,14 +107,14 @@ current setup already deliver this outcome, with **existing features + communica
 enhancement**, instead of net-new work?
 
 Three buckets — name which one this ask is:
-1. **Already possible today** → no build. Show Daniel *how* (the existing feature + the messaging/positioning
-   that exposes it). *E.g. "restaurant delivery" may already be servable via arranged-delivery + a service
-   listing + the right copy — no new code.*
+1. **Already possible today** → no build. Show the product owner *how* (the existing feature + the messaging/positioning
+   that exposes it). *E.g. a "new offering" ask may already be servable via an existing primitive +
+   the right listing/copy — no new code.*
 2. **Light enhancement** → small story or a copy/config change on top of an existing feature, not an epic.
 3. **Genuinely new** → proceed to full disambiguation + slicing.
 
 Always present bucket 1/2 options *first* when they exist, with the trade-off ("you could ship this as
-positioning today, or build the dedicated flow later"). Pulling Daniel toward the lighter path when it
+positioning today, or build the dedicated flow later"). Pulling the product owner toward the lighter path when it
 exists is the job.
 
 ## Stage 3 — Disambiguate (structured Q&A)
@@ -104,28 +122,34 @@ Use the question bank below. **Ask in batches**, only the questions actually ope
 *before* planning. Make the implicit explicit so the slices are right the first time.
 
 > **Research current reality when it matters.** If the ask leans on anything that changes or is recent —
-> a standard (UCP/MCP), a payment-provider capability (Stripe/MercadoPago/SPEI/DiMo), a framework/library
-> behaviour (Next.js, Medusa v2), a Vercel/Clerk limit, or a competitor's pattern — **web-search to confirm
+> a protocol/standard, a payment-provider capability, a framework/library behaviour, a
+> hosting-platform or auth-provider limit, or a competitor's pattern — **web-search to confirm
 > the present-day facts** rather than relying on training memory. Cite what you found in the scope doc. Don't
 > plan on a stale assumption.
 
 Core bank (adapt):
-- **Role & job:** buyer, seller, agent, or admin? What job are they hiring it to do?
-- **Outcome & signal:** what's true after this ships that isn't now? How will *Daniel* test it?
+- **Role & job:** which of the project's roles is this for? What job are they hiring it to do?
+- **Outcome & signal:** what's true after this ships that isn't now? How will *the product owner* test it?
 - **Scope boundary:** what's explicitly *in* v1 and *out*? (Write the "out" list — it prevents creep.)
-- **Granularity heuristic:** per-shop vs per-product vs per-listing? (Your `spike-compra-protegida`
-  football-pitch case — escrow on reservations, not merch — is exactly this. Always ask it for anything configurable.)
-- **Data model:** does Medusa already model this? If not, is it truly non-commerce (Supabase), or are we missing a primitive?
-- **Agent surface:** per AGENTS rule #3 — how does an AI agent do this over UCP/MCP?
-- **Language & channels:** new copy is **es-MX** by default (es/en only on the bilingual allow-list — see AGENTS rule #5)? Behaves on all channels (marketplace / own-domain / subdomain / embed / API)?
+- **Granularity heuristic:** at which level does the thing attach (per-account vs per-entity vs
+  per-item)? Always ask it for anything configurable — the wrong level is an expensive re-shape.
+- **Data model:** does the project's system of record already model this? If not, is it truly
+  outside that system, or are we missing a primitive? (The project's AGENTS.md data-ownership
+  rules decide.)
+- **Agent surface:** how does an AI agent do this through the project's agent interface (MCP or
+  equivalent), per its AGENTS rules?
+- **Language & channels:** new copy follows the project's language policy (see its AGENTS.md)?
+  Behaves on all the project's channels/surfaces?
 - **Overlap:** does the poster already claim this? Reuse or extend, don't rebuild.
 
-## Stage 4 — Medusa-first reframe (the step that shrinks the epic)
+## Stage 4 — Platform-first reframe (the step that shrinks the epic)
 Before slicing, **read the backend model + route first.** Per LEARNINGS this repeatedly re-scopes work
-smaller (custom-slugs → 1-field backend change; personalized products → zero new tables). Produce the
-epic's **"What already exists (reuse, don't rebuild)"** list — concrete files/routes/primitives. Apply the
-AGENTS five rules (Medusa owns commerce · Supabase non-commerce only · UCP/MCP first-class · Clerk
-untouched · es-MX copy). If the ask violates a rule, flag it now.
+smaller (a "new feature" is often a 1-field backend change or zero new tables). Produce the
+epic's **"What already exists (reuse, don't rebuild)"** list — concrete files/routes/primitives. This
+is also where the bill of materials starts: system design is largely deciding which parts that
+already work to keep leaning on — reuse 3 primitives before adding 10 (tissue → bone). Apply the
+project's AGENTS **cannot-be-violated rules** (each consuming project names its own: which system
+owns which data, the agent surface, auth, language policy). If the ask violates a rule, flag it now.
 
 > The reuse list also names which UX rails cover this surface — CI guards (the design-token guard,
 > swept-path lints), the audits lens (`00-ideas/audits/results-refresh-2026-06/`), and any
@@ -134,7 +158,7 @@ untouched · es-MX copy). If the ask violates a rule, flag it now.
 > **Cross-agent planning panel — the trigger model (advisory, never a gate).** This is where the expensive
 > *architecture forks* surface — and where the panel earns its keep. **You must surface a one-line offer to
 > run the panel** whenever the reframe hits a fork worth a second model family's eyes:
-> - a **new Medusa module vs Supabase table vs custom Next route** decision (a Rule 1/2 call),
+> - a **new platform module vs secondary-store table vs custom route** decision (a data-ownership call),
 > - a **new primitive** (new table, new public route contract, a new id namespace),
 > - an **AGENTS-rule tension** you had to reason about, or
 > - any **expensive-to-reverse** choice (migration shape, schema, channel/auth boundary).
@@ -143,13 +167,23 @@ untouched · es-MX copy). If the ask violates a rule, flag it now.
 > (`Roadmap/SESSION-KICKOFFS.md`) but not offered. The panel is **never auto-run** (surface = a required
 > *offer*, cost-safe) and **never a gate**: it prints a single-pass, different-family critique
 > (`node scripts/cross-panel.mjs <doc> --lens both --agent codex|antigravity`) that ends in a *checkable
-> claim*; it does not edit the doc. Daniel's scope-doc approval (Stage 7) stays the only gate — the panel is
+> claim*; it does not edit the doc. The product owner's scope-doc approval (Stage 7) stays the only gate — the panel is
 > a step *before* it, not a new one.
+
+## Stage 4.5 — Bill of materials (the shaping ritual, shaped-bet lane)
+For a shaped bet, draft the solution as a **What / Why table — as few words as possible**, before
+any slicing. This is the fat-marker sketch in table form: rough enough that the product owner can
+edit it, solved enough that the parts hang together. Hand the Why column to the product owner to
+edit — a Why neither of you can defend is a part you cut, and the editing is what makes both of
+you think. Then stress-test it: name the **rabbit holes** (patch tricky decisions now, vet the
+technical unknowns) and the **no-gos** (deliberate exclusions so the appetite holds). All three
+land in the pitch (the scope-seed template carries the sections). Fixed-scope lane skips this — go
+straight to the story.
 
 ## Stage 5 — Slice (skateboard → car)
 Define the **thinnest end-to-end slice that actually works and ships** — the skateboard — then each
 increment toward the car. Every slice is an independently testable, shippable **user story**:
-> **As a** \<role\>, **I want** \<capability\>, **so that** \<outcome\>. **Acceptance:** \<plain checks Daniel can run\>.
+> **As a** \<role\>, **I want** \<capability\>, **so that** \<outcome\>. **Acceptance:** \<plain checks the product owner can run\>.
 
 Group stories into **sprints**. For each story **name the QA/smoke stage** (WAYS-OF-WORKING requires it):
 which api spec gets added, and whether a browser smoke is owed (and to whom). Prefer pure-logic specs on
@@ -157,7 +191,7 @@ an extracted `lib/` seam (free coverage).
 
 ## Stage 6 — Risk-tier every story
 Tag each **low** (docs/copy, non-commerce UI, additive agent tools behind auth, tests) or **high**
-(payments / checkout / fulfillment / auth / DB migrations / shared infra / money). High → Daniel merges.
+(payments / checkout / fulfillment / auth / DB migrations / shared infra / money). High → the product owner merges.
 When unsure, high.
 
 ### Stage 6b — Kill-switch decision for `risk: high` (recommend, don't auto-inject)
@@ -167,7 +201,7 @@ question and **write the answer in the scope seed** (the answer is mandatory; th
 
 > *Is there a runtime seam a kill-switch can gate?*
 
-- **Yes →** *recommend* a kill-switch **story** (Daniel evaluates it at the scope-doc gate — never
+- **Yes →** *recommend* a kill-switch **story** (the product owner evaluates it at the scope-doc gate — never
   auto-injected). Name four things:
   1. **Flag** — `<domain>.<feature>_enabled`, extending `lib/flags.ts` `DEFAULT_FLAGS` (the taxonomy
      lives in code, not in docs). Same shape as shipped `checkout.stripe_enabled` / `domain.paywall_enabled`.
@@ -176,26 +210,29 @@ question and **write the answer in the scope seed** (the answer is mandatory; th
        every env** (switch *armed*; disabling is the deliberate kill).
      - **Enablement / dark-launch** (merge dark, activate deliberately — esp. money infra that must be
        **seeded first**) → default **`false`**, **create it DISABLED in every env**, flip on when ready.
-     - A flag is **invisible until created in Flagsmith** — the story must say "create it in every env."
-  3. **Seam** — the single source of truth to gate (e.g. `resolveSellerPaymentMethods`) so UI + agents/UCP
-     + checkout are covered by one `isEnabled('…')` check.
-  4. **Mechanism** — **Flagsmith** for node/server seams; **Edge Config** for `middleware.ts`/Edge seams
-     (the Flagsmith SDK is **not** Edge-compatible — LEARNINGS). Edge Config is the heavier lift; naming it
-     here lets Daniel weigh server-side-gate vs carve-out.
+     - A flag is **invisible until created in the flag provider** — the story must say "create it in every env."
+  3. **Seam** — the single source of truth to gate (one resolver function) so UI + agent surface
+     + the money path are covered by one `isEnabled('…')` check.
+  4. **Mechanism** — the project's own flag rails (its AGENTS.md / WAYS-OF-WORKING names them; e.g.
+     a server-side flag provider vs an Edge-compatible config for middleware seams — SDKs are often
+     **not** Edge-compatible). If one mechanism is the heavier lift, name it here so the product
+     owner can weigh server-side-gate vs carve-out.
 - **No →** write the **one-line carve-out reason** (e.g. *DB migration — can't sit behind a runtime flag;
   reversible expand/contract instead*; *gate is the auth provider*; *no new runtime seam*).
 
 The epic Definition of Done then only **verifies** the planned slice shipped + the flag exists — it does
 **not** introduce the policy as a new build-time gate. This composes with the merge rule unchanged: the
-kill-switch story rides the same `HIGH ⇒ Daniel merges`. See the ADR
+kill-switch story rides the same `HIGH ⇒ the product owner merges`. See the ADR
 `Roadmap/00-ideas/seeds/kill-switch-at-grooming.md`.
 
-## Stage 7 — Scaffold + commit the docs (on Daniel's approval)
-1. Write the **scope seed** to `Roadmap/00-ideas/seeds/<slug>.md` — the Definition-of-Ready
-   artifact (overview · UX heuristics · acceptance criteria · the reuse list · in/out scope · open risks ·
-   any research citations · the Stage-2.5 bucket). It **must start with the seed frontmatter block**
-   (`title · slug · status · area · type · priority · risk · epic · build_order · updated` — see
-   `Roadmap/00-ideas/README.md`); set `status: ready` here. **This is the gate: nothing scaffolds until Daniel approves it.**
+## Stage 7 — Scaffold + commit the docs (on the product owner's approval)
+1. Write the **pitch** to `Roadmap/00-ideas/seeds/<slug>.md` — the Definition-of-Ready
+   artifact (problem · appetite · bill of materials · rabbit holes · no-gos, plus UX heuristics ·
+   acceptance criteria · the reuse list · open risks · any research citations · the Stage-2.5
+   bucket). It **must start with the seed frontmatter block**
+   (`title · slug · status · area · type · priority · appetite · underwritten_by · risk · epic ·
+   build_order · updated` — see `Roadmap/00-ideas/README.md`); set `status: ready` here.
+   `underwritten_by` stays `null` until the betting table funds it at a wave boundary. **This is the gate: nothing scaffolds until the product owner approves it.**
 2. On approval, **run the scaffolder** instead of hand-rendering structure:
    ```
    node skills/groom/scaffold-epic.mjs --slug <epic-slug> --area <NN> \
@@ -264,44 +301,47 @@ worktrees per builder, worker death is a normal case (diff the tree, resume the 
 transcript with a state recap, never re-spawn cold), and verify by re-deriving actual repo state, never
 by trusting a worker's own completion report.
 
-**Model tiers:** run the groom/plan and any spike on **Opus 4.8**; the per-sprint build runs on **Sonnet 5**
-once the plan is approved — the kickoff already opens in plan mode, so judgment still happens up front, and
-the kickoff prompt above carries the escalate-don't-guess triggers so Sonnet 5 hands back rather than
-guessing. (Planning here in Cowork; building in Claude Code. Full trigger list + rationale: WAYS-OF-WORKING →
-Model tiers — one SSOT, don't fork a second copy here.)
+**Model tiers — route by hill position:** uphill work (unknowns being figured out — the groom/plan,
+any spike, anything not yet "solved" in the pitch) runs on the **strongest planning tier** and is
+never delegated; downhill work (known execution against an approved plan) runs on the **builder
+tier**. The kickoff already opens in plan mode, so judgment still happens up front, and the kickoff
+prompt above carries the escalate-don't-guess triggers so a builder hands back rather than guessing —
+a scope that stops moving is a raised hand, not a reason for more tokens. (Planning here in Cowork;
+building in Claude Code. Full trigger list + rationale: WAYS-OF-WORKING → Model tiers — one SSOT,
+don't fork a second copy here.)
 
 For a **spike**, emit instead a short investigation prompt that ends in a written decision in the scope
 doc — no branch, no build.
 
 ### Stage 8b — The sprint-end smoke walkthrough (fool-proof, real URLs)
-Every sprint closes with a **step-by-step manual walkthrough Daniel can follow blind**, written into
+Every sprint closes with a **step-by-step manual walkthrough the product owner can follow blind**, written into
 `sprint-N.md`. Once deployed, it uses **real production URLs** (preview URLs while pre-merge). Format —
 numbered, one action + one expected result per step, no jargon:
 
 ```
 ## Sprint <N> — Smoke walkthrough (do these in order)
-Env: production · https://miyagisanchez.com   (or the preview URL while testing pre-merge)
+Env: production · https://<prod-domain>   (or the preview URL while testing pre-merge)
 
-1. Go to https://miyagisanchez.com/s/<test-shop>/manage/settings
+1. Go to https://<prod-domain>/<path-to-the-new-thing>
    → You see the new "<thing>" section.
 2. Click "<button>".
    → A <result> appears within ~2s.
-3. Open https://<test-shop>.miyagisanchez.com in a private window.
-   → The <feature> renders white-label, no platform chrome.
-4. (money path) Add <item> to cart → checkout as guest → pay with a Stripe test card 4242…
-   → Order confirmation email arrives, branded to the shop; the seller's order screen shows <field>.
+3. Open https://<the-other-surface>.<prod-domain> in a private window.
+   → The <feature> renders as promised on that surface too.
+4. (money path, if any) Drive the real flow with the provider's test credentials.
+   → The confirmation the user would see arrives; the owning screen shows <field>.
 
 If any step fails, note the step number + what you saw — that's the bug report.
 ```
 
 Rules: real clickable URLs (not "the settings page"); the exact button/label; the observable result; and
 call out which steps are the **money/auth path** (those are the ones an automated browser smoke can't fully
-cover, so they're owed to Daniel by name).
+cover, so they're owed to the product owner by name).
 
 ---
 
 ## Stage 9 — Close the loop: backlog cadence + next-session handoff
-**The backlog keeps growing.** Daniel routinely drops a *batch* of prioritized asks at once. We do **not**
+**The backlog keeps growing.** The product owner routinely drops a *batch* of prioritized asks at once. We do **not**
 groom a batch in one session. The cadence is:
 
 1. **Agree a consolidated build order first** (a separate evaluation pass — consolidate overlaps, sequence
@@ -340,15 +380,18 @@ If no `BUILD-ORDER.md` exists yet (a one-off ask, not a batch), skip this stage 
 - **Every plan names a QA stage and ships a smoke walkthrough.**
 - **Research present-day facts** when the ask leans on anything recent or changing.
 - **One ask per run.** Resist scope-merging two ideas.
-- **Batch backlogs → one ask per session.** When Daniel drops many asks, agree + persist a build order
+- **Batch backlogs → one ask per session.** When the product owner drops many asks, agree + persist a build order
   (`BUILD-ORDER.md`), then groom them one-per-session; end each run with the next-session handoff (Stage 9).
 
 ## Definition of Ready this skill must hit before scaffolding
-- "As a / I want / so that" clear; acceptance testable by Daniel.
+- "As a / I want / so that" clear; acceptance testable by the product owner.
+- **Appetite recorded** (Stage 1.5) and the lane named (shaped bet / fixed scope / reactive).
+- **For a shaped bet: the pitch is complete** — bill of materials (What/Why, product-owner-edited),
+  rabbit holes, no-gos (Stage 4.5).
 - Stage-2.5 bucket named (already-possible / light / new).
 - v1 in/out boundary written; research cited where relevant.
-- Reuse list produced (Medusa-first reframe done).
+- Reuse list produced (platform-first reframe done).
 - Each story risk-tiered; QA stage named; smoke-walkthrough owner identified.
 - **For a `risk: high` epic: the kill-switch decision is recorded** (Stage 6b) — either a recommended
   flag story (flag · polarity · seam · mechanism) or a one-line carve-out reason.
-- Daniel approved the scope doc.
+- the product owner approved the scope doc.
