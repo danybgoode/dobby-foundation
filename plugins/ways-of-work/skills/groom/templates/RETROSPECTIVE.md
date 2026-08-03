@@ -11,4 +11,4 @@ _Closed: <date>_
 <!-- Promote the durable, generalizable items to Roadmap/LEARNINGS.md (one-liner + why + date). Dedupe. -->
 
 ## Gaps / follow-ups
-<!-- Smoke gaps owed to Daniel, deferred slices, known limitations. -->
+<!-- Smoke gaps owed to the product owner, deferred slices, known limitations. -->
