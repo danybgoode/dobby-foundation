@@ -6,7 +6,8 @@ description: >
   it into shippable, sliced work. Runs orientation → appetite → classification → "can we
   already do this?" → disambiguation → platform-first reframe → slicing, lands a Definition-
   of-Ready pitch in 00-ideas/seeds, and on approval scaffolds + commits the epic +
-  sprint docs and emits the per-sprint Claude Code kickoff prompts. Planning only —
+  sprint docs and emits the builder kickoff — epic-mode by default (one orchestrated run
+  across the whole epic), per-sprint only as the named exception. Planning only —
   never writes code.
 ---
 
@@ -166,7 +167,7 @@ owns which data, the agent surface, auth, language policy). If the ask violates 
 > Routine work (clear reuse, no fork) is **on-demand only** — runnable via the `Panel:` verb
 > (`Roadmap/SESSION-KICKOFFS.md`) but not offered. The panel is **never auto-run** (surface = a required
 > *offer*, cost-safe) and **never a gate**: it prints a single-pass, different-family critique
-> (`node scripts/cross-panel.mjs <doc> --lens both --agent codex|antigravity`) that ends in a *checkable
+> (`node scripts/cross-panel.mjs <doc> --lens both --agent codex|antigravity|vibe|claude`) that ends in a *checkable
 > claim*; it does not edit the doc. The product owner's scope-doc approval (Stage 7) stays the only gate — the panel is
 > a step *before* it, not a new one.
 
@@ -256,20 +257,47 @@ kill-switch story rides the same `HIGH ⇒ the product owner merges`. See the AD
    For parallel planning, run in your own `git worktree`, or let one **scribe** own shared files like
    `BUILD-ORDER.md`. Docs are low-risk tier.
 
-## Stage 8 — Emit the per-sprint Claude Code kickoff prompts
-One per sprint, ready to paste into a fresh Claude Code session. **Run the generator, don't
-hand-write it:**
+## Stage 8 — Emit the builder kickoff
 
+> **Epic mode is the DEFAULT.** A whole epic in one orchestrated session is the normal unit of work;
+> the sprint documents are integration, review and rollback boundaries *inside* that run, not separate
+> engagements. Per-sprint kickoffs are the **named exception**, not the baseline — reach for them only
+> when the epic is one sprint, or when a sprint's outcome genuinely changes the next sprint's scope (so
+> the next kickoff honestly can't be written yet). Say which mode you're emitting, and why, if it's the
+> exception. (The repository's own `Roadmap/WAYS-OF-WORKING.md` → *Epic-mode builds* is authoritative
+> for the SOP; this skill emits the prompt, it doesn't re-specify the process.)
+
+### 8a — Epic mode (default)
+**Run the generator, don't hand-write it** — a hand-composed epic prompt is exactly where the
+architecture-lock pass gets summarised away and the review policy reverts to whatever the composing
+agent happened to remember:
+
+```
+node skills/groom/emit-epic-kickoff.mjs --epic <epic-slug>
+```
+
+It searches `Roadmap/*/<epic-slug>/` for the epic dir, reads the epic README (frontmatter, H1 title,
+risk tier) and **every** `sprint-N.md` (numerically ordered — the stacked-branch order depends on it),
+and prints one whole-epic orchestrator prompt to stdout. Paste it as-is. What it carries, and why each
+part is non-negotiable:
+
+| The prompt says | Because |
+|---|---|
+| **Lock `D1…Dn` against live code + live data before any builder starts** | The highest-leverage act in the run. A builder that re-derives a decision drifts from it; a paraphrased contract drifts permissive. |
+| **Disprove scope during the lock** | Scaffolded acceptance criteria routinely describe a guard, table or flag the live system doesn't have. Correct the doc, out loud. |
+| **Stack the branches** `feat/<slug>` → `-s2` → `-s3` | Sprints in one epic share hot files by construction. Siblings off one base pay a per-merge conflict tax — stack or pay. |
+| **Two external review passes per PR, routed** | See 8c. The orchestrator does **not** spawn its own reviewers by default. |
+| **Merges pre-authorized on green** | Removes the round-trip at each sprint boundary, not the gate or the review layers. |
+| **Done means shipped** | A merged PR that hasn't deployed, a migration written but not applied, a flag that exists only in code — none of those are done. |
+
+### 8b — Per-sprint mode (the exception)
 ```
 node skills/groom/emit-kickoff.mjs --epic <epic-slug> --sprint <N>
 ```
+Reads the epic README + that one `sprint-<N>.md` and substitutes the sprint-specific delta into
+`templates/kickoff.md`.
 
-It searches `Roadmap/*/<epic-slug>/` for the epic dir, reads that epic's README.md (frontmatter +
-H1 title) and `sprint-<N>.md` (H1 + `### Story N.M — <title>` headings), substitutes the
-sprint-specific delta into `templates/kickoff.md`, and prints the finished prompt to stdout. Paste
-its output as-is.
-
-**The documented shape below is the SSOT the generator reproduces — it's the fallback if the
+**The documented shape below is the SSOT that generator reproduces — it's the fallback if the
 script is unavailable, not the primary path:**
 
 ```
@@ -292,8 +320,30 @@ sprint-<N>.md before you call the sprint done.
 ```
 
 The invariant preamble (line 1 of the prompt — the orientation reads + skim memory) is the same every
-session; it stays in the prompt so a *fresh* Claude Code session re-orients with zero prior context. Keep
+session; it stays in the prompt so a *fresh* builder session re-orients with zero prior context. Keep
 the sprint-specific delta (this epic, this sprint, its reuse list, its risk) as the part that actually varies.
+
+### 8c — The review policy both kickoffs carry
+Name it in the prompt; don't leave the builder to remember it. **Two cross-family passes per PR**,
+chosen by the router — never picked by hand:
+
+```
+node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>
+```
+
+Four rules, and the second and fourth are the recent changes:
+1. **A family never reviews its own diff.** With several families building, the default reviewer flag on
+   a same-family diff is a same-family pass wearing a cross-family label — a silent downgrade.
+2. **Two external passes, not one, and the orchestrator does NOT spawn its own reviewer subagents on a
+   LOW-tier PR.** Running the external passes *and* parallel subagent reviewers on every build was paying
+   twice for one read.
+3. **On HIGH tier the fresh reviewer subagent is still mandatory**, on top of the two external passes.
+   Money / auth / migrations / shared infra is where context independence catches what every external
+   family misses; family independence and context independence are different properties.
+4. **A capped family is a REFUND ASK, not a licence to substitute.** External quota is refundable in
+   minutes; orchestrator subagent tokens come out of the build budget. Stop, ask, and proceed with
+   subagents only after the stated window — recording the downgrade in the PR body, because a missing
+   layer that reads like a clean one is worse than no layer.
 
 **Orchestrating more than one builder at once?** Before spawning a second parallel kickoff, read
 WAYS-OF-WORKING → *Wakeup-resilient orchestration* — the three survival rules in one line: isolated

@@ -16,7 +16,19 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { AGENTS, die, need, ensureCmd, checkAgyVersion, loadPromptBody, runCodex, runAntigravity } from './lib/cross-agent-cli.mjs';
+import {
+  AGENTS,
+  AGENT_BIN,
+  die,
+  need,
+  ensureCmd,
+  checkAgyVersion,
+  loadPromptBody,
+  runCodex,
+  runAntigravity,
+  runVibe,
+  runClaudeCode,
+} from './lib/cross-agent-cli.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = join(__dirname, 'cross-panel.prompt.md');
@@ -101,12 +113,15 @@ function composeLensPrompt(preamble, lensSection) {
 }
 
 // Run a single-pass prompt + context block through the selected agent. codex takes the context on stdin;
-// agy 1.0.7 has no stdin, so the context rides embedded in the argv string (size-capped in the helper).
+// agy and vibe have no usable stdin for the prompt, so the context rides embedded in the argv string
+// (size-capped in each helper); codex and claude take it on stdin.
 // opts.soft → return null instead of die()-ing on CLI failure (used by the non-essential synthesis pass).
 function runWithAgent(agent, prompt, contextLabel, contextText, opts = {}) {
   const block = `## ${contextLabel}\n\n${contextText}`;
   if (agent === 'codex') return runCodex(prompt, block, opts);
   if (agent === 'antigravity') return runAntigravity(`${prompt}\n\n${block}\n`, opts);
+  if (agent === 'vibe') return runVibe(`${prompt}\n\n${block}\n`, opts);
+  if (agent === 'claude') return runClaudeCode(prompt, block, opts);
   die(`unknown --agent '${agent}'; use ${Object.keys(AGENTS).join('|')}`);
 }
 
@@ -116,6 +131,16 @@ function ensureAgentCli(agent) {
   } else if (agent === 'antigravity') {
     ensureCmd('agy', 'agy not found — install the Antigravity CLI and authenticate it, then retry.');
     checkAgyVersion();
+  } else if (agent === 'vibe') {
+    ensureCmd(
+      AGENT_BIN.vibe,
+      'vibe not found — install the Mistral Vibe CLI (`uv tool install mistral-vibe`) and authenticate it, then retry.'
+    );
+  } else if (agent === 'claude') {
+    ensureCmd(
+      AGENT_BIN.claude,
+      'claude not found — install Claude Code (https://claude.com/claude-code) and run `claude auth login`, then retry.'
+    );
   }
 }
 

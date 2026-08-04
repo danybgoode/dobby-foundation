@@ -80,6 +80,73 @@ Plan → Branch + scaffold docs → Build story → Verify → QA/smoke-test (pr
    re-summary. At **epic close**, do the epic Definition of Done (below) — including updating the
    product poster.
 
+## Epic-mode builds — the default for a scaffolded epic
+
+**A whole epic in one orchestrated session is the normal unit of work, not the exception.** The sprint
+documents are integration, review and rollback boundaries *inside* that run — internal structure, not
+separate engagements. Per-sprint sessions remain valid for a one-sprint epic, or when a sprint's outcome
+genuinely changes the next sprint's scope; everything else runs epic-mode. The cadence above still holds;
+this section says who does what. The kickoff prompt is generated, not hand-written —
+`node skills/groom/emit-epic-kickoff.mjs --epic <slug>` (the `groom` skill).
+
+**One architect, many builders, assembly line.** The orchestrating agent reads the epic + sprint docs and
+the shipped seams, then does the single most valuable thing in the whole run: **locks the architecture
+decisions against the live code and the live data before any builder starts**, and writes them into the
+epic `README.md` as numbered decisions (`D1…Dn`) plus a per-sprint **"Build contract (locked by the
+architect before the builder started)"** section. Builders *cite* those decisions; they never re-derive
+them. This is what turns three sprints into an assembly line instead of three independent rediscoveries.
+
+The locking pass is not a summary of the sprint docs. It must:
+- **Disprove scope.** Read the code before believing the doc. A scaffolded acceptance criterion that
+  describes a guard, a table, a dependency or a flag state the live system doesn't have is fiction —
+  correct the doc, with the reasoning, and say so out loud.
+- **Query the live data, not just the migration files.** Row counts decide what is safe: a schema fork
+  that is free while a table is empty is *only* free then, and that window is worth spending deliberately.
+- **Name every deviation** in the README, decided — not discovered by a builder mid-build.
+- **Say where each contract lives, once.** Import the shipped rule; never restate it.
+
+**Stack the branches.** `feat/<slug>` → `-s2` → `-s3`, each cut from the previous, one PR per sprint,
+merged in order. Sprints in one epic share hot files by construction (a shared `lib/` directory, a page,
+the flag registry, the migration set); siblings cut off one base pay a per-merge conflict tax — *stack or
+pay*. One PR for the whole epic is acceptable only when the sprints don't split cleanly along a review
+boundary; prefer per-sprint PRs so the highest-risk sprint gets reviewed as one.
+
+**Route models by risk, and invert it for review.** Assign the sprint that defines the contract everything
+else imports — the authorization boundary, the migration, the shared seam — to the stronger model; assign
+the sprints that are mechanical over a locked contract to the faster one. Review is inverted: the fresh
+reviewer pass on the highest-risk PR runs on the strongest model. State the routing in the epic README so
+the choice is auditable.
+
+**The review stack does not shrink because the epic is built at once** — but it is *right-sized by tier*,
+and it is not three passes. See *Review & merge* below: two cross-family passes on every PR, the fresh
+reviewer subagent on HIGH only. Findings route back to the original builder (context intact, fixes cheap)
+while the next sprint's builder starts. **The builder never merges their own PR** — and when the
+orchestrator finishes a builder's last mile itself (session limits will do this to you), a fresh
+independent agent must review those self-authored commits before merge.
+
+**Merges are pre-authorized on green, and done means shipped.** In a named epic-mode run the orchestrator
+may merge on a green gate — deterministic gate green, review findings resolved, risk tier declared —
+without a round-trip per sprint boundary. Pre-authorization removes the round-trip, **not** the layers,
+and it does **not** extend to a new category of production mutation (TLS/IAM/secrets, money or entitlement
+writes, a new external dependency or production secret): name those in one focused question.
+
+*Done* means **shipped**, not merged. A merged PR that hasn't deployed, a migration written but not
+applied, a flag that exists in code but not in the flag provider — none of those are done. Where the work
+includes a migration, **apply it BEFORE merging** (merging deploys, and code reading a new column against
+an unmigrated table breaks an actively-used path rather than staying dark): apply → verify live → merge →
+confirm the deploy actually succeeded.
+
+**Assume the orchestrator dies too — derive state, journal intent.** Session limits kill whole agent trees
+mid-flight. The docs record *decided* state, never *in-flight* state, so: **derive what is derivable;
+journal only what isn't.** Re-derive branches, dirty trees, worktrees, open PRs and migration drift at
+session start rather than storing a snapshot (a stored snapshot is stale by the time it's read, and a
+stale snapshot is worse than none because it reads as authoritative). Journal each locked decision and
+each sprint/PR boundary — intent is the only thing a resume cannot re-derive.
+
+**Compact at sprint/PR boundaries.** The durable state — the epic README's decisions, the per-sprint build
+contracts, team memory — is *designed* to make re-entry cheap. That is what makes a whole epic in one
+session affordable.
+
 ## Betting & appetite — the economics layer
 
 A ticket board without economics is a sausage machine: work goes through it, and nothing records
@@ -140,28 +207,82 @@ author's context-bias hides. Two layers do this, and they're complementary:
   preview (if your rail has one) is the minimum shape; adapt to your actual stack. If a repo has no
   per-branch preview (deploys post-merge only), there is correspondingly no e2e-vs-preview step in its
   gate — that's correct, not a gap.
-- **Reviewer (judgment):** a **fresh reviewer agent** re-derives intent from the diff alone and checks
-  correctness, architecture, and the rules from your project's `AGENTS.md`. Keep review a **single
-  pass on a green CI gate** — not an iterative refine loop (that loop is the dominant token cost in
-  multi-agent dev; let the deterministic gate carry the repetitive checking and have the reviewer read
-  once). The reviewer must be a different agent than the one that built the PR.
-- **Cross-agent second opinion (advisory) — run locally on every PR:** `node scripts/cross-review.mjs
-  <PR#> --agent codex|antigravity` pipes the PR diff into a **different model family's** CLI for one
-  pass and posts the findings as a clearly-labeled PR comment. It exists only to surface another
-  family's blind spots. **Advisory only** — it never gates, blocks, or authorizes a merge (CI + the
-  fresh reviewer + the risk-tier rule below stay the sole sources of truth), and it is **single-pass**
-  (no debate loop). It reads the same shared prompt the human reviewer does
-  (`scripts/cross-review.prompt.md`). `--skip-trivial` skips docs-only / tiny diffs. Fill in your
-  project's own driving-a-young-foreign-CLI gotchas here as you hit them (version pinning, `--help`
-  quirks, headless-auth limits) — see the origin project's LEARNINGS.md "Tooling gotchas" section for
-  a worked example set.
+- **Cross-family review (judgment) — TWO passes on every PR:** `node scripts/cross-review.mjs <PR#>
+  --agent <family>` pipes the PR diff into a **different model family's** CLI for one pass and posts the
+  findings as a clearly-labeled PR comment. Four families are wired — `codex`, `antigravity` (agy),
+  `vibe` (Mistral) and `claude` (Claude Code as a plain CLI) — and **two of them review every PR**. One
+  external pass has no corroboration; the families disagree often enough that the second read is where an
+  argued-down finding gets a second vote. It reads the same shared prompt a human reviewer would
+  (`scripts/cross-review.prompt.md`), is **single-pass** (no debate loop), and `--skip-trivial` skips
+  docs-only / tiny diffs. Every finding is resolved before merge — fixed, or answered on the PR with the
+  reason it isn't a bug. The *run* still never **authorizes** a merge; CI + the risk-tier rule do that.
+
+  `claude` is on this roster specifically so a **non-Claude orchestrator can use it**. When Codex or agy
+  is driving a build, "get a Claude review" used to require a Claude host to spawn a subagent; exposing
+  Claude Code as a CLI reviewer makes the layer symmetric — any orchestrator, from any family, routes to
+  any other family through one script.
+
+  Fill in your project's own driving-a-young-foreign-CLI gotchas here as you hit them (version pinning,
+  `--help` quirks, headless-auth limits) — a young CLI's print contract breaks on minor bumps, and the
+  failure shape to watch for is a run that exits 0 with **empty output**, which reads as a clean review.
+
+- **Fresh reviewer subagent (context independence) — HIGH tier only:** an agent that did **not** hold the
+  diff in its head while writing it, re-deriving intent from the diff alone. This is a *different axis*
+  from family independence, not a substitute for it: it is the layer that catches money-path bugs (IDOR,
+  SSRF, consent-boundary holes) that every external family misses. **Mandatory on HIGH tier. Not spawned
+  at all on LOW.** Dropping it on LOW is the deliberate saving — the old habit of running the external
+  passes *and* the orchestrator's own parallel reviewer subagents on every PR was paying twice for one
+  read. That is only safe because the deterministic gate carries the repetitive checking.
+
+  Keep review a **single pass on a green CI gate** — not an iterative refine loop (that loop is the
+  dominant token cost in multi-agent dev). Whoever reviews, it is never the agent that built the PR.
+
+### Routing the reviewers — `node scripts/review-route.mjs --builder <who> --tier <low|high> <PR#>`
+
+Once more than one family can build, "run cross-review" stops being unambiguous: the default agent flag
+on a Codex-built diff is **Codex reviewing Codex** — a same-family pass wearing a cross-family label, and
+a silent downgrade nothing in a hand-driven flow would catch. The router makes the policy executable and
+auditable; it prints its reasoning and the exact commands to run.
+
+Preference order is **codex → agy → vibe → claude**, and the two highest-preference families that did
+*not* build the diff review it:
+
+| Builder | Cross-family reviewers | Fresh subagent |
+|---|---|---|
+| claude | codex + agy | HIGH only |
+| codex | agy + vibe | HIGH only |
+| agy | codex + vibe | HIGH only |
+| vibe | codex + agy | HIGH only |
+
+`claude` is deliberately **last** in that order — not because it reviews badly, but because Claude
+capacity is usually the thing *building*. It rotates in the moment one of the three ahead of it is
+capped, which is the point of having it wired.
+
+**A capped family is a REFUND ASK, not a licence to substitute.** When fewer than two external families
+are available, the orchestrator **stops and asks the product owner to top up the quota** before spending
+its own subagent tokens on the same read. External quota is refundable in minutes; subagent tokens come
+out of the build budget. The pause is bounded — `--fallback-after <minutes>` (default 30) states how long
+the run waits before proceeding with subagents, and **either way the downgrade is recorded in the PR
+body**. A missing layer must be loud: if the router reports the cross-family layer as short or DARK, say
+so in the PR body, because a missing layer that reads like a clean one is worse than no layer at all.
 
 **Every PR declares a risk tier** (in the PR body); that tier decides who may merge:
-- **Low-risk → reviewer may auto-merge** once CI is green and the review is clean: docs/copy,
-  non-commerce-adjacent UI, additive tools behind auth, tests, internal tooling.
+- **Low-risk → an agent other than the builder may merge** once CI is green and both cross-family passes
+  are clean or their findings are answered: docs/copy, non-commerce-adjacent UI, additive tools behind
+  auth, tests, internal tooling. (Not spawning a fresh subagent here doesn't lower the bar; it moves the
+  bar onto the two mandatory cross-family passes.)
+  - **The builder never merges their own PR — no exceptions.** In a single-session epic-mode run the
+    orchestrator often *is* the builder; when that's the case, the fresh reviewer subagent stops being
+    HIGH-only and becomes the thing that supplies the second pair of eyes, or the product owner merges.
+    "A different model family reviewed it" is not the same as "a different agent than the one holding the
+    diff's context" — this is the one place that distinction could quietly erode.
 - **High-risk → always a product-owner merge** (a human green-light, never an autonomous ship):
   anything touching money, auth, DB migrations, or shared infra. This preserves the guardrail — an
-  agent never deploys a real-money or real-auth path to production on its own.
+  agent never deploys a real-money or real-auth path to production on its own. HIGH also carries the
+  mandatory fresh-reviewer subagent above.
+  - **Exception — a named epic-mode run.** The product owner may pre-authorize merging HIGH PRs for a
+    *named* epic (see *Epic-mode builds*). That covers the plan as discussed; it is not a standing grant,
+    and it never skips the gate or the review layers.
 When unsure which tier, treat it as high-risk. High-risk epics are also *planned behind a kill-switch*
 at grooming (the flag is decided + sliced there, verified at epic DoD — not a new gate); see the
 `groom` skill's Stage 6b.

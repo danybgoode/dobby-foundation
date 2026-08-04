@@ -33,7 +33,10 @@ A **fixed-scope** ask (bug, chore, clear story) skips Bet by design — see §1.
 - `<lane>` — **shaped bet** (→ the table) / **fixed scope** (→ straight to a builder) / **reactive** (logged against the wave)
 - `<wave>` — the wave file under `Roadmap/bets/`, e.g. `wave-<date>-<slug>.md`
 - `<AGENTS-path>` — this project's `AGENTS.md` (or the app-specific one, if it's a monorepo)
-- `<reviewer>` — this project's cross-review stack (see §4) — TEMPLATE FILL-IN
+- `<who-wrote-it>` — the family that built the diff: `claude` / `codex` / `agy` / `vibe`. Feeds
+  `review-route.mjs`, which picks the two families that did *not* build it (see §4). Which of these
+  are installed and authenticated is a **TEMPLATE FILL-IN** — the router reports an uninstalled family
+  as a short/dark layer rather than silently substituting.
 
 ## Command shorthands
 A small, fixed vocabulary so the *instruction* half of a message is unambiguous — each verb just
@@ -45,10 +48,11 @@ Pleasantries are fine and cost nothing — the leverage is the defined verb, not
 | **Groom: \<ask\>** / **Shape: \<ask\>** | §1 — groom a raw ask into a shaped pitch (synonyms; "Shape" just names the stage) |
 | **Bet** / **Bet the wave** | §9 — run the betting table at a wave boundary, write `Roadmap/bets/<wave>.md` |
 | **Re-shape \<slug\>** | §10 — an M/L bet hit its circuit breaker; back to shaping, never extended in flight |
-| **Build S\<N\> of \<epic\>** | §2 — build a sprint |
+| **Build epic \<epic\>** | §2 — build a WHOLE epic in one orchestrated run (**the default**) |
+| **Build S\<N\> of \<epic\>** | §2b — build a single sprint (the exception: one-sprint epic, or the next sprint's scope genuinely isn't knowable yet) |
 | **Spike \<name\>** | §3 — run a spike |
-| **Review PR #\<N\>** | §4 — fresh-reviewer single pass |
-| **Cross-review PR #\<N\>** | §4 judgment line — the baseline reviewer; escalate per the risk rule there |
+| **Review PR #\<N\>** | §4 — route + run the two cross-family passes |
+| **Cross-review PR #\<N\>** | §4 — synonym; always route it, never hand-pick `--agent` |
 | **Panel: \<scope-doc \| ask\>** | advisory second opinion on a *plan* — `node scripts/cross-panel.mjs <doc> --lens both --agent <reviewer>` (single-pass, print-only, never gates; surfaced at groom Stage 2/4) |
 | **Wrap S\<N\>** | tick the sprint doc status + emit the §7 sprint-wrap terminal summary |
 | **Close epic \<slug\>** | §6 — full epic Definition of Done |
@@ -78,23 +82,59 @@ stop and hammer scope instead.
 | Lane | Tell | What follows |
 |---|---|---|
 | **Shaped bet** | genuinely-new / strategic | pitch is complete (problem · appetite · bill of materials · rabbit holes · no-gos) → stops at `status: ready`, waits for §9. **No scaffolding yet** — an unfunded epic is a plan nobody paid for. |
-| **Fixed scope** | bug, chore, well-specified story | default `appetite: S`, **skip §9 entirely** → on my approval scaffold the epic + sprint docs (commit path-scoped) and emit the per-sprint kickoffs |
+| **Fixed scope** | bug, chore, well-specified story | default `appetite: S`, **skip §9 entirely** → on my approval scaffold the epic + sprint docs (commit path-scoped) and emit the **epic-mode** kickoff (§2) |
 | **Reactive / ops** | incident, launch support, can't wait | no shaping — do it, then log it against the current wave's budget so the economics stay visible |
 
 *Add for a shaped bet:* `"Stop at the pitch. Do not scaffold — this goes to the betting table."`
 
-## 2 · Build a sprint — plan on strong model → execute
+## 2 · Build a WHOLE epic — epic mode *(the default)*
+
+**Don't hand-write this prompt.** Generate it — a hand-composed epic kickoff is where the
+architecture-lock pass gets summarised away and the review policy reverts to whatever the composing
+agent remembered:
+
+```
+node skills/groom/emit-epic-kickoff.mjs --epic <epic-slug>
+```
+
+It reads the epic README + every `sprint-N.md` and prints the finished orchestrator prompt. Paste it
+as-is. What it carries (SSOT: WAYS-OF-WORKING → *Epic-mode builds*, don't fork a second copy here):
+
+- **Lock the architecture first.** `D1…Dn` in the epic README, verified against live code and live data,
+  plus a per-sprint build contract. Builders cite; they never re-derive.
+- **Stack the branches.** `feat/<slug>` → `-s2` → `-s3`, one PR per sprint, merged in order.
+- **Two cross-family review passes per PR, routed** (§4). No orchestrator subagent reviewers on LOW.
+- **Merges pre-authorized on green** for this named epic — the gate and the review layers still apply.
+- **Done means shipped**, not merged: migrations applied and verified, flags created, deploy confirmed.
+
+*HIGH-risk epic: the pre-authorization is per-epic and per-plan. A new category of production mutation
+(TLS/IAM/secrets, money or entitlement writes, a new external dependency or prod secret) is one focused
+question, not a covered case.*
+
+## 2b · Build a single sprint — *the exception*
+
+Use this only for a **one-sprint epic**, or when a sprint's outcome genuinely changes the next sprint's
+scope so the next kickoff honestly can't be written yet. Say which it is when you use it.
+
+```
+node skills/groom/emit-kickoff.mjs --epic <epic-slug> --sprint <N>
+```
+
+Or, hand-composed from the same shape:
+
 ```
 Read <AGENTS-path> (Start here) + Roadmap/LEARNINGS.md, then
 Roadmap/<NN-macro>/<epic-slug>/README.md + sprint-<N>.md.
 Build Sprint <N> of "<epic-slug>" per WAYS-OF-WORKING, in your OWN git worktree off latest main on
 feat/<epic-slug>. Plan mode → confirm stories with me → build one story at a time. Commit per story
 PATH-SCOPED (git add <your files> && git commit -- <those paths>; never -A). One api spec per testable
-story. Keep the CI gate green; open a draft PR declaring risk <risk>. Write the sprint smoke walkthrough
-into sprint-<N>.md before calling it done.
+story. Keep the CI gate green; open a draft PR declaring risk <risk>. Route the review with
+`node scripts/review-route.mjs --builder <you> --tier <risk> <PR#>` — two cross-family passes; do NOT
+spawn your own reviewer subagents on a LOW PR. Write the sprint smoke walkthrough into sprint-<N>.md
+before calling it done.
 ```
-*HIGH-risk: add — "all stories HIGH → product owner merges; the authed money-path browser smoke is owed
-to the product owner."*
+*HIGH-risk: add — "all stories HIGH → product owner merges; the fresh reviewer subagent is mandatory;
+the authed money-path browser smoke is owed to the product owner."*
 
 ## 3 · Run a spike — strong model
 ```
@@ -105,15 +145,24 @@ already-possible / light-enhancement / genuinely-new; end with Go / No-go / Go-w
 I sign off the decision before anything gets groomed.
 ```
 
-## 4 · Review a PR — external reviewer (NOT the builder)
+## 4 · Review a PR — two cross-family passes, routed (NOT the builder)
 ```
-Review PR #<N> cold after the deterministic gate. The builder stays architect/coordinator and does not
-approve its own diff. Run the baseline cross-reviewer once via `node scripts/cross-review.mjs <N> --agent
-<reviewer>`; escalate to a second model family for money/auth/DB/tenancy/concurrency/shared-infra risk,
-and bring in a third only as a specialist or tie-breaker. Check correctness + AGENTS.md, post findings,
-and resolve every Blocking item. Re-review substantive fixes; use targeted validation for
-docs/presentation-only deltas.
+Review PR #<N> cold after the deterministic gate. The builder does not approve its own diff.
+Route it — never hand-pick --agent:
+  node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <N>
+Run the TWO cross-family passes it prints (a family never reviews its own diff). On a LOW PR that is
+the whole layer — do NOT also spawn your own reviewer subagents. On HIGH, add the fresh reviewer
+subagent on top. If a family is quota-capped, STOP AND ASK ME FOR A REFUND before substituting your own
+subagents; proceed only after the window the router states, and record the downgrade in the PR body.
+Check correctness + AGENTS.md, post findings, and resolve every Blocking item. Re-review substantive
+fixes; use targeted validation for docs/presentation-only deltas.
 ```
+
+**Why two and not three.** Until now a typical build ran the cross-agent passes *and* the orchestrator's
+own parallel reviewer subagents, on every PR, regardless of tier — two of those three passes were paying
+for the same read. The saving is taken on LOW tier only; HIGH keeps the subagent, because family
+independence and context independence are different properties and HIGH is where the second one earns
+its cost.
 > **TEMPLATE FILL-IN — `<reviewer>`.** Name this project's actual cross-review stack here: one
 > **baseline** reviewer run on every PR, one **second model family** escalated to on high-risk diffs,
 > and optionally a **specialist/tie-breaker**. Different families matter more than which specific

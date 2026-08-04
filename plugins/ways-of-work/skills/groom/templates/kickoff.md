@@ -13,10 +13,15 @@ index). Follow this project's own copy/localization conventions (see AGENTS.md).
 QA/smoke stage and state any browser smoke owed to me. When the deterministic gate (tsc + build + Playwright
 api) is green, open a draft PR declaring the risk tier, then flip it ready-for-review — and write the SPRINT
 SMOKE WALKTHROUGH (below) into sprint-{{N}}.md before you call the sprint done.
-Review is three layers (WAYS-OF-WORKING → Review & merge): CI always; the cross-agent pass
-(`node scripts/cross-review.mjs <PR#>`) is MANDATORY on every PR — every finding fixed, or answered on the PR
-with why it isn't a bug, before merge; the fresh `pr-reviewer` subagent is mandatory on HIGH tier and optional
-on LOW (if you skip it on a LOW PR, say so in the PR body with the reason). You never merge your own PR.
+Review (WAYS-OF-WORKING → Review & merge): CI always, plus TWO cross-family passes on every PR — run
+`node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>` and use the reviewers it
+picks; a family never reviews its own diff, so don't pick `--agent` by hand. Do NOT spawn your own reviewer
+subagents on a LOW-tier PR — the two external passes plus the deterministic gate are the whole layer there.
+On HIGH tier the fresh reviewer subagent is still mandatory on top of them. If a family is quota-capped,
+STOP AND ASK ME FOR A REFUND before substituting your own subagents (external quota is refundable in
+minutes; your subagent tokens come out of the build budget) — and if I haven't answered within the window
+the router states, proceed and record the downgrade in the PR body. Every finding gets fixed, or answered
+on the PR with why it isn't a bug, before merge. You never merge your own PR.
 
 Sprint {{N}} of "{{EPIC_TITLE}}" — "{{SPRINT_TITLE}}" — stories:
 {{STORY_LIST}}

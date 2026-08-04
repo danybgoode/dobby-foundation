@@ -30,20 +30,38 @@ jobs:
       - name: Plugin leak guard
         run: node scripts/check-plugin-leaks.mjs
 
-      # The groom kickoff generator's own unit tests. They existed before this workflow and had
-      # nothing running them.
-      - name: groom emit-kickoff tests
-        run: node plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs
+      # The groom generators' own unit tests. Both kickoff generators are covered — the per-sprint
+      # one (the exception path) and the epic-mode one (the default).
+        # Files named explicitly, not a directory: `node --test <dir>` resolves the path as a MODULE
+        # on Node 22 and dies with MODULE_NOT_FOUND — a red step that looks like a real test failure.
+      - name: groom generator tests
+        run: |
+          node --test \
+            plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs \
+            plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs
+
+      # The reviewer ROUTING POLICY. It is the one rule here that erodes silently: a same-family
+      # review still produces plausible output, so nothing fails when the routing degrades.
+      - name: review routing policy tests
+        run: node --test template/scripts/review-route.test.mjs
 
       # The scaffolder renders three templates into every new epic in every consuming project. A
       # broken placeholder here is invisible until someone scaffolds an epic, so render one and
       # assert nothing was left unsubstituted.
+      #
+      # NOTE: this step previously asserted the output landed at `plugins/ways-of-work/Roadmap/...`
+      # — i.e. it encoded the very bug it should have caught. The scaffolder resolved its target repo
+      # relative to its own package, so installed as a marketplace plugin it wrote the epic into the
+      # plugin CACHE and exited green. It now resolves the ACTIVE repo from --repo-root (default cwd),
+      # so the smoke runs in a temp dir and asserts the epic lands THERE.
       - name: Scaffolder smoke
         run: |
-          node plugins/ways-of-work/skills/groom/scaffold-epic.mjs \
-            --slug ci-smoke --area 09 --macro 09-platform-infra \
-            --title "CI smoke" --risk low --type chore --sprints "S1 one;S2 two"
-          out=plugins/ways-of-work/Roadmap/09-platform-infra/ci-smoke
+          work="$(mktemp -d)"
+          mkdir -p "$work/Roadmap"
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/scaffold-epic.mjs" \
+              --slug ci-smoke --area 09 --macro 09-platform-infra \
+              --title "CI smoke" --risk low --type chore --sprints "S1 one;S2 two" )
+          out="$work/Roadmap/09-platform-infra/ci-smoke"
           test -f "$out/README.md"
           test -f "$out/sprint-1.md"
           test -f "$out/sprint-2.md"
@@ -52,5 +70,29 @@ jobs:
             echo "scaffolder left unsubstituted placeholders (above)" >&2
             exit 1
           fi
-          rm -rf plugins/ways-of-work/Roadmap
-          echo "scaffolder smoke: 4 files rendered, no unsubstituted placeholders."
+          # Nothing may be written back into the plugin package — that regression is the whole point.
+          if [ -d plugins/ways-of-work/Roadmap ]; then
+            echo "scaffolder wrote into the plugin package instead of the active repo" >&2
+            exit 1
+          fi
+          echo "scaffolder smoke: 4 files rendered into the active repo, no unsubstituted placeholders."
+
+          # Both kickoff generators must render against that freshly-scaffolded epic. A generator
+          # that dies on its own scaffolder's output is the failure this catches.
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/emit-epic-kickoff.mjs" \
+              --epic ci-smoke > epic-kickoff.txt )
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/emit-kickoff.mjs" \
+              --epic ci-smoke --sprint 1 > sprint-kickoff.txt )
+          for f in "$work/epic-kickoff.txt" "$work/sprint-kickoff.txt"; do
+            test -s "$f" || { echo "empty kickoff: $f" >&2; exit 1; }
+            if grep -n '{{' "$f"; then
+              echo "kickoff generator left unsubstituted placeholders: $f" >&2
+              exit 1
+            fi
+          done
+          # The process contract the generated prompt must always carry.
+          grep -q 'review-route.mjs' "$work/epic-kickoff.txt"
+          grep -q 'REFUND' "$work/epic-kickoff.txt"
+          grep -q 'Done means shipped' "$work/epic-kickoff.txt"
+          echo "kickoff generators: both rendered, contract lines present."
+          rm -rf "$work"

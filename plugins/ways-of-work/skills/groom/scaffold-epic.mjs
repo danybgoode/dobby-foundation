@@ -10,15 +10,28 @@
 //
 // Flags: --type <feature|spike|bug|chore> (default feature, matches SKILL.md's Stage-2 classification
 //        table exactly — rendered Capitalized into the epic README's header "Class:" field)
-//        · --dry-run (print, write nothing)
+//        · --repo-root <path> (default: cwd) · --dry-run (print, write nothing)
 // It does NOT commit — it prints the exact path-scoped git command for you to run.
+//
+// ── Why --repo-root exists (a live bug, fixed 2026-08-03) ────────────────────────────────────────────
+// This used to resolve the target repo as `resolve(__dirname, '..', '..')` — "skills/groom → repo root".
+// That is only true when the skill is checked out INSIDE the project. Installed as a marketplace plugin
+// it is not: Claude Code copies a plugin into its own cache directory, so `../..` resolved to the plugin
+// package and the scaffolder wrote `Roadmap/<macro>/<slug>/` into the CACHE — silently, exiting green,
+// leaving the actual repository untouched. The failure shape is the worst kind: a successful-looking run
+// whose output is nowhere the caller can see.
+//
+// The fix is the same contract `emit-kickoff.mjs` already used: resolve the repo from `--repo-root`,
+// defaulting to the CURRENT WORKING DIRECTORY (the repo the agent is actually standing in), and verify a
+// `Roadmap/` directory exists there before writing anything. If it doesn't, that is a wrong-directory
+// error worth failing on, not a directory to create — silently inventing `Roadmap/` in the wrong place is
+// how the original bug stayed invisible.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, '..', '..'); // skills/groom -> repo root
 const TPL = join(__dirname, 'templates');
 
 function parseArgs(argv) {
@@ -40,7 +53,17 @@ const required = ['slug', 'area', 'macro', 'title', 'sprints'];
 const missing = required.filter((k) => !args[k] || args[k] === true);
 if (missing.length) {
   console.error(`scaffold-epic: missing required flag(s): ${missing.map((m) => '--' + m).join(', ')}`);
-  console.error('Run with --slug --area --macro --title --sprints "S1;S2;S3" [--risk low|high] [--type feature] [--dry-run]');
+  console.error('Run with --slug --area --macro --title --sprints "S1;S2;S3" [--risk low|high] [--type feature] [--repo-root <path>] [--dry-run]');
+  process.exit(1);
+}
+
+// The ACTIVE repository, not the plugin package — see the header block.
+const REPO_ROOT = resolve(String(args['repo-root'] === true ? '' : args['repo-root'] || process.cwd()));
+if (!existsSync(join(REPO_ROOT, 'Roadmap'))) {
+  console.error(`scaffold-epic: no Roadmap/ directory under "${REPO_ROOT}".`);
+  console.error('  This scaffolds into the ACTIVE repository, resolved from --repo-root (default: cwd).');
+  console.error('  Run it from the repo root, or pass --repo-root <path>. It will not create Roadmap/ for');
+  console.error('  you: scaffolding into the wrong place is the failure this check exists to catch.');
   process.exit(1);
 }
 

@@ -8,8 +8,13 @@
 //   • ADVISORY ONLY — never gates, blocks, or merges. CI + the Claude reviewer + the risk-tier rule decide.
 //
 // Usage:
-//   node scripts/cross-review.mjs [PR#] --agent codex|antigravity [--repo owner/repo] [--force] [--dry-run]
-//     [--skip-trivial] [--min-lines N]
+//   node scripts/cross-review.mjs [PR#] --agent codex|antigravity|vibe|claude [--repo owner/repo]
+//     [--force] [--dry-run] [--skip-trivial] [--min-lines N]
+//
+// Four families are wired (see cross-agent-cli.mjs's roster table). Don't pick one by hand on a real PR —
+// `node scripts/review-route.mjs --builder <who> --tier <low|high> <PR#>` chooses the two that did NOT
+// build it and prints the exact commands. Passing --agent yourself is the escape hatch, and it is how you
+// can accidentally have a family review its own diff.
 //
 // --skip-trivial is the CI cost guard: skip (exit 0, no comment) when the PR is docs-only or under
 // --min-lines (default 10) changed lines, so "every PR" doesn't pay for a review on a typo. Off by default
@@ -42,7 +47,10 @@ import {
   checkAgyVersion,
   loadPromptBody,
   runAntigravity,
+  runVibe,
+  runClaudeCode,
   runWithCodexFallback,
+  AGENT_BIN,
   resolveCurrentPr,
   currentHeadSha,
   decideHeadGuard,
@@ -62,9 +70,12 @@ const BANNER =
 const HELP = `cross-review.mjs — advisory cross-agent second opinion on a PR diff.
 
 Usage:
-  node scripts/cross-review.mjs [PR#] --agent codex|antigravity [--repo owner/repo] [--force] [--dry-run]
+  node scripts/cross-review.mjs [PR#] --agent codex|antigravity|vibe|claude [--repo owner/repo]
+                                      [--force] [--dry-run]
 
 [PR#] is optional — omit it to review the open PR for the CURRENT branch.
+Prefer \`node scripts/review-route.mjs --builder <who> --tier <low|high> <PR#>\` — it picks the two
+families that did not build the diff and prints the exact commands to run.
 
 Flags:
   --agent <name>       reviewer CLI: ${Object.keys(AGENTS).join('|')} (default: codex)
@@ -145,18 +156,27 @@ function ghFiles(pr, repo) {
   }
 }
 
-// agy 1.0.7 has no stdin, so the diff rides embedded in the argv string (same framing codex gets on stdin).
-function agyArgv(prompt, diff) {
+// agy and vibe have no usable stdin for the prompt, so the diff rides embedded in the argv string (the same
+// framing codex and claude get on stdin). One helper, because the framing must be IDENTICAL across families
+// — a reviewer that sees the diff differently isn't giving a comparable second opinion.
+function embeddedArgv(prompt, diff) {
   return `${prompt}\n\n## PR diff to review\n\n\`\`\`diff\n${diff}\n\`\`\`\n`;
 }
 
 // Returns { findings, fellBack[, from, to] }. The codex path auto-falls-back to Antigravity on a dead token.
 function runReview(agent, prompt, diff) {
   if (agent === 'codex') {
-    return runWithCodexFallback({ prompt, stdin: diff, antigravityArgv: agyArgv(prompt, diff) });
+    return runWithCodexFallback({ prompt, stdin: diff, antigravityArgv: embeddedArgv(prompt, diff) });
   }
   if (agent === 'antigravity') {
-    return { findings: runAntigravity(agyArgv(prompt, diff)), fellBack: false };
+    return { findings: runAntigravity(embeddedArgv(prompt, diff)), fellBack: false };
+  }
+  if (agent === 'vibe') {
+    return { findings: runVibe(embeddedArgv(prompt, diff)), fellBack: false };
+  }
+  if (agent === 'claude') {
+    // stdin, like codex — see runClaudeCode. Same prompt body, so the pass is comparable.
+    return { findings: runClaudeCode(prompt, diff), fellBack: false };
   }
   die(`unknown --agent '${agent}'; use ${Object.keys(AGENTS).join('|')}`);
 }
@@ -228,6 +248,16 @@ function main() {
   } else if (agent === 'antigravity') {
     ensureCmd('agy', 'agy not found — install the Antigravity CLI and authenticate it, then retry.');
     checkAgyVersion();
+  } else if (agent === 'vibe') {
+    ensureCmd(
+      AGENT_BIN.vibe,
+      'vibe not found — install the Mistral Vibe CLI (`uv tool install mistral-vibe`) and authenticate it, then retry.'
+    );
+  } else if (agent === 'claude') {
+    ensureCmd(
+      AGENT_BIN.claude,
+      'claude not found — install Claude Code (https://claude.com/claude-code) and run `claude auth login`, then retry.'
+    );
   }
 
   const prompt = loadPromptBody(PROMPT_PATH);
