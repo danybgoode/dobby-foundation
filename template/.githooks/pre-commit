@@ -1,44 +1,52 @@
 #!/bin/sh
-# Local-first pre-commit gate — BLOCKING. Auto-enabled once your project has a package.json:
-# add `"prepare": "git config core.hooksPath .githooks"` to its "scripts" block, so
-# `npm install`/`npm ci` wires this up with no manual per-clone step (README.md's spawn
-# checklist has a reminder for this). Until then, enable once per clone manually with:
+# Local-first pre-commit gate — BLOCKING, budgeted at UNDER 2 SECONDS.
+#
+# Enable once per clone, or add `"prepare": "git config core.hooksPath .githooks"` to package.json
+# so `npm install`/`npm ci` wires it up with no manual step:
 #   git config core.hooksPath .githooks
 #
-# Mirrors the fast, pure-node CI guards in guards.yml (build-order + scripts/ node:test) —
-# these bill a GitHub Actions minimum of 1 minute per job even for a 15-second check, so
-# running them here first (free, instant) before they ever reach CI is the whole point of
-# this pattern. guards.yml stays as the PR-triggered fallback safety net.
+# ── Read .githooks/README.md before adding anything here ────────────────────────────────────────
+# The budget is the rule: pre-commit < 2s (staged files only) · pre-push < 30s (cheap whole-repo) ·
+# CI unbounded (everything). Cost decides the stage, not importance.
+#
+# This hook deliberately does NOT run:
+#   • full-corpus checks (a walk of every doc/file in the repo) → pre-push or CI
+#   • the test suite                                            → pre-push
+#   • integration tests (`*.itest.mjs`)                         → CI
+#
+# That is not an oversight, it is the design. An earlier version of this template ran a full-corpus
+# `build-order --check` plus the entire `scripts/` test suite here. In the project it was copied
+# into, that grew to **119.7 seconds per commit** — of which ~119s was one corpus walk repeated
+# eight times and ~0.6s was the actual tests. See README.md for the full worked example.
 #
 # Bypass with `git commit --no-verify` if you genuinely need to.
 
-changed=$(git diff --cached --name-only)
+changed=$(git diff --cached --name-only --diff-filter=ACMR)
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "pre-commit: node not found — skipping local guards (GH Actions PR check still applies)." >&2
+  echo "pre-commit: node not found — skipping local guards (CI still applies)." >&2
   exit 0
 fi
 
 fail=0
 
-if echo "$changed" | grep -qE '^(Roadmap/|scripts/build-order\.mjs|scripts/roadmap-to-notion\.mjs)'; then
-  if ! node scripts/build-order.mjs --check; then
-    echo "pre-commit: build-order failed — BUILD-ORDER.md is stale. Run 'node scripts/build-order.mjs' and stage it." >&2
-    fail=1
-  fi
-fi
-
-has_script_tests=false
-for f in scripts/*.test.mjs scripts/lib/*.test.mjs; do
-  [ -e "$f" ] && has_script_tests=true
-done
-
-if echo "$changed" | grep -qE '^scripts/' && [ "$has_script_tests" = true ]; then
-  if ! node --test 'scripts/lib/*.test.mjs' 'scripts/*.test.mjs'; then
-    echo "pre-commit: scripts/ node:test failed — see output above." >&2
-    fail=1
-  fi
-fi
+# ── TEMPLATE FILL-IN: staged-file checks only ────────────────────────────────────────────────────
+# Add checks that take the specific staged paths as arguments. The shape to aim for:
+#
+#   staged_docs=$(echo "$changed" | grep -E '^Roadmap/.*\.md$' || true)
+#   if [ -n "$staged_docs" ]; then
+#     # shellcheck disable=SC2086 — deliberate word-splitting: one argv entry per path
+#     if ! node scripts/doc-format.mjs --check --files $staged_docs; then
+#       fail=1
+#     fi
+#   fi
+#
+# If a checker of yours has no path-scoped mode, that is the thing to add — not a reason to run its
+# whole-repo mode here. A `--files`-style flag is usually a few lines: the per-file logic already
+# exists inside the full walk.
+#
+# Fast formatters/linters that accept paths (prettier --check, eslint, a design-token guard) are
+# also good candidates, as long as you pass them the staged paths rather than the whole tree.
 
 if [ "$fail" -ne 0 ]; then
   echo "pre-commit: one or more checks failed. Fix and re-stage, or 'git commit --no-verify' to bypass." >&2
