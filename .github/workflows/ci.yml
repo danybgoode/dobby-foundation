@@ -79,8 +79,19 @@ jobs:
 
       # The reviewer ROUTING POLICY. It is the one rule here that erodes silently: a same-family
       # review still produces plausible output, so nothing fails when the routing degrades.
-      - name: review routing policy tests
-        run: node --test template/scripts/review-route.test.mjs
+      #
+      # Every template/scripts test is named here EXPLICITLY, and a new port must add its line.
+      # That is a real maintenance cost, accepted for the reason in the groom step above: a glob
+      # would be tidier, but `node --test <dir>` resolves a directory as a module on Node 22 and
+      # dies with MODULE_NOT_FOUND — red in a way that reads like a genuine failure.
+      - name: template script tests
+        run: |
+          node --test \
+            template/scripts/review-route.test.mjs \
+            template/scripts/prose-draft.test.mjs \
+            template/scripts/babysit-pr.test.mjs \
+            template/scripts/build-order-sync.test.mjs \
+            template/scripts/lib/gh-rest.test.mjs
 
       # The scaffolder renders three templates into every new epic in every consuming project. A
       # broken placeholder here is invisible until someone scaffolds an epic, so render one and

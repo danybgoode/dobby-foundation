@@ -65,15 +65,38 @@ export const NO_SCRIPTS_EXPECTED = {
 //
 // Removing a line without supplying the script does not make the problem go away; it makes it
 // invisible, which is the exact failure this whole guard exists to end.
+// Counts below are the TRANSITIVE closure of relative imports, resolved from the origin project's
+// scripts/ on 2026-08-06 — not a hand-read of each file's first import block. The previous version
+// of this ledger was written that way and undercounted badly: it said pmo-report needed "four
+// scripts/lib/ helpers" (actual: 14 files, including weekly-recap.mjs itself) and that standup-post
+// needed "lib/log-branch.mjs" (actual: 11). A debt ledger that understates the debt is worse than
+// no ledger — it makes the remaining work look like an afternoon and gets scheduled as one.
 export const KNOWN_ABSENT = {
-  'babysit-pr': 'never extracted from the origin project — port scripts/babysit-pr.mjs',
-  'build-order-sync': 'never extracted — port scripts/build-order-sync.mjs',
-  'doc-hygiene': 'never extracted — port scripts/doc-hygiene.mjs',
-  'live-smoke': 'never extracted — port scripts/live-smoke.mjs + the Playwright browser project',
-  'pmo-report': 'never extracted — port scripts/pmo-report.mjs + its four scripts/lib/ helpers',
-  'standup-post': 'never extracted — port scripts/standup.mjs + lib/log-branch.mjs',
-  'vercel-prune': 'never extracted — port scripts/vercel-prune-previews.mjs',
-  'weekly-recap': 'never extracted — port scripts/weekly-recap.mjs',
+  // The reporting family. These three share a dependency web (prose-writer/-brief/-guard,
+  // report-registry, pmo-templates, telegram-format) and weekly-recap.mjs is imported by the other
+  // two, so they port as ONE unit or not at all. Several carry project-specific delivery config
+  // (Telegram targets, benchmark thresholds) that needs a config seam before it can be templated.
+  'pmo-report':
+    'not extracted — scripts/pmo-report.mjs + 14 transitive deps (incl. weekly-recap.mjs, '
+    + 'lib/pmo-{benchmarks,delivery,metrics,templates,window-log}.mjs, lib/prose-{brief,guard,writer}.mjs, '
+    + 'lib/report-registry.mjs, lib/telegram-format.mjs, lib/log-branch.mjs, lib/gh-rest.mjs)',
+  'standup-post':
+    'not extracted — scripts/standup.mjs + 11 transitive deps (incl. weekly-recap.mjs, '
+    + 'lib/standup-deck.mjs, lib/report-registry.mjs, lib/prose-{brief,guard,writer}.mjs, '
+    + 'lib/pmo-templates.mjs, lib/telegram-format.mjs, lib/log-branch.mjs)',
+  'weekly-recap':
+    'not extracted — scripts/weekly-recap.mjs + 7 transitive deps (lib/prose-{brief,guard,writer}.mjs, '
+    + 'lib/telegram-format.mjs, lib/log-branch.mjs, lib/gh-rest.mjs, lib/cross-agent-cli.mjs). '
+    + 'Port this one FIRST — the other two import it.',
+
+  // Not a port at all. The origin project's live-smoke.mjs lives under apps/<app>/scripts/, not
+  // scripts/, and depends on that app's Playwright project + auth helpers. The SKILL.md already
+  // says it wraps the CONSUMING project's own <APP_DIR>/scripts/live-smoke.mjs and must stop if it
+  // is absent, so this stays a per-project obligation the template seeds a pattern for, not a file
+  // this repo can ship. Reclassify only if the template grows an owned e2e harness.
+  'live-smoke':
+    'project-local by design — script lives at apps/<app>/scripts/live-smoke.mjs and needs that '
+    + "app's Playwright browser project + auth helpers; the template seeds the pattern, not the file",
 };
 
 /**
