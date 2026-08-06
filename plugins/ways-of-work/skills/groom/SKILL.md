@@ -232,6 +232,34 @@ The epic Definition of Done then only **verifies** the planned slice shipped + t
 kill-switch story rides the same `HIGH ⇒ the product owner merges`. See the ADR
 `Roadmap/00-ideas/seeds/kill-switch-at-grooming.md`.
 
+## Locate the generators — do this once, before Stage 7
+
+`scaffold-epic.mjs`, `emit-epic-kickoff.mjs`, `emit-kickoff.mjs` and `templates/` **ship with this
+skill** — the Claude Code plugin and the Cowork `.skill` archive both carry them (`node
+scripts/pack-skills.mjs --skill groom` packs 12 files). What differs between hosts is *where* the
+skill directory lands: under the plugin as `skills/groom/` for Claude Code, and as the skill's own
+root for Cowork. So resolve the directory rather than hardcoding either shape — a path that is
+correct on one host and silently wrong on the other is how Stage 7 ends up hand-written.
+
+```bash
+GROOM=""
+for c in "${CLAUDE_PLUGIN_ROOT:-}/skills/groom" \
+         "$HOME/mnt/.claude/skills/groom" \
+         "$HOME/.claude/skills/groom" \
+         "./skills/groom"; do
+  [ -f "$c/scaffold-epic.mjs" ] && { GROOM="$c"; break; }
+done
+[ -n "$GROOM" ] || GROOM=$(find ~ /sessions -maxdepth 8 -type d -name groom \
+  -exec test -f '{}/scaffold-epic.mjs' \; -print 2>/dev/null | head -1)
+[ -n "$GROOM" ] && echo "groom generators: $GROOM" || echo "groom: GENERATORS NOT FOUND"
+```
+
+**If it prints `GENERATORS NOT FOUND`, stop and say so.** Do not hand-write an epic, a sprint file
+or a kickoff that a generator produces — hand-composing is how the architecture-lock pass gets
+summarised away and the review policy silently reverts. A missing generator is a reportable fact,
+not a prompt to improvise. (If it is missing in Cowork, the install carried only `SKILL.md` — the
+fix is to re-install from the `.skill` archive, not to work around it here.)
+
 ## Stage 7 — Scaffold + commit the docs (on the product owner's approval)
 1. Write the **pitch** to `Roadmap/00-ideas/seeds/<slug>.md` — the Definition-of-Ready
    artifact (problem · appetite · bill of materials · rabbit holes · no-gos, plus UX heuristics ·
@@ -242,13 +270,13 @@ kill-switch story rides the same `HIGH ⇒ the product owner merges`. See the AD
    `underwritten_by` stays `null` until the betting table funds it at a wave boundary. **This is the gate: nothing scaffolds until the product owner approves it.**
 2. On approval, **run the scaffolder** instead of hand-rendering structure:
    ```
-   node skills/groom/scaffold-epic.mjs --slug <epic-slug> --area <NN> \
+   node "$GROOM/scaffold-epic.mjs" --slug <epic-slug> --area <NN> \
      --macro <NN-macro> --title "<Epic title>" --risk <low|high> \
      --type <feature|spike|bug|chore> --sprints "S1 title;S2 title;S3 title"
    ```
    `--type` should match the Stage 2 classification decided earlier (default `feature` if omitted — don't
    leave it at the default for a Chore/Bug/Spike epic). It creates `Roadmap/<NN-macro>/<epic-slug>/README.md`
-   + `sprint-1..N.md` + a `RETROSPECTIVE.md` stub from `skills/groom/templates/`, and prints the exact
+   + `sprint-1..N.md` + a `RETROSPECTIVE.md` stub from the skill's own `templates/`, and prints the exact
    path-scoped commit command. Fill the generated files with the real stories / reuse list / QA stages —
    the script makes the skeleton, you make the content.
 3. **Update the seed:** set its frontmatter `epic: "<NN-macro>/<epic-slug>"` (and `status: scaffolded` for
@@ -279,7 +307,7 @@ architecture-lock pass gets summarised away and the review policy reverts to wha
 agent happened to remember:
 
 ```
-node skills/groom/emit-epic-kickoff.mjs --epic <epic-slug>
+node "$GROOM/emit-epic-kickoff.mjs" --epic <epic-slug>
 ```
 
 It searches `Roadmap/*/<epic-slug>/` for the epic dir, reads the epic README (frontmatter, H1 title,
@@ -298,7 +326,7 @@ part is non-negotiable:
 
 ### 8b — Per-sprint mode (the exception)
 ```
-node skills/groom/emit-kickoff.mjs --epic <epic-slug> --sprint <N>
+node "$GROOM/emit-kickoff.mjs" --epic <epic-slug> --sprint <N>
 ```
 Reads the epic README + that one `sprint-<N>.md` and substitutes the sprint-specific delta into
 `templates/kickoff.md`.
