@@ -7,6 +7,11 @@ description: >
   this PR moving", or as the nightly ops routine's third step (once per open PR across the project's repos).
   Runs scripts/babysit-pr.mjs, which does the gh reads, the retry, and the comment post. A clean PR
   (no conflict, no failing checks) gets NO comment — this tool never adds nightly noise to a healthy PR.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - babysit-pr.mjs
 ---
 
 # babysit-pr — advisory PR watch (never merges, never gates)

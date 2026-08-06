@@ -7,6 +7,15 @@ description: >
   monthly PMO packet", or as the pmo-report routine's one step. Runs scripts/pmo-report.mjs, which
   reuses gh-rest, the PMO window log, log-branch persistence, the story-deck templates, and the
   message-format safety nets.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - pmo-report.mjs
+  - lib/gh-rest.mjs
+  - lib/log-branch.mjs
+  - lib/telegram-format.mjs
+  - lib/pmo-delivery.mjs
 ---
 
 # pmo-report - weekly PMO delivery

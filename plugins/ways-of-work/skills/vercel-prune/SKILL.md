@@ -7,6 +7,11 @@ description: >
   second step. Wraps scripts/vercel-prune-previews.mjs with the open-PR-protected branch list
   computed fresh each run. --apply is a SEPARATE, human-confirmed action this skill never takes on
   its own — see Stage 3.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - vercel-prune-previews.mjs
 ---
 
 # vercel-prune — nightly stale-preview report (dry-run by default, apply is human-gated)

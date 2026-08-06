@@ -9,6 +9,12 @@ description: >
   sprint docs and emits the builder kickoff — epic-mode by default (one orchestrated run
   across the whole epic), per-sprint only as the named exception. Planning only —
   never writes code.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - cross-panel.mjs
+  - build-order.mjs
 ---
 
 # Groom — the planning front door (Cowork)

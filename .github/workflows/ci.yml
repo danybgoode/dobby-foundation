@@ -30,6 +30,19 @@ jobs:
       - name: Plugin leak guard
         run: node scripts/check-plugin-leaks.mjs
 
+      # Every skill declares the repo-local scripts it wraps (`requires_scripts:` in its SKILL.md
+      # frontmatter); this asserts template/scripts/ actually supplies them. Before it existed the
+      # contract lived only in prose, and EIGHT of ten skills shipped with no script anywhere — not
+      # in template/, not in any consuming project. An undeclared skill fails too: silence is
+      # exactly what let that survive.
+      #
+      # Green on today's known state, red on anything new: the eight never-extracted skills are
+      # recorded in the script's KNOWN_ABSENT ledger with a reason and report as `debt`. A NEW
+      # missing script, an undeclared skill, or a ledger entry whose debt was quietly paid all fail.
+      # Do not make this green by deleting declarations or padding KNOWN_ABSENT.
+      - name: Skill script contract
+        run: node scripts/check-skill-scripts.mjs
+
       # The groom generators' own unit tests. Both kickoff generators are covered — the per-sprint
       # one (the exception path) and the epic-mode one (the default).
         # Files named explicitly, not a directory: `node --test <dir>` resolves the path as a MODULE
@@ -39,6 +52,30 @@ jobs:
           node --test \
             plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs \
             plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs
+
+      # The two repo-tooling scripts added with the skill-script contract.
+      - name: harness tooling tests
+        run: |
+          node --test \
+            scripts/check-skill-scripts.test.mjs \
+            scripts/pack-skills.test.mjs
+
+      # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
+      # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
+      # writer is hand-rolled (zero deps), so it is verified with a REAL unzip rather than the
+      # reader we wrote ourselves, and asserted reproducible.
+      - name: Cowork .skill packaging
+        run: |
+          node scripts/pack-skills.mjs --out /tmp/skills-a
+          node scripts/pack-skills.mjs --out /tmp/skills-b
+          test -f /tmp/skills-a/groom.skill
+          unzip -t /tmp/skills-a/groom.skill
+          unzip -l /tmp/skills-a/groom.skill | grep -q 'groom/SKILL.md'
+          for f in /tmp/skills-a/*.skill; do
+            cmp "$f" "/tmp/skills-b/$(basename "$f")" \
+              || { echo "pack-skills is not reproducible: $f" >&2; exit 1; }
+          done
+          echo "packaging: archives valid and byte-identical across runs."
 
       # The reviewer ROUTING POLICY. It is the one rule here that erodes silently: a same-family
       # review still produces plausible output, so nothing fails when the routing degrades.

@@ -7,6 +7,12 @@ description: >
   build-order board stale", "open a build-order PR", or as the nightly ops routine's first step. Runs
   scripts/build-order-sync.mjs, which does the check, the regen, and (on real drift) the branch/commit/
   push/PR — this skill just invokes it and reports the result.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - build-order-sync.mjs
+  - build-order.mjs
 ---
 
 # build-order-sync — keep the generated board honest

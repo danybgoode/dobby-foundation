@@ -30,6 +30,28 @@ Or checked into a project's `.claude/settings.json` (team-shared, zero manual st
 }
 ```
 
+### Cowork needs a separate install — `.claude/settings.json` does NOT reach it
+
+Everything above is **Claude Code's** mechanism. Cowork loads its own installed-skill set from the
+desktop app and never reads a repo's `.claude/settings.json`, so a project can have this plugin
+enabled for months and Cowork will still not see it.
+
+That matters most for exactly one skill. `groom` is titled *"the planning front door (Cowork)"* and
+states the role split **"Cowork plans, Claude Code builds"** — the one skill written for Cowork was
+the one Cowork could not load. Discovered 2026-08-06, after many sessions in which the Claude Code
+half worked fine and hid it.
+
+Cowork installs a skill from a `.skill` file — a zip of a skill directory containing `SKILL.md`,
+which renders in chat with a **Save skill** button. Build them:
+
+```
+node scripts/pack-skills.mjs                 # every skill -> dist/
+node scripts/pack-skills.mjs --skill groom   # just the one you need
+```
+
+Then attach the `.skill` file in a Cowork session and click **Save skill**. Archives are
+byte-for-byte reproducible, so rebuilding without a source change is a no-op rather than noise.
+
 ## Origin
 
 Extracted from `medusa-bonsai` (`danybgoode/miyagi-product-management`) as the S0 workstream of the
@@ -56,12 +78,36 @@ with a written reason. A stale `ALLOW` entry fails too — the allowlist has to 
 repo as it actually is. CI also runs the groom generator's tests and renders a throwaway epic to
 prove the scaffolder templates still substitute.
 
-## Gotcha
+## Guard — the skill/script contract
+
+```
+node scripts/check-skill-scripts.mjs                        # audits template/ (the CI gate)
+node scripts/check-skill-scripts.mjs --repo-root <project>  # audits a consuming project
+```
 
 Each skill in `plugins/ways-of-work/skills/` wraps a repo-local script (`scripts/<name>.mjs`) that
 does **not** ship inside the plugin — plugins are copied to a cache dir on install, so a skill can't
 reach `../scripts/` outside its own directory. The script lives in the *consuming project's*
-`scripts/` dir instead (medusa-bonsai has them today; a project spawned from `dobby-foundation/template/`
-gets them via `template/scripts/`). Each skill's `SKILL.md` carries a "Distribution note" stating this
-and its specific script dependency — if the script is missing in a given project, the skill says so
-and stops rather than reimplementing its logic inline.
+`scripts/` dir instead (a project spawned from `template/` gets them via `template/scripts/`). If
+the script is missing, the skill says so and **stops** rather than reimplementing its logic inline.
+
+Every skill declares that dependency in its `SKILL.md` frontmatter:
+
+```yaml
+requires_scripts:
+  - standup.mjs
+  - lib/log-branch.mjs
+```
+
+**Why this replaced the prose "Distribution note":** the contract used to live only in sentences,
+and prose is not checkable. Nothing noticed that **eight of the ten skills had no script anywhere** —
+not in a consuming project, and not in `template/` either. Every project spawned from this repo got
+eight skills that could never run, and a whole portability bet swept sixteen files without catching
+it. One registry the checker walks means a new skill inherits the check instead of needing someone
+to remember it.
+
+The eight are recorded in the script's `KNOWN_ABSENT` ledger with a reason and report as `debt`, so
+CI is **green on today's known state and red on anything new** — a permanently-red check is worse
+than no check. What fails: a newly missing script, a skill that declares nothing at all, and a
+ledger entry whose debt was quietly paid. **They are dark, not working** — porting them is
+outstanding work, not a documentation problem to reword away.
