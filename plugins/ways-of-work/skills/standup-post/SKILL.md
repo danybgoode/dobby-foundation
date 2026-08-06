@@ -9,6 +9,14 @@ description: >
   (against the `claude/standup-log` branch), story-deck link generation, and the actual send.
   Read-only aggregation + one chat post + a log commit — never merges, never gates, never touches
   any repo's code.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - standup.mjs
+  - build-order.mjs
+  - vercel-prune-previews.mjs
+  - lib/log-branch.mjs
 ---
 
 # standup-post — the daily standup post

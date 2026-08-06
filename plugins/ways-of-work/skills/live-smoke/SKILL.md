@@ -9,6 +9,11 @@ description: >
   flow", or as a post-merge/pre-PR verification step. Wraps the project's
   <APP_DIR>/scripts/live-smoke.mjs — a real screenshot + JSON report, not just an HTTP status check.
   Reach for THIS before Claude-in-Chrome; see the fallback boundary below.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - live-smoke.mjs
 ---
 
 # live-smoke — the scripted default for verifying rendered behavior

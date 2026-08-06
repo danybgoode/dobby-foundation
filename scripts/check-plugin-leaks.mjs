@@ -77,12 +77,12 @@ const ALLOW = [
     line: 'Extracted from `medusa-bonsai` (`danybgoode/miyagi-product-management`) as the S0 workstream of the',
     why: 'The `## Origin` section — where-it-came-from IS the content here. Removing it deletes history.',
   },
-  {
-    file: 'README.md',
-    line: '`scripts/` dir instead (medusa-bonsai has them today; a project spawned from `dobby-foundation/template/`',
-    why: 'The concrete example that makes the wraps-a-repo-local-script gotcha land. The same clause was '
-       + 'deliberately REMOVED from every SKILL.md, where it told a consuming project nothing.',
-  },
+  // REMOVED 2026-08-06. This entry allowed the README to say the origin project "has them today" as
+  // the concrete example behind the wraps-a-repo-local-script gotcha. It was worse than a leak: it
+  // was FALSE COMFORT. check-skill-scripts.mjs proved eight of the ten scripts exist in no consuming
+  // project and not in template/ either — so the sentence reassured every reader that a dependency
+  // was satisfied somewhere while eight skills shipped dark. The README now states the real status
+  // and the guard enforces it, so the clause is gone and this allowance with it.
   {
     file: '.claude-plugin/marketplace.json',
     line: '"name": "Daniel"',

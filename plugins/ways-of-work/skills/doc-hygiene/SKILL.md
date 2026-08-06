@@ -8,6 +8,12 @@ description: >
   scripts/doc-hygiene.mjs, reviews its flagged candidates against the source docs, and emits a dated
   advisory report. Never edits Roadmap docs — proposals only, the product owner or the builder
   hand-merges.
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - doc-hygiene.mjs
+  - roadmap-to-notion.mjs
 ---
 
 # Doc hygiene — rolling maintenance for the always-read set (Cowork or Claude Code)

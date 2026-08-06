@@ -9,6 +9,12 @@ description: >
   committed as-is — the coordinating agent edits it for factual accuracy first (drafts invent
   plausible-sounding gaps; the output banner says so). PR bodies are NOT in scope: the agent
   that built a PR writes its body (it already holds the context).
+# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
+# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
+# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+requires_scripts:
+  - prose-draft.mjs
+  - prose-draft.prompt.md
 ---
 
 # prose-draft — delegated first drafts for file-derived close-out prose
