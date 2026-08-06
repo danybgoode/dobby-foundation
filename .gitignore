@@ -16,3 +16,6 @@ plugins/**/skills/**/config.json
 node_modules/
 npm-debug.log*
 *.log
+
+# Built .skill archives (scripts/pack-skills.mjs) — regenerate, never commit.
+dist/
