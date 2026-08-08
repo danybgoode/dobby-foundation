@@ -1,6 +1,9 @@
 ---
 status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: {{SLUG}}
+build_order: null    # integer position in the ONE global build sequence — the SSOT once the epic
+                     # exists (the seed's value is only a fallback). Fill it in at the betting
+                     # table; plain integers, no "#2a" suffixes. See 00-ideas/README.md → Ordering.
 ---
 
 # Epic: {{TITLE}}
