@@ -90,6 +90,8 @@ jobs:
         run: |
           node --test \
             template/scripts/permissions-smoke.test.mjs \
+            template/scripts/cross-review.test.mjs \
+            template/scripts/lib/review-guard.test.mjs \
             template/scripts/review-route.test.mjs \
             template/scripts/prose-draft.test.mjs \
             template/scripts/babysit-pr.test.mjs \
