@@ -32,8 +32,16 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    `.github/workflows/ci.yml.example` → rename to `ci.yml` once real app code exists (at that point
    also rename `.githooks/pre-push.example` → `pre-push` and fill in its own TEMPLATE FILL-IN, so
    local pre-push feedback mirrors `ci.yml`'s real checks).
-4. **Wire the marketplace** — `.claude/settings.json` already points at this repo's `ways-of-work`
-   plugin; verify the marketplace name/repo match if this template was forked/renamed.
+4. **Wire the marketplace and the permissions** — `.claude/settings.json` already points at this
+   repo's `ways-of-work` plugin and carries the committed `permissions` block: an `allow` list of verb
+   classes, a `deny` list (CLI deploys, `supabase db push|reset`, force pushes, `rm -rf`, whole-tree
+   staging, hand-edits of generated boards) and an `ask` list (secret/env writes). Every deny/ask rule
+   is cited in `.claude/permissions-ledger.json`; `node scripts/permissions-smoke.mjs` checks the pair.
+   Add project-specific rules to BOTH files. **Auto mode is a user setting** — put
+   `"permissions": {"defaultMode": "auto"}` in `~/.claude/settings.json`; the same line in a project
+   settings file is ignored *and* masks the user default, so the smoke fails on it. Keep
+   `.claude/settings.local.json` for genuinely machine-specific entries only — a one-off approval that
+   is really a verb class belongs in the committed list.
 5. **Wire local-first hooks** — once `package.json` exists (from your app's own bootstrap, e.g.
    `create-next-app`), add `"prepare": "git config core.hooksPath .githooks"` to its `"scripts"`
    block. This auto-activates `.githooks/pre-commit` (blocking — build-order + scripts/ node:test,

@@ -22,6 +22,7 @@ on:
     paths:
       - 'Roadmap/**'
       - 'scripts/**'
+      - '.claude/**'
       # TEMPLATE FILL-IN: add your own infra/**, .github/workflows/** etc. paths as those guards
       # get added (see build-order-guard.yml's original per-path shape in the origin project for
       # more examples: infra-guard, yaml-guard).
@@ -48,6 +49,7 @@ jobs:
           changed=$(git diff --name-only "$base"...HEAD)
           echo "roadmap=$(echo "$changed" | grep -qE '^(Roadmap/|scripts/(build-order|roadmap-to-notion)\.mjs)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "scripts=$(echo "$changed" | grep -qE '^scripts/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "claude=$(echo "$changed" | grep -qE '^(\.claude/|scripts/permissions-smoke)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: build-order — status board is fresh
         if: steps.areas.outputs.roadmap == 'true'
@@ -63,3 +65,10 @@ jobs:
             exit 0
           fi
           node --test "${files[@]}"
+
+      # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,
+      # the allow list made of verb classes, no project-level auto mode. Static only — the behavioural
+      # replay (`--live`) needs a real Claude session and is human-run; see the script header.
+      - name: permissions — contract holds
+        if: steps.areas.outputs.claude == 'true'
+        run: node scripts/permissions-smoke.mjs
