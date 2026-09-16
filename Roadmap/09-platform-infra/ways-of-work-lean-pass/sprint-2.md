@@ -1,6 +1,6 @@
 # Ways-of-work lean pass — Sprint 2: One cross-family pass + one fresh reviewer
 
-**Status:** ⬜ not started
+**Status:** 🟦 In review — S2a (2.2/2.3/2.4/2.6/2.7) and S2b (2.1/2.5/2.8) are open as stacked PRs
 
 **Epic:** [Ways-of-work lean pass](README.md) · **Risk: HIGH — the product owner merges** (removing a review layer is a security decision)
 
@@ -100,6 +100,29 @@ merge until 2.3, 2.4 and 2.7 have merged **and** the one-pass + fresh-reviewer s
 **at least 5 real PRs across two repos**, with 2.4's guard proven against a deliberately broken CLI.
 **Risk:** high — **sequence this last in the sprint.** Removing corroboration before its replacement
 exists is the one way this epic causes an incident.
+
+## S2.8 gate — the evidence, and exactly what it proves
+
+The story says the one-general-pass + fresh-reviewer shape must have run green on **≥5 real PRs across
+≥2 repos** before the second pass is deleted. What ran, 2026-09-16:
+
+| PR | Repo | External general pass | Fresh reviewer | Outcome |
+|---|---|---|---|---|
+| #10 | dobby-foundation | codex | ✅ | 4 blocking → 3 fixed, 1 argued down with a docs citation |
+| #143 | golden-beans | codex | ✅ | 1 blocking + 2 should-fix → all fixed; also caught the red prettier gate |
+| #175 | miyagi-product-management | codex | — | 1 blocking + 1 should-fix → both fixed |
+| #11 | dobby-foundation | codex | ✅ | 3 blocking → 2 fixed, 1 argued down; the fresh pass found the App-Router glob hole |
+| #144 | golden-beans | codex | ✅ | 2 blocking (both wrong — it confused the two repos) + 2 should-fix → fixed |
+| #176 | miyagi-product-management | codex | — | 2 blocking (1 is the posture, argued down) + 2 should-fix → fixed |
+
+**Six PRs, three repos, four fresh-reviewer passes.** Every round found something real, which is the
+point of the measurement rather than the count.
+
+**The honest caveat:** those passes ran the **pre-S2a** `cross-review.mjs`. They prove the *shape* — one
+external family plus one fresh reviewer catches what two generalist external passes were catching — and
+they do **not** exercise the new output guard or the commit status against a live CLI. That half is
+proven by `cross-review.test.mjs` driving the real runner against a deliberately broken stub, and the
+first live run of the new script lands with S2a itself.
 
 ## Sprint QA
 - **api spec(s):** unit tests for the collapsed router rule (a family never reviews its own diff;
