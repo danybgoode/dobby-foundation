@@ -79,28 +79,32 @@ all merges and deploys are pre-authorized at **every** risk tier; no Anthropic A
 exist, so **nothing may depend on one**; the security review is a **lean, CLI-agnostic external pass**;
 GitHub secret scanning (+ push protection) and CodeQL are adopted as a free deterministic floor.
 
-- **D1 — allow list = verb classes that are not already built-in read-only.** Claude Code already runs
-  `ls/cat/head/tail/grep/find/wc/diff/stat/echo/cd` and read-only `git` without a prompt in every mode
-  (docs: *Read-only commands*), so listing them is noise. The committed list covers what actually
-  prompted in the 177-entry medusa log and golden-beans' 35-line log: git writes a builder needs
-  (`add/commit/branch/switch/checkout/worktree/fetch/pull/stash/merge/restore`), `gh pr|run|issue` reads,
-  `npm run|test|ci`, `npx tsc|eslint|playwright test`, `node scripts/*`, `node --test`, the text
-  filters `jq/sort/uniq/sed -n`, and read-only platform calls (`supabase migration list`,
-  `supabase projects list`, `vercel env ls`, `vercel ls`, `gcloud builds list`, `gcloud run services
-  list|describe`, `<cli> --version`). **No literal past command, no `git push`, no `gh api`, no `awk`.**
-  The exact array lives in `template/.claude/settings.json`; its ledger is `scripts/permissions-smoke.mjs`.
-- **D2 — two tiers, every entry cited in a ledger.** `deny` = irreversible-by-rule: CLI deploys
-  (`vercel deploy|--prod|promote|rollback|redeploy`, bare `vercel`), `supabase db push|reset`, force
-  pushes (`--force*`, ` -f`, `+refspec`, and the `git -C <dir> push` form), `rm -rf` spellings,
-  whole-tree staging (`git add -A|--all|.`, `git commit -a|-am`), and hand-edits of generated boards.
-  `ask` = production secrets/env writes (`vercel env add|rm|update`, `gh secret set|delete`,
-  `gcloud secrets create|delete|versions add|destroy`, Cloud Run env/secret flags) — they get **one
-  focused question**, matching the operating posture, instead of an outright ban. **Correction:** the
-  scope said "deny writes to money/auth env vars"; name-matched rules are unenforceable, so all secret
-  writes ask. **Honest limit (docs: *What a Bash rule doesn't match*):** a rule stops the form an agent
-  normally writes, not `/bin/rm` or `sh -c '…'`; the ledger says so rather than presenting the list as a
-  sandbox. `supabase db push` is denied in golden-beans too — agents apply migrations via the Supabase
-  MCP, the product owner can still run it by hand.
+- **D1 — allow list = verb classes that are not already built-in read-only, and never a command that
+  destroys uncommitted work.** Claude Code already runs `ls/cat/head/tail/grep/find/wc/diff/stat/echo/cd`
+  and read-only `git` without a prompt (docs: *Read-only commands*), so listing them is noise. **An
+  allowed command skips the auto-mode classifier**, so the list is narrowed to forms that cannot discard
+  work (amended after the fresh review of dobby-foundation#10): `git add|commit|fetch|pull|merge`,
+  `git switch -c`, `git checkout -b`, `git worktree add|list`, `git stash push|list`, `gh pr|run|issue`
+  reads, `npm run|test|ci`, `npx tsc|eslint|playwright test`, `node scripts/*`, `node --test`, `jq`, and
+  read-only platform calls (`supabase migration list`, `supabase projects list`, `vercel env ls`,
+  `vercel ls`, `gcloud builds list`, `gcloud run services list|describe`, `<cli> --version`). **Not
+  allowed, so the classifier sees them:** `git checkout <path>|-f`, `git restore`, `git stash clear|drop`,
+  `git branch -D`, `git worktree remove`, `sed`, `sort -o`, `git push`, `gh api`, `awk`. Exact array:
+  `template/.claude/settings.json` (39 rules).
+- **D2 — two tiers, every entry cited in a ledger, with a required baseline.** `deny` (51) =
+  irreversible-by-rule: CLI deploys (bare `vercel`, `vercel .|--prod|--yes|deploy|promote|rollback|
+  redeploy`, `npx vercel`), `supabase [flags] db push|reset` and `npx supabase db push`, force pushes
+  (`--force`, `-f`/`-fu`/`-uf`, `+refspec`, `--mirror`, and each through `git -C <dir>`), `rm` recursive
+  force in ten spellings, whole-tree staging (`git add -A*|--all|.|:/|-u|--update`, `git commit
+  -a|-am|-qam|-av|--all`, trailing `-a|--all`), and hand-edits of generated boards. `ask` (15) =
+  production secrets/env writes, `gcloud run deploy`, and **`git push --force-with-lease`** — a lease
+  push to your own stacked branch is legitimate and a deny cannot be approved once. `REQUIRED_REFUSALS`
+  fails the contract if the baseline guardrails disappear, even with the ledger deleted alongside.
+  **Correction:** the scope said "deny writes to money/auth env vars"; name-matched rules are
+  unenforceable, so all secret writes ask. **Honest limit (docs: *What a Bash rule doesn't match*):** a
+  rule stops the form an agent normally writes, not `/bin/rm` or `sh -c '…'`. `supabase db push` is
+  denied in golden-beans too — agents apply migrations via the Supabase MCP, the product owner can still
+  run it by hand.
 - **D3 — auto mode is a USER setting; S1.4 is corrected.** Docs (*permission-modes*): `defaultMode:
   "auto"` in `.claude/settings.json` or `.local.json` **does not take effect and masks the user-level
   default**. The product owner's `~/.claude/settings.json` already sets it. S1.4 therefore ships a
@@ -111,7 +115,9 @@ GitHub secret scanning (+ push protection) and CodeQL are adopted as a free dete
   refuses an agent launching a nested `claude -p` with its own permission rules (observed twice). So:
   the static contract (every rule ↔ ledger entry, no project-level auto) runs in CI; each denied verb is
   **attempted in the orchestrating session** against harmless PATH shims and the refusal recorded in the
-  sprint doc; `permissions-smoke.mjs --live` is the human-run behavioural replay.
+  sprint doc; `permissions-smoke.mjs --live` is the human-run behavioural replay — three sessions: a
+  shadow check (every probed program resolves to a shim, else nothing is sent), a baseline with no rules
+  (every probe must RUN), then the committed rules (every probe must be refused).
 - **D5 — the review stack.** CI → **fresh reviewer** (Claude `pr-reviewer` subagent, general, with repo
   context) → **one external general pass** → **one external security pass, only when a PR touches a
   security path**. The builder merges once CI is green and findings are fixed or answered — **any tier,
