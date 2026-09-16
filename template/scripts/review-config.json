@@ -1,0 +1,17 @@
+{
+  "_about": "Which PRs get which review layers (ways-of-work-lean-pass D5/D7). reviewScope: 'every-pr' = the fresh reviewer + one external general pass on every non-trivial PR; 'security-paths-only' = only when a securityPaths glob is touched (or the body declares risk: high). securityPaths ALSO decides the lean external security lens in every scope. TEMPLATE FILL-IN: replace these globs with your project's real money/auth/migration paths.",
+  "reviewScope": "every-pr",
+  "securityPaths": [
+    "**/auth/**",
+    "**/*webhook*",
+    "**/checkout/**",
+    "**/payments/**",
+    "**/*stripe*",
+    "middleware.ts",
+    "**/middleware.ts",
+    "supabase/migrations/*.sql",
+    "**/*secret*",
+    ".github/workflows/**",
+    ".claude/settings.json"
+  ]
+}

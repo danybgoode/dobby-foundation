@@ -36,8 +36,9 @@
 // lockfile itself.
 
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
   AGENTS,
   die,
@@ -58,14 +59,37 @@ import {
   stripGeneratedFileDiffs,
   shortSha,
 } from './lib/cross-agent-cli.mjs';
+import {
+  assertReviewOutput,
+  cliVersionNote,
+  decideSecurityPass,
+  isReReview,
+  parseReviewConfig,
+  postReviewStatus,
+  RE_REVIEW_NOTE,
+} from './lib/review-guard.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = join(__dirname, 'cross-review.prompt.md');
+// `--lens security` swaps the prompt ONLY. Agent selection, the codex→agy fallback, --skip-trivial and
+// the output guard are untouched, so the lens cannot regress the rail that reviews every other PR.
+const SECURITY_PROMPT_PATH = join(__dirname, 'cross-review.security.prompt.md');
+const REVIEW_CONFIG_PATH = join(__dirname, 'review-config.json');
+export const LENSES = ['security'];
+
+// THROWS rather than die()s: a pure function that exits the process cannot be unit-tested, and silently
+// falling back to the general prompt is the worst failure available here — the operator would believe a
+// security pass ran while a general review actually did.
+export function promptPathFor(lens) {
+  if (!lens) return PROMPT_PATH;
+  if (!LENSES.includes(lens)) throw new Error(`unknown lens '${lens}' (expected: ${LENSES.join(' | ')})`);
+  return SECURITY_PROMPT_PATH;
+}
 
 const BANNER =
-  '> **Advisory only — not a gate, does not authorize merge.** ' +
-  'CI + the Claude reviewer + the risk-tier rule remain authoritative. ' +
-  'This is a single-pass second opinion from a different model family.';
+  '> **Cross-agent review — every finding is fixed, or answered on this PR, before merge. This does not authorize one.** ' +
+  'CI and the risk-tier merge rule remain the only merge authority. A fresh `pr-reviewer` pass covers context independence; ' +
+  'this is the family-independence pass: one single-pass read by a model family that did not build the diff.';
 
 const HELP = `cross-review.mjs — advisory cross-agent second opinion on a PR diff.
 
@@ -102,6 +126,7 @@ function parseArgs(argv) {
     dryRun: false,
     skipTrivial: false,
     minLines: 10,
+    lens: null,
     includeLockfiles: false,
     help: false,
   };
@@ -114,6 +139,8 @@ function parseArgs(argv) {
     else if (a === '--include-lockfiles') out.includeLockfiles = true;
     else if (a === '--min-lines') out.minLines = parseMinLines(need(argv[++i], '--min-lines'));
     else if (a.startsWith('--min-lines=')) out.minLines = parseMinLines(a.slice('--min-lines='.length));
+    else if (a === '--lens') out.lens = need(argv[++i], '--lens');
+    else if (a.startsWith('--lens=')) out.lens = a.slice('--lens='.length);
     else if (a === '--agent') out.agent = need(argv[++i], '--agent');
     else if (a.startsWith('--agent=')) out.agent = a.slice('--agent='.length);
     else if (a === '--repo') out.repo = need(argv[++i], '--repo');
@@ -181,10 +208,42 @@ function runReview(agent, prompt, diff) {
   die(`unknown --agent '${agent}'; use ${Object.keys(AGENTS).join('|')}`);
 }
 
-function buildComment(agentLabel, findings, fellBack) {
+export function buildComment(agentLabel, findings, fellBack, { lens = null, version = null, reReview = false } = {}) {
   // When codex fell back, make it unmistakable so nobody reads an Antigravity review as a Codex one.
   const header = fellBack ? `${AGENTS.antigravity} — Codex unavailable` : agentLabel;
-  return `### 🔎 Cross-agent review (${header})\n\n${BANNER}\n\n---\n\n${findings}\n`;
+  const title = lens
+    ? `### 🔐 Cross-agent review — ${lens} lens (${header})`
+    : `### 🔎 Cross-agent review (${header})`;
+  // The reviewer CLI's version is machine-local state no artifact used to capture: if it drifts, review
+  // strength changes and nothing notices. Recorded, not enforced — see lib/review-guard.mjs.
+  const attribution = version ? `\n\n_${version}._` : '';
+  const limit = lens === 'security'
+    ? `\n\n> **Scope of this pass:** one advisory, single-pass read by a different model family, triggered by the changed paths. It is **not** static analysis, not exhaustive, and not a required check. A clean result here is not a security guarantee.`
+    : '';
+  const convergence = reReview ? `\n\n> **Re-review:** Blocking/Important findings only — earlier nits are deliberately not repeated.` : '';
+  return `${title}\n\n${BANNER}${attribution}${limit}${convergence}\n\n---\n\n${findings}\n`;
+}
+
+/** Comment bodies already on the PR, for re-review convergence. [] on any failure (degrade to first pass). */
+function ghComments(pr, repo) {
+  const args = ['pr', 'view', String(pr), '--json', 'comments'];
+  if (repo) args.push('--repo', repo);
+  const r = spawnSync('gh', args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  if (r.status !== 0) return [];
+  try {
+    return (JSON.parse(r.stdout || '{}').comments || []).map((c) => c.body || '');
+  } catch {
+    return [];
+  }
+}
+
+/** The project's review config. A missing/invalid file is FATAL: defaulting it would silently mean "never run the security lens". */
+export function loadReviewConfig(path = REVIEW_CONFIG_PATH) {
+  try {
+    return parseReviewConfig(JSON.parse(readFileSync(path, 'utf8')));
+  } catch (e) {
+    die(`scripts/review-config.json is missing or invalid (${e.message}). It decides which PRs get the security lens — a default would silently mean "never".`);
+  }
 }
 
 function postComment(pr, repo, body) {
@@ -200,7 +259,7 @@ function postComment(pr, repo, body) {
 }
 
 function main() {
-  let { pr, agent, repo, force, dryRun, skipTrivial, minLines, includeLockfiles, help } = parseArgs(
+  let { pr, agent, repo, force, dryRun, skipTrivial, minLines, includeLockfiles, lens, help } = parseArgs(
     process.argv.slice(2)
   );
   if (help) {
@@ -209,6 +268,7 @@ function main() {
   }
   if (pr !== null && !/^\d+$/.test(String(pr))) die(`PR number must be numeric, got '${pr}'.`);
   if (!AGENTS[agent]) die(`unknown --agent '${agent}'; use ${Object.keys(AGENTS).join('|')}`);
+  if (lens && !LENSES.includes(lens)) die(`unknown --lens '${lens}'; use ${LENSES.join('|')}`);
 
   ensureGh();
 
@@ -260,7 +320,9 @@ function main() {
     );
   }
 
-  const prompt = loadPromptBody(PROMPT_PATH);
+  // Re-review convergence (D8): a prior pass for THIS lens means Blocking/Important only.
+  const reReview = isReReview(ghComments(pr, repo), lens);
+  const prompt = loadPromptBody(promptPathFor(lens)) + (reReview ? RE_REVIEW_NOTE : '');
   const rawDiff = ghDiff(pr, repo);
   let diff = rawDiff;
   if (!includeLockfiles) {
@@ -274,16 +336,32 @@ function main() {
     }
   }
   const { findings, fellBack } = runReview(agent, prompt, diff);
-  if (!findings) die(`${fellBack ? AGENTS.antigravity : AGENTS[agent]} returned no output.`);
 
-  const body = buildComment(AGENTS[agent], findings, fellBack);
+  // THE GUARD (D9). With one external pass, a CLI that exits 0 with nothing to say reads exactly like a
+  // clean review and nothing contradicts it. So a structureless reply FAILS the run loudly and fails the
+  // PR's `cross-review/<lens>` status, rather than posting a comment that looks like a pass.
+  const verdict = assertReviewOutput(findings);
+  if (!verdict.ok) {
+    const who = fellBack ? AGENTS.antigravity : AGENTS[agent];
+    if (!dryRun) {
+      const st = postReviewStatus({ pr, repo, state: 'failure', lens, description: `${who}: ${verdict.reason}` });
+      process.stderr.write(st.posted ? `✗ marked cross-review/${lens || 'general'} FAILED on PR #${pr}.\n` : `✗ could not post the failing status (${st.detail}).\n`);
+    }
+    die(`${who} did not return a review: ${verdict.reason}`);
+  }
+
+  const body = buildComment(AGENTS[agent], findings, fellBack, { lens, version: cliVersionNote(fellBack ? 'antigravity' : agent), reReview });
   if (dryRun) {
     process.stdout.write(body);
     process.stderr.write('\n(dry-run — no comment posted)\n');
   } else {
     const url = postComment(pr, repo, body);
-    process.stderr.write(`✓ Advisory comment posted${url ? `: ${url}` : ''}\n`);
+    process.stderr.write(`✓ Review comment posted${url ? `: ${url}` : ''}\n`);
+    const st = postReviewStatus({ pr, repo, state: 'success', lens, description: `${AGENTS[agent]} — ${verdict.reason}` });
+    process.stderr.write(st.posted ? `✓ cross-review/${lens || 'general'} status: success.\n` : `⚠ review posted but its status did not (${st.detail}).\n`);
   }
 }
 
-main();
+// Guarded so importing this module for its pure helpers does not run a review.
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) main();

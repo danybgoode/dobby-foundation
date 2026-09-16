@@ -82,13 +82,11 @@ whether the betting table sees it (WAYS-OF-WORKING → *Betting & appetite*):
 > unbuilt or half-built promise, not a regression). The fix is a normal user story with an
 > acceptance check and a regression spec so it can't silently come back.
 
-> **Cross-agent planning panel — surface it on a Spike.** When the class is **Spike** (an "A vs B" /
-> "how should this work" call), you **must surface** a one-line offer to run the advisory planning panel
-> *before* the decision lands — a different model family's architecture second opinion on the brief:
-> `node scripts/cross-panel.mjs <brief> --lens both --agent codex` (run again with `--agent antigravity`
-> for family diversity). It's **single-pass, print-only, advisory — it never gates and never writes the
-> doc**; the product owner's decision/scope-doc approval remains the only gate. *Surface = a required offer, not an
-> auto-run* (cost-safe, matches `cross-review`). See the full trigger model at Stage 4.
+> **Cross-agent planning panel — available on demand, never an obligation.** A spike's "A vs B" call can
+> take a different model family's read: `node scripts/cross-panel.mjs <brief> --lens both --agent codex`.
+> It is single-pass, print-only and advisory; it never gates and never writes the doc. Run it via the
+> `Panel:` verb when the fork is worth it — there is **no requirement to offer it** (removed 2026-09-16:
+> an advisory nicety had become a required ritual on every spike and every architecture fork).
 
 **Optional archetype tag.** Alongside the class, an ask can also carry a *mode* tag — orthogonal, from the
 role-archetypes spike decision (the origin project's `spike-role-archetypes` seed; trial
@@ -163,20 +161,11 @@ owns which data, the agent surface, auth, language policy). If the ask violates 
 > swept-path lints), the audits lens (`00-ideas/audits/results-refresh-2026-06/`), and any
 > design-language debt — using the seed template's "UX heuristics & rails check" block.
 
-> **Cross-agent planning panel — the trigger model (advisory, never a gate).** This is where the expensive
-> *architecture forks* surface — and where the panel earns its keep. **You must surface a one-line offer to
-> run the panel** whenever the reframe hits a fork worth a second model family's eyes:
-> - a **new platform module vs secondary-store table vs custom route** decision (a data-ownership call),
-> - a **new primitive** (new table, new public route contract, a new id namespace),
-> - an **AGENTS-rule tension** you had to reason about, or
-> - any **expensive-to-reverse** choice (migration shape, schema, channel/auth boundary).
->
-> Routine work (clear reuse, no fork) is **on-demand only** — runnable via the `Panel:` verb
-> (`Roadmap/SESSION-KICKOFFS.md`) but not offered. The panel is **never auto-run** (surface = a required
-> *offer*, cost-safe) and **never a gate**: it prints a single-pass, different-family critique
-> (`node scripts/cross-panel.mjs <doc> --lens both --agent codex|antigravity|vibe|claude`) that ends in a *checkable
-> claim*; it does not edit the doc. The product owner's scope-doc approval (Stage 7) stays the only gate — the panel is
-> a step *before* it, not a new one.
+> **Panel, on demand.** This is where the expensive *architecture forks* surface — a data-ownership call,
+> a new primitive, an AGENTS-rule tension, an expensive-to-reverse migration shape. Any of those is worth
+> a different family's read if you want one (`node scripts/cross-panel.mjs <doc> --lens both --agent
+> codex|antigravity|vibe|claude`, or the `Panel:` verb). Advisory, single-pass, never a gate, and never
+> an obligation to surface — the product owner's scope-doc approval (Stage 7) stays the only gate.
 
 ## Stage 4.5 — Bill of materials (the shaping ritual, shaped-bet lane)
 For a shaped bet, draft the solution as a **What / Why table — as few words as possible**, before
