@@ -51,7 +51,7 @@ Pleasantries are fine and cost nothing — the leverage is the defined verb, not
 | **Build epic \<epic\>** | §2 — build a WHOLE epic in one orchestrated run (**the default**) |
 | **Build S\<N\> of \<epic\>** | §2b — build a single sprint (the exception: one-sprint epic, or the next sprint's scope genuinely isn't knowable yet) |
 | **Spike \<name\>** | §3 — run a spike |
-| **Review PR #\<N\>** | §4 — route + run the two cross-family passes |
+| **Review PR #\<N\>** | §4 — route + run the external pass(es) + the fresh reviewer |
 | **Cross-review PR #\<N\>** | §4 — synonym; always route it, never hand-pick `--agent` |
 | **Panel: \<scope-doc \| ask\>** | advisory second opinion on a *plan* — `node scripts/cross-panel.mjs <doc> --lens both --agent <reviewer>` (single-pass, print-only, never gates; surfaced at groom Stage 2/4) |
 | **Wrap S\<N\>** | tick the sprint doc status + emit the §7 sprint-wrap terminal summary |
@@ -145,18 +145,15 @@ already-possible / light-enhancement / genuinely-new; end with Go / No-go / Go-w
 I sign off the decision before anything gets groomed.
 ```
 
-## 4 · Review a PR — two cross-family passes, routed (NOT the builder)
+## 4 · Review a PR — one external pass (+ a security lens when triggered), routed (NOT the builder)
 ```
 Review PR #<N> cold after the deterministic gate. The builder does not approve its own diff.
 Route it — never hand-pick --agent:
   node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <N>
 Run the TWO cross-family passes it prints (a family never reviews its own diff). On a LOW PR that is
 the whole layer — do NOT also spawn your own reviewer subagents. On HIGH, add the fresh reviewer
-subagent on top. If a family is quota-capped, STOP AND ASK ME FOR A REFUND before substituting your own
-subagents; proceed only after the window the router states, and record the downgrade in the PR body.
-Check correctness + AGENTS.md, post findings, and resolve every Blocking item. Re-review substantive
-fixes; use targeted validation for docs/presentation-only deltas.
-```
+subagent runs too (context independence). A capped family falls to the next in the preference order; if
+only one family can run, it runs both prompts and the PR body says so.
 
 **Why two and not three.** Until now a typical build ran the cross-agent passes *and* the orchestrator's
 own parallel reviewer subagents, on every PR, regardless of tier — two of those three passes were paying

@@ -159,7 +159,7 @@ jobs:
           done
           # The process contract the generated prompt must always carry.
           grep -q 'review-route.mjs' "$work/epic-kickoff.txt"
-          grep -q 'REFUND' "$work/epic-kickoff.txt"
+          grep -q 'security lens' "$work/epic-kickoff.txt"
           grep -q 'Done means shipped' "$work/epic-kickoff.txt"
           echo "kickoff generators: both rendered, contract lines present."
           rm -rf "$work"
