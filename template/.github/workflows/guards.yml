@@ -75,7 +75,8 @@ jobs:
 
       # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,
       # the allow list made of verb classes, no project-level auto mode. Static only — the behavioural
-      # replay (`--live`) needs a real Claude session and is human-run; see the script header.
+      # replay (`--live`) spends real Claude sessions, so it is run by hand when rules change; see the
+      # script header for what it can and cannot prove.
       - name: permissions — contract holds
         if: steps.areas.outputs.claude == 'true'
         run: node scripts/permissions-smoke.mjs
