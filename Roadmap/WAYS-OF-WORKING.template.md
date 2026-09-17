@@ -1,11 +1,18 @@
-<!-- GENERATED FILE — do not edit by hand.
-     Source: Roadmap/WAYS-OF-WORKING.template.md + Roadmap/fill-ins.yml
-     Regenerate: node scripts/render-ways-of-working.mjs   (CI checks it with --check)
-     Shared process text belongs in the .template.md; this project's own belongs in fill-ins.yml. -->
+<!--
+  SOURCE FILE. `Roadmap/WAYS-OF-WORKING.md` is RENDERED from this plus `Roadmap/fill-ins.yml`:
+
+      node scripts/render-ways-of-working.mjs            # write it
+      node scripts/render-ways-of-working.mjs --check    # CI: fail if the rendered file drifted
+
+  Edit THIS file for anything every project shares, and `fill-ins.yml` for anything one project's own.
+  Rendering twice with no source change is a byte-for-byte no-op (ways-of-work-lean-pass S3.5).
+-->
 # Ways of Working
 
-How the product owner and Claude (builder) ship product together. Small slices, plan first, ship
+How {{fill:product_owner}} and Claude (builder) ship product together. Small slices, plan first, ship
 the moment each slice works — and each slice is a piece of the final product, never a test of it.
+
+{{fill:operating_posture}}
 
 ## Roles and the unit of work
 
@@ -25,17 +32,13 @@ Plan → branch + scaffold docs → build story → verify → QA/smoke → PR �
 ```
 
 1. **Plan.** Non-trivial work goes through plan mode as user stories, approved before code, naming its
-   QA/smoke stage. Reference end-states are inspiration, never signed-off scope.
+   QA/smoke stage. {{fill:design_is_scope}}
 2. **Branch + scaffold.** One branch per epic (`feat/<slug>`) off the latest `main`, in each repo you
    touch. Scaffold the epic `README.md` + `sprint-N.md` *before* any code, and keep them current (✅
    ticks, commit refs).
 3. **Build one story at a time.** Reuse before rebuild. Commit per story, **path-limited**.
 4. **Verify + QA.** The deterministic gate — typecheck, lint, build, the suite — is green **before**
-   merge, run by the building agent, not only by CI. **Deploy rail.** This repo has no runtime deploy: merging to `main` publishes the `ways-of-work` plugin
-(every consuming project pulls it on its next session) and the spawn template (copied once by new
-projects). So "done means shipped" here is **merged to `main` with CI green**, plus — when a change is
-meant to reach consuming projects' own copies (the byte-identical shared scripts, the vendored
-WAYS-OF-WORKING template) — the matching PRs landed in those repos too.
+   merge, run by the building agent, not only by CI. {{fill:deploy_rail}}
 5. **PR → review → merge.** Declare a risk tier, run the review the policy asks for, resolve or answer
    every finding, merge on green. **Merging to `main` is the production deploy.** Delete the branch.
 6. **Close.** Sprint close: the sprint-wrap summary. Epic close: the Definition of Done below.
@@ -97,7 +100,7 @@ CI (deterministic gate)            — does it build, typecheck, pass the suite?
 **Which PRs**: `scripts/review-config.json` → `reviewScope` — `every-pr` (all non-trivial PRs;
 `--skip-trivial` drops docs-only and tiny diffs) or `security-paths-only`. The **security lens** is
 triggered by a `securityPaths` glob or a `risk: high` body in either scope — paths, not judgement, so a
-builder can add it but never skip it. **Here `reviewScope` is `every-pr`** — this repo changes the process every project imports.
+builder can add it but never skip it. {{fill:review_scope_note}}
 
 **Who reviews** is printed by `node scripts/review-route.mjs --builder <who> <PR#>`, never picked by hand:
 the highest-preference family that did **not** build the diff takes the general pass, the next takes the
@@ -116,7 +119,7 @@ migrations, shared infra; **LOW** = the rest; unsure means HIGH. The **builder m
 risk tier** once CI is green and findings are resolved — the tier selects the review
 scope, not the merge authority. Roll back with `git revert` on `main`.
 
-**A deterministic floor runs underneath:** GitHub secret scanning with push protection (enabled 2026-09-16). This repo ships no app code, so CodeQL does not apply.
+{{fill:security_floor}}
 
 ## Escalate, don't guess — the ONE trigger list
 
@@ -164,7 +167,7 @@ retrospective, no leftover branch) — **and** the three judgment items are true
 - [ ] **`RETROSPECTIVE.md`** says what actually happened, and its durable learnings are promoted into
       `Roadmap/LEARNINGS.md` — sharpen the existing line, don't append a near-duplicate.
 - [ ] **Each sprint has a smoke walkthrough** a person can follow blind, with real URLs; money/auth steps
-      are flagged by name as owed to the product owner.
+      are flagged by name as owed to the product owner. {{fill:kill_switch_dod}}
 
 ## Documentation map
 
@@ -187,28 +190,13 @@ derived views. **`Roadmap/bets/`** holds one file per wave; **`tasks/`** is the 
 - **Worker death is a normal case.** Each builder on its own worktree; a killed worker's uncommitted tree
   is evidence, not garbage; **verify by re-deriving repo state, never by trusting a completion report** —
   a rate-limited subagent still returns a plausible-sounding result. Compact at sprint/PR boundaries.
-- Commit messages end with the `Co-Authored-By: Claude` trailer. - **Language.** Everything here is written in **English**; there is no user-facing app copy.
+- Commit messages end with the `Co-Authored-By: Claude` trailer. {{fill:language_policy}}
 
-## Portability — this repo's own rules
-
-- **No origin-project residue in anything a consumer receives.** `node scripts/check-plugin-leaks.mjs`
-  fails on a project name, a personal name or dead tooling in `plugins/`, `template/` or the manifest;
-  a deliberate match goes in its ALLOW list with a reason.
-- **Every skill's scripts exist.** `node scripts/check-skill-scripts.mjs` fails on a new missing script,
-  an undeclared skill, or a ledger entry whose debt was quietly paid.
-- **Shared scripts are byte-identical across repos.** `review-guard`, `review-route`, `permissions-smoke`,
-  `epic-dod` and `render-ways-of-working` are copied, not forked; write them in the consuming projects'
-  prettier style so the copies can stay identical.
-- **`.skill` archives are reproducible** (`node scripts/pack-skills.mjs`): rebuilding without a source
-  change is a no-op.
+{{fill:project_sections}}
 
 ## Tooling
 
-| Tool | Used for |
-|------|----------|
-| **git / gh** | Branches, pull requests, merges; `gh api` for repo settings such as secret scanning |
-| **node** | Every check in this repo — no install step, no package.json, zero dependencies |
-| **codex / agy / vibe / claude** | The external review families, routed by `review-route.mjs` in a consuming project's checkout |
+{{fill:tooling_table}}
 
 Actions that touch live production, real money, or paid infrastructure are surfaced to the product owner
 before running.
