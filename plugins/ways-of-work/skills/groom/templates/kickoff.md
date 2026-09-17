@@ -11,13 +11,12 @@ index). Follow this project's own copy/localization conventions (see AGENTS.md).
 QA/smoke stage and state any browser smoke owed to me. When the deterministic gate (tsc + build + Playwright
 api) is green, open a draft PR declaring the risk tier, then flip it ready-for-review — and write the SPRINT
 SMOKE WALKTHROUGH (below) into sprint-{{N}}.md before you call the sprint done.
-Review (WAYS-OF-WORKING → Review & merge): CI always, plus TWO cross-family passes on every PR — run
-`node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>` and use the reviewers it
-picks; a family never reviews its own diff, so don't pick `--agent` by hand. Do NOT spawn your own reviewer
-subagents on a LOW-tier PR — the two external passes plus the deterministic gate are the whole layer there.
-On HIGH tier the fresh reviewer subagent is still mandatory on top of them. If a family is quota-capped,
-a capped family simply falls to the next in the preference order; if only one can run it runs both
-prompts and you say so in the PR body.
+Review (WAYS-OF-WORKING → Review & merge): CI always; then run
+`node scripts/review-route.mjs --builder <who-wrote-it> <PR#>` and take what it prints — one external
+general pass, a security lens when the changed paths trigger it, and the fresh `pr-reviewer` subagent, in
+the scope `scripts/review-config.json` sets. A family never reviews its own diff, so don't pick `--agent`
+by hand; a capped family is routed past with `--exclude <family>`, and if only one can run it runs both
+prompts and you say so in the PR body. You merge your own PR on a green gate once findings are resolved.
 
 Sprint {{N}} of "{{EPIC_TITLE}}" — "{{SPRINT_TITLE}}" — stories:
 {{STORY_LIST}}

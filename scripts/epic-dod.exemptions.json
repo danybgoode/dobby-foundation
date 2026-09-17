@@ -1,0 +1,11 @@
+{
+  "_about": "epic-dod.mjs config for dobby-foundation. `bareRefsRepo` is set because this is a single-repo project: a bare #N in a sprint doc means a PR here. `aliases` resolve the sibling repos this repo's epics also touch. `exemptions` excuse ONE derived item on ONE epic, with a reason; an exemption on an item that now passes is STALE and fails.",
+  "bareRefsRepo": "danybgoode/dobby-foundation",
+  "aliases": {
+    "dobby-foundation": "danybgoode/dobby-foundation",
+    "golden-beans": "danybgoode/golden-beans",
+    "medusa-bonsai": "danybgoode/miyagi-product-management",
+    "miyagi-product-management": "danybgoode/miyagi-product-management"
+  },
+  "exemptions": []
+}

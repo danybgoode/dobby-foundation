@@ -115,6 +115,7 @@ jobs:
         run: |
           node template/scripts/render-ways-of-working.mjs --check
           cmp scripts/render-ways-of-working.mjs template/scripts/render-ways-of-working.mjs
+          cmp scripts/epic-dod.mjs template/scripts/epic-dod.mjs
           cmp Roadmap/WAYS-OF-WORKING.template.md template/Roadmap/WAYS-OF-WORKING.template.md
           node scripts/render-ways-of-working.mjs --check
           test "$(wc -l < plugins/ways-of-work/skills/groom/SKILL.md)" -le 220 \

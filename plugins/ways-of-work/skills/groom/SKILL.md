@@ -33,10 +33,8 @@ The product owner says any of: "let's groom X", "I've got an idea", "new feature
 at a file in `Roadmap/00-ideas/seeds/`. **One *deep* ask per run** — a portfolio pass over the rest of the
 funnel rides along (Stage 9).
 
-**Progressive disclosure.** The stages are here; the reference material loads on demand from
-`references/` — read a file only when its stage needs it: `question-bank.md` (Stage 3), `archetypes.md`
-(Stage 2 detail + the on-demand planning panel), `kill-switch.md` (Stage 6b), `per-sprint-kickoff.md`
-(Stage 8b), `smoke-walkthrough.md` (Stage 8), `backlog-cadence.md` (Stage 9).
+**Progressive disclosure.** Stages here; reference material in `references/`, read only when its stage
+needs it (each stage names its file).
 
 ---
 
@@ -82,7 +80,7 @@ anything recent or changing. The core bank — role & job, outcome & signal, sco
 Read the backend model + route **before** slicing — it repeatedly re-scopes work smaller. Produce the
 epic's **"What already exists (reuse, don't rebuild)"** list of concrete files/routes/primitives, apply the
 project's AGENTS **cannot-be-violated rules** (flag a violation now), and name which UX rails cover the
-surface. An architecture fork worth a second model family's read can take the on-demand planning panel
+surface (CI guards, the audits lens in `00-ideas/audits/`, design-language debt). An architecture fork worth a second model family's read can take the on-demand planning panel
 (`Panel:` verb, `references/archetypes.md`) — never an obligation.
 
 ## Stage 4.5 — Bill of materials (shaped-bet lane)
@@ -92,11 +90,13 @@ and the **no-gos**. All three land in the pitch. Fixed-scope work skips this sta
 
 ## Stage 5 — Slice
 Define the thinnest end-to-end slice that actually works and ships, then each increment. Every slice is a
-user story with plain acceptance checks, grouped into sprints, and each names its QA stage: which spec gets
-added and whether a browser smoke is owed, and to whom.
+user story with plain acceptance checks, grouped into sprints, naming its QA stage: which spec gets added
+(prefer pure-logic specs on an extracted `lib/` seam) and whether a browser smoke is owed, and to whom.
 
 ## Stage 6 — Risk-tier every story
-**high** = money, auth, DB migrations, shared infra; **low** = the rest; unsure means high. The tier selects
+**high** = money (payments, checkout, fulfillment), auth and authorization boundaries, tenancy, DB
+migrations, shared infra; **low** = docs/copy, non-commerce UI, additive agent tools behind auth, tests, the
+rest; unsure means high. The tier selects
 the review scope (WAYS-OF-WORKING → *Review & merge*). The builder's escalate triggers are the ONE list in
 WAYS-OF-WORKING → *Escalate, don't guess* — reference it, never restate it here.
 
@@ -188,7 +188,7 @@ and **done means shipped**. The per-sprint fallback shape: `references/per-sprin
 URLs, one action and one observable result each, money/auth steps owed by name. Format:
 `references/smoke-walkthrough.md`.
 
-For a **spike**, emit a short investigation prompt that ends in a written decision — no branch, no build.
+For a **spike**: a short investigation prompt ending in a written decision — no branch, no build.
 
 ## Stage 9 — Close the loop
 Agree and **persist** the build order in seed frontmatter (`build_order`, `priority`), deep-groom only the

@@ -58,11 +58,9 @@ updated: {{DATE}}
 - **Design-language debt (if any):** <e.g. raw hex, missing shared component, inconsistent spacing>
 
 ## Kill-switch / runtime gate (risk:high only — Stage 6b)
-<!-- Delete this block if risk:low. For risk:high, record the decision (mandatory), not just the flag:
-     EITHER a recommended flag story — flag `<domain>.<feature>_enabled` · polarity (kill-switch=default
-     true, create ENABLED in every env | enablement=default false, create DISABLED, flip on) · seam to
-     gate · mechanism (the project's own flag rail — see its AGENTS.md / WAYS-OF-WORKING)
-     OR a one-line carve-out reason (e.g. DB migration — reversible expand/contract, no runtime flag). -->
+<!-- Delete this block if risk:low. Default: NO flag unless the product owner asks for one. If one is
+     asked for, record the decision per the groom skill's references/kill-switch.md — the ONE home of the
+     flag/polarity/seam/mechanism rule (never restate it here) — OR a one-line carve-out reason. -->
 
 ## Acceptance criteria
 <!-- Plain-language checks per story. -->

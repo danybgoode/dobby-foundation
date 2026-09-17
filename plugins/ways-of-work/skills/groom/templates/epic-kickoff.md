@@ -41,26 +41,25 @@ Escalate rather than guess: stop and hand back on any trigger in the ONE list, W
 *Escalate, don't guess*. Default to escalate when unsure. A scope that stops moving is a raised hand, not a reason for
 more tokens.
 
-## 4. Review: TWO external families per PR — you do NOT spawn your own reviewers by default
+## 4. Review: one external general pass, a security lens when the paths trigger it, and the fresh reviewer
 Run the router, don't pick a reviewer by hand:
 
 ```
-node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>
+node scripts/review-route.mjs --builder <who-wrote-it> <PR#>
 ```
 
-It applies the policy and prints the exact commands: **one external general pass** from the highest-
-preference family that did NOT build the diff, **plus a lean security lens** when the changed paths
-trigger it, **plus the fresh `pr-reviewer` subagent**. Never pick a reviewer by hand.
-- **A capped family falls to the next in the preference order** — no refund pause. If only one family can
-  run, it runs both prompts and you SAY SO in the PR body; if none can, the layer is DARK and you say that.
-- **A reviewer that returns nothing is a FAILED run, not a clean one** — the run exits non-zero and posts
-  a failing `cross-review/<lens>` status on the PR.
-  I can refund external quota in minutes; your subagent tokens come out of this epic's build budget.
-  The router prints the exact ask. If I haven't answered within the stated window, proceed with subagents
-  and record the downgrade in the PR body — a missing layer must never read like a clean one.
+It prints the exact commands: **one external general pass** from the highest-preference family that did
+NOT build the diff, **a lean security lens** by the next family when the changed paths (`scripts/review-config.json`
+→ `securityPaths`) or a `risk: high` body trigger it, and **the fresh `pr-reviewer` subagent** — in the
+scope `reviewScope` sets.
+- **A capped family is routed past with `--exclude <family>`** — there is no refund pause. If only one
+  family can run, it runs both prompts and you SAY SO in the PR body; if none can, the layer is DARK and you
+  say that.
+- **A reviewer that returns nothing is a FAILED run, not a clean one** — the run exits non-zero and posts a
+  failing `cross-review/<lens>` status on the PR.
 
-Every finding gets fixed, or answered on the PR with the reason it isn't a bug, before merge. You never
-merge your own PR.
+Every finding gets fixed, or answered on the PR with the reason it isn't a bug, before merge. Neither pass
+authorizes anything; **you merge your own PR on a green gate** once findings are resolved.
 
 ## 5. Merging: pre-authorized on green. Done means shipped.
 For this epic you are **pre-authorized to merge on a green gate** — deterministic gate green, review
