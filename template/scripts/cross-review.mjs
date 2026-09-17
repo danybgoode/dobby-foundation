@@ -366,6 +366,24 @@ function main() {
     }
   }
 
+  // Pin the commit being reviewed BEFORE the reviewer runs: a push mid-review would otherwise move the
+  // status onto a commit nobody read, and the re-review check needs to tell a new commit from a retry.
+  const reviewedSha = ghHeadSha(pr, repo);
+
+  // Post PENDING before the CLI is even checked. A version-pin mismatch or a dead token exits the
+  // script BEFORE the guard runs (observed live on PR #177, where the agy pin refused the run), and an
+  // ABSENT status is indistinguishable from "never ran". A stuck `pending` is visibly not-clean, which
+  // is the whole point of D9.
+  if (!dryRun)
+    postReviewStatus({
+      pr,
+      repo,
+      state: 'pending',
+      lens,
+      sha: reviewedSha,
+      description: `${AGENTS[agent]} reviewing…`,
+    });
+
   if (agent === 'codex') {
     ensureCmd(
       'codex',
@@ -386,10 +404,6 @@ function main() {
     );
   }
 
-  // Pin the commit being reviewed BEFORE the reviewer runs: a push mid-review would otherwise move the
-  // status onto a commit nobody read, and the re-review check needs to tell a new commit from a retry.
-  const reviewedSha = ghHeadSha(pr, repo);
-
   // Re-review convergence (D8): a prior pass for THIS lens on a DIFFERENT commit means Important only.
   const reReview = isReReview(ghComments(pr, repo), lens, reviewedSha);
   const prompt = loadPromptBody(promptPathFor(lens)) + (reReview ? RE_REVIEW_NOTE : '');
@@ -405,19 +419,6 @@ function main() {
       );
     }
   }
-  // Post PENDING before the reviewer runs. If the CLI dies mid-run (a dead token, a context overflow),
-  // the script exits without reaching the guard — and an ABSENT status is indistinguishable from "never
-  // ran". A stuck `pending` is visibly not-clean, which is the whole point of D9.
-  if (!dryRun)
-    postReviewStatus({
-      pr,
-      repo,
-      state: 'pending',
-      lens,
-      sha: reviewedSha,
-      description: `${AGENTS[agent]} reviewing…`,
-    });
-
   const { findings, fellBack } = runReview(agent, prompt, diff);
 
   // THE GUARD (D9). With one external pass, a CLI that exits 0 with nothing to say reads exactly like a
