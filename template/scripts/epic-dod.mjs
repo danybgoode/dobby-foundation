@@ -38,7 +38,13 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
-export const ITEMS = ['readme-shipped', 'sprints-ticked', 'sprints-merged', 'retro-written', 'branch-deleted'];
+export const ITEMS = [
+  'readme-shipped',
+  'sprints-ticked',
+  'sprints-merged',
+  'retro-written',
+  'branch-deleted',
+];
 
 /** Frontmatter keys → values (flat, comment-stripped). */
 export function frontmatter(text) {
@@ -71,7 +77,8 @@ export function citations(text, { aliases = {} } = {}) {
       refs.push(r);
     }
   };
-  for (const m of t.matchAll(/\b([\w.-]+\/[\w.-]+)#(\d+)\b/g)) add({ kind: 'pr', repo: m[1], number: Number(m[2]) });
+  for (const m of t.matchAll(/\b([\w.-]+\/[\w.-]+)#(\d+)\b/g))
+    add({ kind: 'pr', repo: m[1], number: Number(m[2]) });
   for (const m of t.matchAll(/(?:\b([a-z][\w-]*)\s+)?(?:PR\s*)?\[?#(\d{1,5})\b/gi)) {
     const alias = m[1] && aliases[m[1].toLowerCase()];
     add({ kind: 'pr', repo: alias || null, number: Number(m[2]) });
@@ -87,14 +94,24 @@ export function citations(text, { aliases = {} } = {}) {
  * sprints: [{ name, text }] · verified: Map(refKey → 'merged' | 'unmerged' | 'unavailable')
  * branches: string[] of remote branch names, or null when the remote could not be read.
  */
-export function evaluate({ slug, readme, sprints, retro, verified, branches, aliases = {}, exemptions = [] }) {
+export function evaluate({
+  slug,
+  readme,
+  sprints,
+  retro,
+  verified,
+  branches,
+  aliases = {},
+  exemptions = [],
+}) {
   const fm = frontmatter(readme);
   const items = {};
   const external = Boolean(fm.sprints_in) && sprints.length === 0;
 
-  items['readme-shipped'] = fm.status === 'shipped'
-    ? { state: 'pass', detail: 'status: shipped' }
-    : { state: 'fail', detail: `README frontmatter status is '${fm.status || '(missing)'}'` };
+  items['readme-shipped'] =
+    fm.status === 'shipped'
+      ? { state: 'pass', detail: 'status: shipped' }
+      : { state: 'fail', detail: `README frontmatter status is '${fm.status || '(missing)'}'` };
 
   if (external) {
     items['sprints-ticked'] = { state: 'external', detail: `sprint docs live in ${fm.sprints_in}` };
@@ -125,19 +142,28 @@ export function evaluate({ slug, readme, sprints, retro, verified, branches, ali
     }
     items['sprints-merged'] = !problems.length
       ? { state: 'pass', detail: 'every sprint cites a verified-merged change' }
-      : { state: unavailable && problems.every((p) => /could be verified/.test(p)) ? 'unavailable' : 'fail', detail: problems.join('; ') };
+      : {
+          state: unavailable && problems.every((p) => /could be verified/.test(p)) ? 'unavailable' : 'fail',
+          detail: problems.join('; '),
+        };
   }
 
-  items['retro-written'] = retro == null
-    ? { state: 'fail', detail: 'RETROSPECTIVE.md missing' }
-    : /_Closed:\s*20\d\d-\d\d-\d\d_/.test(retro)
-      ? { state: 'pass', detail: 'closed with a real date' }
-      : { state: 'fail', detail: 'RETROSPECTIVE.md is still the stub (no `_Closed: YYYY-MM-DD_`)' };
+  items['retro-written'] =
+    retro == null && Boolean(fm.sprints_in)
+      ? { state: 'external', detail: `retrospective lives in ${fm.sprints_in}` }
+      : retro == null
+        ? { state: 'fail', detail: 'RETROSPECTIVE.md missing' }
+        : /_Closed:\s*20\d\d-\d\d-\d\d_/.test(retro)
+          ? { state: 'pass', detail: 'closed with a real date' }
+          : { state: 'fail', detail: 'RETROSPECTIVE.md is still the stub (no `_Closed: YYYY-MM-DD_`)' };
 
-  if (branches == null) items['branch-deleted'] = { state: 'unavailable', detail: 'could not list origin branches' };
+  if (branches == null)
+    items['branch-deleted'] = { state: 'unavailable', detail: 'could not list origin branches' };
   else {
     const left = branches.filter((b) => b === `feat/${slug}` || b.startsWith(`feat/${slug}-`));
-    items['branch-deleted'] = left.length ? { state: 'fail', detail: `still on origin: ${left.join(', ')}` } : { state: 'pass', detail: 'no feature branch left' };
+    items['branch-deleted'] = left.length
+      ? { state: 'fail', detail: `still on origin: ${left.join(', ')}` }
+      : { state: 'pass', detail: 'no feature branch left' };
   }
 
   // Exemptions: an exempted failure passes with its reason; an exemption on a passing item is STALE.
@@ -146,7 +172,10 @@ export function evaluate({ slug, readme, sprints, retro, verified, branches, ali
     const it = items[e.item];
     if (!it) continue;
     if (it.state === 'pass' || it.state === 'external') {
-      items[e.item] = { state: 'fail', detail: `STALE exemption — '${e.item}' passes now, so remove it from epic-dod.exemptions.json` };
+      items[e.item] = {
+        state: 'fail',
+        detail: `STALE exemption — '${e.item}' passes now, so remove it from epic-dod.exemptions.json`,
+      };
     } else {
       items[e.item] = { state: 'exempt', detail: `${it.detail} — exempt: ${e.reason}` };
     }
@@ -181,14 +210,26 @@ function verify(refs, deps = {}) {
       out.set(key, anc.status === 0 ? 'merged' : 'unmerged');
       continue;
     }
-    const args = ['api', r.repo ? `repos/${r.repo}/pulls/${r.number}` : `repos/{owner}/{repo}/pulls/${r.number}`, '--jq', '[.merged_at, .state] | @tsv'];
+    const args = [
+      'api',
+      r.repo ? `repos/${r.repo}/pulls/${r.number}` : `repos/{owner}/{repo}/pulls/${r.number}`,
+      '--jq',
+      '[.merged_at, .state] | @tsv',
+    ];
     const res = exec('gh', args);
     if (res.status !== 0) {
       out.set(key, 'unavailable');
       continue;
     }
     const [mergedAt, state] = String(res.stdout).trim().split('\t');
-    out.set(key, mergedAt && mergedAt !== 'null' ? 'merged' : state === 'closed' || state === 'open' ? 'unmerged' : 'unavailable');
+    out.set(
+      key,
+      mergedAt && mergedAt !== 'null'
+        ? 'merged'
+        : state === 'closed' || state === 'open'
+          ? 'unmerged'
+          : 'unavailable'
+    );
   }
   return out;
 }
@@ -207,7 +248,9 @@ function main() {
   }
   const slug = target.split('/')[1];
   const cfgPath = join(__dirname, 'epic-dod.exemptions.json');
-  const cfg = existsSync(cfgPath) ? JSON.parse(readFileSync(cfgPath, 'utf8')) : { aliases: {}, exemptions: [] };
+  const cfg = existsSync(cfgPath)
+    ? JSON.parse(readFileSync(cfgPath, 'utf8'))
+    : { aliases: {}, exemptions: [] };
   const aliases = Object.fromEntries(Object.entries(cfg.aliases || {}).map(([k, v]) => [k.toLowerCase(), v]));
   const sprints = readdirSync(dir)
     .filter((f) => /^sprint-\d+\.md$/.test(f))
@@ -218,7 +261,13 @@ function main() {
   const refs = sprints.flatMap((s) => citations(s.text, { aliases }));
   const verified = verify(refs);
   const ls = run('git', ['ls-remote', '--heads', 'origin']);
-  const branches = ls.status === 0 ? ls.stdout.split('\n').filter(Boolean).map((l) => l.split('refs/heads/')[1]) : null;
+  const branches =
+    ls.status === 0
+      ? ls.stdout
+          .split('\n')
+          .filter(Boolean)
+          .map((l) => l.split('refs/heads/')[1])
+      : null;
   const { ok, items } = evaluate({
     slug,
     readme: readFileSync(join(dir, 'README.md'), 'utf8'),
@@ -231,7 +280,10 @@ function main() {
   });
   const icon = { pass: '✓', fail: '✗', unavailable: '?', external: '↗', exempt: '~' };
   process.stdout.write(`epic-dod — ${target}\n`);
-  for (const k of ITEMS) process.stdout.write(`  ${icon[items[k].state]} ${k.padEnd(15)} ${items[k].state.padEnd(11)} ${items[k].detail}\n`);
+  for (const k of ITEMS)
+    process.stdout.write(
+      `  ${icon[items[k].state]} ${k.padEnd(15)} ${items[k].state.padEnd(11)} ${items[k].detail}\n`
+    );
   process.stdout.write(
     ok
       ? '✓ the derivable half of the DoD holds. Still yours: poster honest, retro true + learnings promoted, smoke walkthroughs followable.\n'

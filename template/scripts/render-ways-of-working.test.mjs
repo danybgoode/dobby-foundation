@@ -3,9 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseFillIns, render, slotsIn, TEMPLATE_PATH, FILLINS_PATH, OUT_PATH } from './render-ways-of-working.mjs';
+import {
+  parseFillIns,
+  render,
+  slotsIn,
+  TEMPLATE_PATH,
+  FILLINS_PATH,
+  OUT_PATH,
+} from './render-ways-of-working.mjs';
 
-const TEMPLATE = '<!-- maintainer note -->\n# Doc\n\nOwner: {{fill:owner}}.\n\n{{fill:posture}}\n\n## Section\n\n{{fill:rail}}\n';
+const TEMPLATE =
+  '<!-- maintainer note -->\n# Doc\n\nOwner: {{fill:owner}}.\n\n{{fill:posture}}\n\n## Section\n\n{{fill:rail}}\n';
 
 test('rendering twice is a byte-for-byte no-op — regeneration must be boring', () => {
   const values = { owner: 'the PO', posture: '', rail: 'Merge = deploy.' };
@@ -24,7 +32,10 @@ test('a slot with no value is a hard error — a silently empty slot deletes a p
 });
 
 test('a fill-in the template no longer asks for is a hard error — a stale promise', () => {
-  assert.throws(() => render(TEMPLATE, { owner: 'x', posture: '', rail: 'r', tooling: 'gone' }), /no longer asks for: tooling/);
+  assert.throws(
+    () => render(TEMPLATE, { owner: 'x', posture: '', rail: 'r', tooling: 'gone' }),
+    /no longer asks for: tooling/
+  );
 });
 
 test('an EMPTY block slot drops its line cleanly; a filled one is substituted', () => {

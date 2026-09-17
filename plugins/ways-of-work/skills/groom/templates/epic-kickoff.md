@@ -37,9 +37,8 @@ Assign the sprint that defines the contract everything else imports — the auth
 migration, the shared seam — to the stronger model; the sprints that are mechanical over a locked
 contract go to the faster one. State the routing in the epic README so the choice is auditable.
 
-Escalate rather than guess: stop and ask on payments / checkout / fulfillment / auth / DB migrations /
-shared infra / money, plan ambiguity, a decision the plan doesn't cover, or 2+ failed attempts at the same
-problem. Default to escalate when unsure. A scope that stops moving is a raised hand, not a reason for
+Escalate rather than guess: stop and hand back on any trigger in the ONE list, WAYS-OF-WORKING →
+*Escalate, don't guess*. Default to escalate when unsure. A scope that stops moving is a raised hand, not a reason for
 more tokens.
 
 ## 4. Review: TWO external families per PR — you do NOT spawn your own reviewers by default

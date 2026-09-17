@@ -36,7 +36,7 @@ const BANNER =
   '<!-- GENERATED FILE — do not edit by hand.\n' +
   '     Source: Roadmap/WAYS-OF-WORKING.template.md + Roadmap/fill-ins.yml\n' +
   '     Regenerate: node scripts/render-ways-of-working.mjs   (CI checks it with --check)\n' +
-  '     Shared process text belongs in the .template.md; this project\'s own belongs in fill-ins.yml. -->\n';
+  "     Shared process text belongs in the .template.md; this project's own belongs in fill-ins.yml. -->\n";
 
 /**
  * The YAML subset, parsed strictly:
@@ -97,15 +97,21 @@ export function render(template, values) {
   const slots = slotsIn(template);
   const missing = slots.filter((s) => !(s in values));
   if (missing.length) {
-    throw new Error(`fill-ins.yml is missing: ${missing.join(', ')} — a slot with no value would silently delete that paragraph`);
+    throw new Error(
+      `fill-ins.yml is missing: ${missing.join(', ')} — a slot with no value would silently delete that paragraph`
+    );
   }
   const unused = Object.keys(values).filter((k) => !slots.includes(k));
   if (unused.length) {
-    throw new Error(`fill-ins.yml has keys the template no longer asks for: ${unused.join(', ')} — a stale key is a promise the rendered file does not keep`);
+    throw new Error(
+      `fill-ins.yml has keys the template no longer asks for: ${unused.join(', ')} — a stale key is a promise the rendered file does not keep`
+    );
   }
   let out = template
     // A slot alone on its line: drop the line when the value is empty, else substitute the block.
-    .replace(/^[ \t]*\{\{fill:([A-Za-z_][\w-]*)\}\}[ \t]*\n/gm, (_, key) => (values[key].trim() ? `${values[key].replace(/\n+$/, '')}\n` : ''))
+    .replace(/^[ \t]*\{\{fill:([A-Za-z_][\w-]*)\}\}[ \t]*\n/gm, (_, key) =>
+      values[key].trim() ? `${values[key].replace(/\n+$/, '')}\n` : ''
+    )
     .replace(/\{\{fill:([A-Za-z_][\w-]*)\}\}/g, (_, key) => values[key].trim());
   // Strip the source file's own instructions to the maintainer: they are about the template, not the
   // process, and a rendered file that tells you to edit it by hand is worse than no banner at all.
@@ -122,7 +128,9 @@ function main() {
   try {
     template = readFileSync(TEMPLATE_PATH, 'utf8');
   } catch {
-    process.stderr.write(`✗ missing ${TEMPLATE_PATH} — this project's WAYS-OF-WORKING is not rendered here.\n`);
+    process.stderr.write(
+      `✗ missing ${TEMPLATE_PATH} — this project's WAYS-OF-WORKING is not rendered here.\n`
+    );
     process.exit(1);
   }
   try {
@@ -147,7 +155,9 @@ function main() {
   })();
   if (check) {
     if (current === rendered) {
-      process.stdout.write(`✓ WAYS-OF-WORKING.md matches its source (${rendered.split('\n').length} lines, ${slotsIn(template).length} slots).\n`);
+      process.stdout.write(
+        `✓ WAYS-OF-WORKING.md matches its source (${rendered.split('\n').length} lines, ${slotsIn(template).length} slots).\n`
+      );
       return;
     }
     process.stderr.write(
@@ -162,7 +172,9 @@ function main() {
     return;
   }
   writeFileSync(OUT_PATH, rendered);
-  process.stdout.write(`✓ wrote Roadmap/WAYS-OF-WORKING.md (${rendered.split('\n').length} lines from ${slotsIn(template).length} slots).\n`);
+  process.stdout.write(
+    `✓ wrote Roadmap/WAYS-OF-WORKING.md (${rendered.split('\n').length} lines from ${slotsIn(template).length} slots).\n`
+  );
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);

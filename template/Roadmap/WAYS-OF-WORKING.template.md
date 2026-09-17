@@ -145,7 +145,9 @@ missing baseline guardrail.
 destructive or hard-to-reverse change to live data; real money or a third party's metered resource;
 production secrets/IAM/DNS/TLS. The `ask` rules make that prompt automatic for the commands that do it. **Auto mode is a USER setting** (`~/.claude/settings.json`): the same line in
 a project file is ignored *and* masks the user default, so the smoke fails on it. A deny rule matches the
-command an agent normally writes — it is not a sandbox.
+command an agent normally writes — it is not a sandbox: a leading assignment with an expansion
+(`PATH=/x:$PATH vercel deploy`) was observed escaping a bare rule, so the critical rules carry an
+expansion-safe form and the auto-mode classifier is the second floor.
 
 ## Definitions of Done
 
@@ -189,6 +191,8 @@ derived views. **`Roadmap/bets/`** holds one file per wave; **`tasks/`** is the 
   is evidence, not garbage; **verify by re-deriving repo state, never by trusting a completion report** —
   a rate-limited subagent still returns a plausible-sounding result. Compact at sprint/PR boundaries.
 - Commit messages end with the `Co-Authored-By: Claude` trailer. {{fill:language_policy}}
+
+{{fill:project_sections}}
 
 ## Tooling
 

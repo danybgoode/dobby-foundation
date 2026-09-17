@@ -4,10 +4,8 @@ Then read Roadmap/{{MACRO}}/{{SLUG}}/README.md and Roadmap/{{MACRO}}/{{SLUG}}/sp
 You're building Sprint {{N}} of "{{EPIC_TITLE}}". Enter plan mode, confirm the plan as user stories with me,
 then branch feat/{{SLUG}} off latest main and build one story at a time per WAYS-OF-WORKING. If you're one of
 several builders running in parallel, work in your own isolated `git worktree`, not the shared root checkout.
-Reuse before rebuild (see "What already exists"). Escalate rather than guess: stop and ask / hand back to
-Opus on payments / checkout / fulfillment / auth / DB migrations / shared infra / money, plan ambiguity, a
-decision the plan doesn't cover, or 2+ failed attempts at the same problem — default to escalate when unsure
-(WAYS-OF-WORKING → Model tiers). Commit per story with path-limited adds
+Reuse before rebuild (see "What already exists"). Escalate rather than guess: stop and hand back on any trigger in
+the ONE list, WAYS-OF-WORKING → *Escalate, don't guess* — default to escalate when unsure. Commit per story with path-limited adds
 (`git add <your files>` + `git commit -- <those paths>`, never `git add -A` — a shared worktree races the
 index). Follow this project's own copy/localization conventions (see AGENTS.md). Add one api spec per testable story; name the
 QA/smoke stage and state any browser smoke owed to me. When the deterministic gate (tsc + build + Playwright

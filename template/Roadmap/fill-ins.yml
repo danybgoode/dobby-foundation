@@ -21,6 +21,10 @@ security_floor: "**A deterministic floor runs underneath, free and without an LL
 
 kill_switch_dod: ""
 
+# Optional: whole sections only this project has (a prose rail, a QA harness, doc conventions). They render
+# just before Tooling. Empty here.
+project_sections: ""
+
 language_policy: "- **Language.** Docs, comments and PR descriptions are in **English**. **TEMPLATE FILL-IN:** if your user-facing copy has its own policy (a default plus a bilingual allow-list), state it here and in `AGENTS.md`."
 
 tooling_table: "**TEMPLATE FILL-IN:** list this project's authenticated CLI access and what each is used for — at minimum **git/gh** (branches, PRs, merges) and **node/npm** (typecheck, lint, build, dev server), plus your deploy, database and container CLIs."
