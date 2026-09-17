@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   assertReviewOutput,
+  changedFileCount,
   commitStatusArgs,
   decideSecurityPass,
   globToRegExp,
@@ -92,23 +93,34 @@ test('security pass: path match or declared high risk triggers; neither does not
 test("the SHIPPED globs trigger on an App Router's route files, not just on basenames", () => {
   // Every route file in an App Router is called `route.ts`, so a basename glob like `**/*webhook*` is
   // near-dead there — the directory carries the meaning. Found by the fresh review of dobby-foundation#11.
+  // Derived from THIS repo's own config: a hardcoded path silently stops testing anything in a repo
+  // whose globs differ.
   const cfg = parseReviewConfig(
     JSON.parse(
       readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'review-config.json'), 'utf8')
     )
   );
-  for (const p of [
-    'app/api/webhooks/stripe/route.ts',
-    'apps/web/src/app/api/stripe-webhook/route.ts',
-    'app/api/secrets/route.ts',
-    'app/api/checkout/route.ts',
-    'lib/auth/session.ts',
-  ]) {
+  const materialise = (glob) =>
+    glob
+      .replace(/\*\*\//g, 'x/')
+      .replace(/\/\*\*/g, '/x')
+      .replace(/\*/g, 'x');
+  for (const glob of cfg.securityPaths) {
+    const path = materialise(glob);
     assert.equal(
-      decideSecurityPass({ files: [p], securityPaths: cfg.securityPaths }).run,
+      decideSecurityPass({ files: [path], securityPaths: cfg.securityPaths }).run,
       true,
-      `should trigger: ${p}`
+      `glob ${glob} does not match its own shape ${path}`
     );
+    // The App Router case: a file INSIDE a security directory, named route.ts like every other one.
+    if (glob.endsWith('/**')) {
+      const routeFile = `${materialise(glob.slice(0, -3))}/route.ts`;
+      assert.equal(
+        decideSecurityPass({ files: [routeFile], securityPaths: cfg.securityPaths }).run,
+        true,
+        `a route file under ${glob} does not trigger: ${routeFile}`
+      );
+    }
   }
   for (const p of ['components/Button.tsx', 'docs/readme.md', 'Roadmap/09-platform-infra/x/README.md']) {
     assert.equal(
@@ -117,6 +129,44 @@ test("the SHIPPED globs trigger on an App Router's route files, not just on base
       `should NOT trigger: ${p}`
     );
   }
+});
+
+test('a TRUNCATED file list forces the lens on instead of reading as "no security path"', () => {
+  // gh pr view --json files caps at 100 with no signal (a real 108-file PR returned 100).
+  const securityPaths = ['**/auth/**'];
+  const hundred = Array.from({ length: 100 }, (_, i) => `components/C${i}.tsx`);
+  const cut = decideSecurityPass({ files: hundred, securityPaths, totalFiles: 108 });
+  assert.equal(cut.run, true);
+  assert.match(cut.reason, /truncated \(100 of 108/);
+  // A complete list with nothing matching stays off — the guard must allow the negation.
+  assert.equal(decideSecurityPass({ files: hundred, securityPaths, totalFiles: 100 }).run, false);
+  // An UNREADABLE count at the cap must not fail open (codex ×2 and the security lens, #145/#178).
+  const unknown = decideSecurityPass({ files: hundred, securityPaths, totalFiles: null });
+  assert.equal(unknown.run, true);
+  assert.match(unknown.reason, /could not be read — lens forced on/);
+  // Under the cap the list is complete: a missing count changes nothing.
+  assert.equal(
+    decideSecurityPass({ files: hundred.slice(0, 40), securityPaths, totalFiles: null }).run,
+    false
+  );
+});
+
+test('changedFileCount reads the REST count and never guesses', () => {
+  const calls = [];
+  const spawn = (cmd, args) => {
+    calls.push(args);
+    return { status: 0, stdout: '108\n' };
+  };
+  assert.equal(changedFileCount({ pr: 399, repo: 'o/r' }, { spawn }), 108);
+  assert.deepEqual(calls[0].slice(0, 2), ['api', 'repos/o/r/pulls/399']);
+  assert.equal(
+    changedFileCount({ pr: 1, repo: 'o/r' }, { spawn: () => ({ status: 1, stderr: 'HTTP 404' }) }),
+    null
+  );
+  assert.equal(
+    changedFileCount({ pr: 1, repo: 'o/r' }, { spawn: () => ({ status: 0, stdout: 'null' }) }),
+    null
+  );
 });
 
 test('a plain-prose "low-risk high-value" body is not a risk declaration', () => {
