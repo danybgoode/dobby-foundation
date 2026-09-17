@@ -1,8 +1,8 @@
 # Ways-of-work lean pass — Sprint 1: Permissions, the deny list, and auto mode
 
-**Status:** ⬜ not started
+**Status:** ✅ shipped — danybgoode/dobby-foundation#10 · danybgoode/golden-beans#143 · danybgoode/miyagi-product-management#175
 
-**Epic:** [Ways-of-work lean pass](README.md) · **Risk: HIGH — the product owner merges** (auto mode changes what an agent may do unattended)
+**Epic:** [Ways-of-work lean pass](README.md) · **Risk: HIGH** (auto mode changes what an agent may do unattended)
 
 **Wave 1 of 3.** The smallest sprint and the highest-leverage one. **It must ship standalone** — if
 Sprints 2 and 3 are re-bet away at a wave boundary, this one still pays for the whole epic.

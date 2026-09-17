@@ -41,7 +41,7 @@ Roadmap/
 - ✅ **Plugin marketplace** — `ways-of-work` skills installed via `.claude/settings.json`; Cowork `.skill` archives built reproducibly by `scripts/pack-skills.mjs`.
 - ✅ **Spawn template** — `Roadmap/`, `AGENTS.md`, CI guards, git hooks and scripts a new project copies once.
 - ✅ **Portability guards** — `check-plugin-leaks.mjs` (origin-project residue) and `check-skill-scripts.mjs` (every skill's scripts exist).
-- 🚧 **Ways-of-work lean pass** — committed permissions + deny list, one external general pass + one lean security pass + one fresh reviewer, the ceremony diet. [`ways-of-work-lean-pass`](09-platform-infra/ways-of-work-lean-pass/README.md)
+- ✅ **Ways-of-work lean pass** — committed permissions with a cited deny/ask ledger (three spellings, deny **and** ask), one external general pass + one lean security lens + one fresh reviewer, a generated `WAYS-OF-WORKING`, and `epic-dod --check` for the mechanical half of the epic DoD. [`ways-of-work-lean-pass`](09-platform-infra/ways-of-work-lean-pass/README.md)
 
 ---
 
