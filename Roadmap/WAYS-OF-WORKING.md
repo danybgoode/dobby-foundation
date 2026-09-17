@@ -187,7 +187,8 @@ derived views. **`Roadmap/bets/`** holds one file per wave; **`tasks/`** is the 
 - **Worker death is a normal case.** Each builder on its own worktree; a killed worker's uncommitted tree
   is evidence, not garbage; **verify by re-deriving repo state, never by trusting a completion report** —
   a rate-limited subagent still returns a plausible-sounding result. Compact at sprint/PR boundaries.
-- Commit messages end with the `Co-Authored-By: Claude` trailer. - **Language.** Everything here is written in **English**; there is no user-facing app copy.
+- Commit messages end with the `Co-Authored-By: Claude` trailer.
+- **Language.** Everything here is written in **English**; there is no user-facing app copy.
 
 ## Portability — this repo's own rules
 
