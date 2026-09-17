@@ -105,7 +105,7 @@ test('the real template renders with no leftover placeholders', async () => {
   // generator exists instead of a hand-composed prompt.
   assert.match(out, /EPIC MODE/);
   assert.match(out, /review-route\.mjs/);
-  assert.match(out, /REFUND/);
+  assert.match(out, /security lens/);
   assert.match(out, /pre-authorized to merge on a green gate/);
   assert.match(out, /Done means shipped/);
 });

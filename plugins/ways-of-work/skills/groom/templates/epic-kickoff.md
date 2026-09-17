@@ -49,16 +49,13 @@ Run the router, don't pick a reviewer by hand:
 node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>
 ```
 
-It applies the policy and prints the exact commands: **two cross-family passes** from the families that
-did NOT build the diff (a family never reviews its own work), and nothing else on a LOW-tier PR.
-
-- **LOW tier — do not spawn reviewer subagents.** Two external passes plus the deterministic gate is the
-  whole layer. This is a deliberate change: the old habit of running the external passes AND your own
-  parallel subagent reviewers on every PR was paying twice for one read.
-- **HIGH tier — the fresh reviewer subagent is still mandatory**, on top of the two external passes.
-  Money, auth, migrations and shared infra are where context independence catches what every external
-  family misses, and that layer stays.
-- **If a family is quota-capped, STOP AND ASK ME FOR A REFUND** before substituting your own subagents.
+It applies the policy and prints the exact commands: **one external general pass** from the highest-
+preference family that did NOT build the diff, **plus a lean security lens** when the changed paths
+trigger it, **plus the fresh `pr-reviewer` subagent**. Never pick a reviewer by hand.
+- **A capped family falls to the next in the preference order** — no refund pause. If only one family can
+  run, it runs both prompts and you SAY SO in the PR body; if none can, the layer is DARK and you say that.
+- **A reviewer that returns nothing is a FAILED run, not a clean one** — the run exits non-zero and posts
+  a failing `cross-review/<lens>` status on the PR.
   I can refund external quota in minutes; your subagent tokens come out of this epic's build budget.
   The router prints the exact ask. If I haven't answered within the stated window, proceed with subagents
   and record the downgrade in the PR body — a missing layer must never read like a clean one.

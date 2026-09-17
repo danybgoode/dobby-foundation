@@ -348,26 +348,24 @@ session; it stays in the prompt so a *fresh* builder session re-orients with zer
 the sprint-specific delta (this epic, this sprint, its reuse list, its risk) as the part that actually varies.
 
 ### 8c — The review policy both kickoffs carry
-Name it in the prompt; don't leave the builder to remember it. **Two cross-family passes per PR**,
-chosen by the router — never picked by hand:
+Name it in the prompt; don't leave the builder to remember it. **One rule, printed by the router:**
 
 ```
-node scripts/review-route.mjs --builder <who-wrote-it> --tier <low|high> <PR#>
+node scripts/review-route.mjs --builder <who-wrote-it> <PR#>
 ```
 
-Four rules, and the second and fourth are the recent changes:
 1. **A family never reviews its own diff.** With several families building, the default reviewer flag on
    a same-family diff is a same-family pass wearing a cross-family label — a silent downgrade.
-2. **Two external passes, not one, and the orchestrator does NOT spawn its own reviewer subagents on a
-   LOW-tier PR.** Running the external passes *and* parallel subagent reviewers on every build was paying
-   twice for one read.
-3. **On HIGH tier the fresh reviewer subagent is still mandatory**, on top of the two external passes.
-   Money / auth / migrations / shared infra is where context independence catches what every external
-   family misses; family independence and context independence are different properties.
-4. **A capped family is a REFUND ASK, not a licence to substitute.** External quota is refundable in
-   minutes; orchestrator subagent tokens come out of the build budget. Stop, ask, and proceed with
-   subagents only after the stated window — recording the downgrade in the PR body, because a missing
-   layer that reads like a clean one is worse than no layer.
+2. **One external general pass**, by the highest-preference family that did not build it — plus **one
+   lean security lens** when the diff touches a `securityPaths` glob (`scripts/review-config.json`), run
+   by a different family where one is available.
+3. **The fresh `pr-reviewer` subagent runs too**, in whatever scope `reviewScope` sets. Family
+   independence and context independence are different properties; each is covered exactly once.
+4. **A capped family falls to the next in the order** — no refund pause, no waiting. If only one family
+   is left it runs both prompts and the PR body says so; if none is, the layer is DARK and the PR body
+   says that.
+5. **A reviewer that returns nothing is a FAILED run**, not a clean one: the run exits non-zero and posts
+   a failing `cross-review/<lens>` status.
 
 **Orchestrating more than one builder at once?** Before spawning a second parallel kickoff, read
 WAYS-OF-WORKING → *Wakeup-resilient orchestration* — the three survival rules in one line: isolated

@@ -18,10 +18,8 @@ Review (WAYS-OF-WORKING → Review & merge): CI always, plus TWO cross-family pa
 picks; a family never reviews its own diff, so don't pick `--agent` by hand. Do NOT spawn your own reviewer
 subagents on a LOW-tier PR — the two external passes plus the deterministic gate are the whole layer there.
 On HIGH tier the fresh reviewer subagent is still mandatory on top of them. If a family is quota-capped,
-STOP AND ASK ME FOR A REFUND before substituting your own subagents (external quota is refundable in
-minutes; your subagent tokens come out of the build budget) — and if I haven't answered within the window
-the router states, proceed and record the downgrade in the PR body. Every finding gets fixed, or answered
-on the PR with why it isn't a bug, before merge. You never merge your own PR.
+a capped family simply falls to the next in the preference order; if only one can run it runs both
+prompts and you say so in the PR body.
 
 Sprint {{N}} of "{{EPIC_TITLE}}" — "{{SPRINT_TITLE}}" — stories:
 {{STORY_LIST}}
