@@ -115,9 +115,11 @@ GitHub secret scanning (+ push protection) and CodeQL are adopted as a free dete
   refuses an agent launching a nested `claude -p` with its own permission rules (observed twice). So:
   the static contract (every rule ↔ ledger entry, no project-level auto) runs in CI; each denied verb is
   **attempted in the orchestrating session** against harmless PATH shims and the refusal recorded in the
-  sprint doc; `permissions-smoke.mjs --live` is the human-run behavioural replay — three sessions: a
-  shadow check (every probed program resolves to a shim, else nothing is sent), a baseline with no rules
-  (every probe must RUN), then the committed rules (every probe must be refused).
+  sprint doc; `permissions-smoke.mjs --live` is the behavioural replay — a shadow check (every probed
+  program resolves to a shim, else nothing is sent), a baseline with no rules (every probe must RUN), then
+  the committed rules (every probe must be refused). *Amended 2026-09-17:* it replays only the benign
+  staging probes, because a session refuses the destructive ones on its own judgement even when allowed,
+  so they can have no baseline; it batches and retries, and it trusts its throwaway workspace.
 - **D5 — the review stack.** CI → **fresh reviewer** (Claude `pr-reviewer` subagent, general, with repo
   context) → **one external general pass** → **one external security pass, only when a PR touches a
   security path**. The builder merges once CI is green and findings are fixed or answered — **any tier,

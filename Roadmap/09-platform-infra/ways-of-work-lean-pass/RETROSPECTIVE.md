@@ -71,8 +71,9 @@ miyagi-product-management#179.
   the set of commands that run with *no* second look, so it must never contain one that destroys work.
 - **A deny rule is text matching, and text matching has holes you only find by trying.** In a live session
   `PATH=/x:$PATH vercel deploy --prod` escaped a bare `vercel deploy*` rule, while `FOO=1 …` and a literal
-  `PATH=/x …` were refused. The classifier refused further probes — the second floor working — so the
-  expansion-safe rules are shipped but verified only by the human-run `--live` replay.
+  `PATH=/x …` were refused. The expansion-safe rules were then **verified behaviourally on 2026-09-17**:
+  `permissions-smoke --live` ran 54 benign probes (the staging family, in all three spellings) with no
+  rules — all ran — and again with the committed rules — all 54 refused, prefixes included, in each repo.
 - **"I could not check" and "there is nothing" must stay different states — including when a tool *lies by
   omission*.** `gh pr view --json files` silently caps at 100; the guard handled `gh` failing but not `gh`
   truncating, and then handled truncation but not an unreadable count. Each fix was one state short of the
@@ -86,7 +87,16 @@ miyagi-product-management#179.
   nothing. Three review rounds found them one at a time. The fix that ended it was structural: the smoke
   now GENERATES the prefixed probes from a `CRITICAL_COMMANDS` list, so a bare-only rule fails the contract
   instead of waiting for a reviewer. The list's own boundary is written into the file: it matches command
-  TEXT, so it is not a sandbox — the classifier is the second floor and `--live` is the proof.
+  TEXT, so it is not a sandbox — the classifier is the second floor, and `--live` proves the matcher.
+- **A behavioural test needs a baseline the system will actually produce.** `--live` shipped asking a
+  throwaway session to run every probe with no rules, so a later refusal would prove the rule. It had never
+  run successfully, and the first real run found four faults in turn: it built a PATH shim named
+  `PATH=/x:$PATH`; its temp workspace was untrusted, so Claude Code silently ignored the rules under test;
+  ~300 probes overflowed a session with no `--max-turns` to raise; and — decisively — a session told the
+  destructive probes were harmless shims **refused them anyway**, with the commands explicitly allowed. That
+  refusal is the second floor working, but it means those probes can have no baseline. `--live` now
+  replays only the benign staging family, where a refusal can only be the rule, and says how many of the
+  rules that covers. A test that has never gone green has not tested anything yet.
 - **A rule can be INERT and look enforced.** All three repos denied `Write(<path>)` next to `Edit(<path>)`.
   Claude Code checks only `Edit` for file tools — and a nested `claude -p` session refuses to start while a
   Write rule is present, which is how we found it: by trying to run the security lens through the CLI.
@@ -101,18 +111,18 @@ miyagi-product-management#179.
 
 ## Gaps / follow-ups
 
-**Owed to the product owner (the classifier correctly refuses an agent doing these):**
-- **Reset three repo-level git identities** that test fixtures overwrote:
-  `git -C ~/dobby/medusa-bonsai config --remove-section user`,
-  `git -C ~/dobby/golden-beans config --remove-section user`,
-  `git -C ~/dobby/dobby-foundation config --remove-section user` (they fall back to the global identity).
-- **S1.5 — prune the untracked local allow lists.** medusa's `.claude/settings.local.json` holds 177 one-off
-  entries (including `rm -rf .git`, `gcloud secrets *`, `git push *`), golden-beans' 29 (including
-  `vercel --prod --yes`). Triage: every entry is either a verb class now in the committed list, refused by
-  the deny list, or a one-off to drop; keep only `Read(//tmp/**)` and the sibling-checkout read.
-  `node scripts/permissions-smoke.mjs` now reports each literal entry as `literal-local-allow`.
-- **Run `node scripts/permissions-smoke.mjs --live` once** in each repo: it is the behavioural proof of the
-  deny list, including the expansion-safe forms, and it needs a human-launched session.
+**Closed after the epic (2026-09-17):**
+- ✅ **Three repo-level git identities reset** by the product owner (test fixtures had overwritten them).
+- ✅ **S1.5 — local allow lists pruned.** medusa's `.claude/settings.local.json` 177 → 3 entries,
+  golden-beans' 29 → 1 (backups kept as `.bak`). Gone: `rm -rf .git`, `vercel --prod --yes` and ~170 literal
+  one-offs, plus every machine-local `Read(//…)` grant. `permissions-smoke` exits 0 in both — it reported
+  131 `literal-local-allow` findings in medusa alone.
+- ✅ **`--live` run in all three repos** — 54/54 benign probes ran without rules and were refused with them,
+  prefixed spellings included. Getting there took four harness fixes (see *What we learned*). Note the
+  path: dobby-foundation ships the script as `template/scripts/permissions-smoke.mjs`; the instruction that
+  said `scripts/…` for every repo was wrong for this one.
+
+**Still open:**
 - **S1.4's "a LOW-tier epic run produces zero prompts"** was not observed end to end in a fresh session.
 
 **Deliberately not done / not met:**
