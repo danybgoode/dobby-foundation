@@ -223,7 +223,7 @@ node scripts/review-route.mjs --builder <who-wrote-it> <PR#>
 
 The highest-preference family that did **not** build the diff runs the general pass; the next one runs
 the security lens when it is triggered. Preference order is `codex → agy → vibe → claude` (`claude` last:
-its capacity is usually the thing *building*). A capped family simply falls to the next. If only one
+its capacity is usually the thing *building*). A capped family falls to the next — re-route with `--exclude <family>`, since an installed CLI cannot be told from a quota-capped one without spending a run. If only one
 family is left it runs both prompts and the PR body says so; if none is, the layer is **DARK** and the PR
 body says that — a missing layer that reads like a clean one is worse than no layer.
 
@@ -238,7 +238,7 @@ as a count), skip what CI already enforces, and Blocking/Important-only on a re-
 
 **Every finding is fixed, or answered on the PR.** Neither pass authorizes anything.
 
-**The builder merges their own PR, at every risk tier**, once CI is green and findings are resolved.
+**Risk tiers.** **HIGH** = money, auth and authorization boundaries, DB migrations, shared infra; **LOW** = everything else. When unsure, HIGH. **The builder merges their own PR, at every risk tier**, once CI is green and findings are resolved.
 The PR body still declares a risk tier — it selects the review scope, not the merge authority. Roll back
 a bad merge with `git revert` on `main`; that is faster than any approval round-trip.
 
