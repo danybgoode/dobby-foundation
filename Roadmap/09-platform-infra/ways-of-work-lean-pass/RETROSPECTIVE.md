@@ -72,8 +72,13 @@ miyagi-product-management#179.
 - **A deny rule is text matching, and text matching has holes you only find by trying.** In a live session
   `PATH=/x:$PATH vercel deploy --prod` escaped a bare `vercel deploy*` rule, while `FOO=1 …` and a literal
   `PATH=/x …` were refused. The expansion-safe rules were then **verified behaviourally on 2026-09-17**:
-  `permissions-smoke --live` ran 54 benign probes (the staging family, in all three spellings) with no
-  rules — all ran — and again with the committed rules — all 54 refused, prefixes included, in each repo.
+  `permissions-smoke --live` ran 54 benign probes (the staging family, bare / `FOO=1 …` / `env FOO=1 …`)
+  with no rules — all ran — and again with the committed rules — all 54 refused, in each repo.
+- **Claude Code refuses a `PATH=`-prefixed command on its own**, whatever the rules say: "prepending a
+  directory to PATH before invoking git is a binary-hijacking pattern … regardless of the harmless-shim
+  framing". So the exact escape observed on 09-16 cannot even be replayed under `dontAsk`, and the replay
+  probes with `FOO=1`, which runs and exercises the same `*=*` / `env *` rule forms. A probe the platform
+  will not run can never have a baseline.
 - **"I could not check" and "there is nothing" must stay different states — including when a tool *lies by
   omission*.** `gh pr view --json files` silently caps at 100; the guard handled `gh` failing but not `gh`
   truncating, and then handled truncation but not an unreadable count. Each fix was one state short of the
