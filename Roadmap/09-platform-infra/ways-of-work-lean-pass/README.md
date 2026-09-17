@@ -131,9 +131,14 @@ GitHub secret scanning (+ push protection) and CodeQL are adopted as a free dete
   PR body says so. A capped family simply falls to the next — the REFUND ASK / `--fallback-after` / DARK
   protocol and the four-row table are deleted.
 - **D7 — the security trigger is deterministic and lean.** A PR gets the security pass when any changed
-  path matches the project's `SECURITY_PATHS` globs (payments, checkout, webhooks, auth, middleware,
-  migrations, secrets config) **or** its body declares `risk: high`. The builder can add it, never skip
-  it. The pass reads **only** the security checklist, reports Blocking / Should-fix with an
+  path matches the project's `securityPaths` globs in `scripts/review-config.json` (payments, checkout,
+  webhooks, auth, middleware, migrations, secrets config) **or** its body declares `risk: high` /
+  `risk tier: HIGH`. **Enforcement is honest about what it is:** `review-route.mjs` prints the command
+  and `cross-review.mjs` marks the general pass's comment *"the security lens is OWED on this PR"* when
+  the trigger fires without it — the lens is never auto-run behind the operator's back, and skipping it
+  is visible on the PR rather than silent. Each basename glob is paired with a `/**` directory form: in
+  an App Router every route file is `route.ts`, so `**/*webhook*` alone would be near-dead (caught by the
+  fresh review of dobby-foundation#11). The pass reads **only** the security checklist, reports Blocking / Should-fix with an
   input → path(file:line) → impact scenario, **no nits**, and has explicit exclusions (theoretical DoS,
   rate-limit advice, tests, anything CI enforces). One pass per PR; re-run only when a fix touches a
   security path. No new check, no new doc, no CI job.
@@ -145,8 +150,14 @@ GitHub secret scanning (+ push protection) and CodeQL are adopted as a free dete
 - **D9 — a silent reviewer is a failed run.** Pure `assertReviewOutput()` rejects empty, whitespace-only
   or structureless output (no severity heading and no explicit clean verdict); the run exits non-zero
   and posts a failing `cross-review/<lens>` commit status on the PR head (success on a real review).
-  Codex joins agy on a version pin; `cross-agent-doctor.mjs` (merging `codex-doctor` + `agy-doctor`)
-  checks presence, auth and pins for all four families. Proven against a stub CLI that exits 0 silently.
+  **Amended 2026-09-16 (S2a):** codex is **NOT** hard-pinned. Its version is recorded in the comment and
+  flagged when it differs from the last verified one — a hard pin would take the only external pass
+  offline on every routine CLI update, which is the "one busy model took a whole family offline" failure
+  already recorded here for agy, and the output guard covers the actual risk (a changed print contract).
+  agy keeps its hard pin: its print contract has broken twice. Proven against a stub CLI that exits 0
+  silently. **D16 — the doctor merge is medusa-only:** it is the one repo that had two doctors;
+  golden-beans has one and the template had none, and the three repos' CLI libraries have diverged too
+  far for a shared merged doctor to be a port rather than a rewrite.
 - **D10 — deterministic security floor (done 2026-09-16, repo settings, no code).** Secret scanning +
   push protection enabled on all five repos (the frontend already had it); CodeQL default setup enabled
   on `miyagisanchezcommerce` and `medusa-bonsai-backend` (golden-beans already runs a CodeQL workflow).

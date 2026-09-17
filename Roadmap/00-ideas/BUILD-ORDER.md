@@ -12,7 +12,7 @@
 
 ## 🏗️ Building now (1)
 
-- [Ways-of-work lean pass — remove the training wheels, close the adoption gap](../../09-platform-infra/ways-of-work-lean-pass/README.md) — 09 Platform-infra · 0/18 stories · risk: High · wave-2026-09-16
+- [Ways-of-work lean pass — remove the training wheels, close the adoption gap](../../09-platform-infra/ways-of-work-lean-pass/README.md) — 09 Platform-infra · 0/19 stories · risk: High · wave-2026-09-16
 
 ## 📋 Ready to build (scaffolded, not started) (0)
 
@@ -26,15 +26,5 @@ _None._
 
 _None._
 
-## ⚠️ Status drift — README frontmatter vs sprint/retro-derived (1)
-
-These epics’ authoritative README-frontmatter `status:` disagrees with what the sprint/retro
-derivation infers. The board trusts the **frontmatter**; a mismatch usually means a close-out
-forgot to set `status:` (or the README is stale). Reconcile the README, then this advisory clears.
-
-| Epic | frontmatter (used) | sprint/retro-derived |
-|---|---|---|
-| Ways-of-work lean pass — remove the training wheels, close the adoption gap | In progress | Scaffolded |
-
 ---
-_Epics: 1 · seeds in funnel: 0 · status drift: 1. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 1 · seeds in funnel: 0 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
