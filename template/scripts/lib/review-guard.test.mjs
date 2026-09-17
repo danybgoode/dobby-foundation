@@ -93,23 +93,34 @@ test('security pass: path match or declared high risk triggers; neither does not
 test("the SHIPPED globs trigger on an App Router's route files, not just on basenames", () => {
   // Every route file in an App Router is called `route.ts`, so a basename glob like `**/*webhook*` is
   // near-dead there — the directory carries the meaning. Found by the fresh review of dobby-foundation#11.
+  // Derived from THIS repo's own config: a hardcoded path silently stops testing anything in a repo
+  // whose globs differ.
   const cfg = parseReviewConfig(
     JSON.parse(
       readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'review-config.json'), 'utf8')
     )
   );
-  for (const p of [
-    'app/api/webhooks/stripe/route.ts',
-    'apps/web/src/app/api/stripe-webhook/route.ts',
-    'app/api/secrets/route.ts',
-    'app/api/checkout/route.ts',
-    'lib/auth/session.ts',
-  ]) {
+  const materialise = (glob) =>
+    glob
+      .replace(/\*\*\//g, 'x/')
+      .replace(/\/\*\*/g, '/x')
+      .replace(/\*/g, 'x');
+  for (const glob of cfg.securityPaths) {
+    const path = materialise(glob);
     assert.equal(
-      decideSecurityPass({ files: [p], securityPaths: cfg.securityPaths }).run,
+      decideSecurityPass({ files: [path], securityPaths: cfg.securityPaths }).run,
       true,
-      `should trigger: ${p}`
+      `glob ${glob} does not match its own shape ${path}`
     );
+    // The App Router case: a file INSIDE a security directory, named route.ts like every other one.
+    if (glob.endsWith('/**')) {
+      const routeFile = `${materialise(glob.slice(0, -3))}/route.ts`;
+      assert.equal(
+        decideSecurityPass({ files: [routeFile], securityPaths: cfg.securityPaths }).run,
+        true,
+        `a route file under ${glob} does not trigger: ${routeFile}`
+      );
+    }
   }
   for (const p of ['components/Button.tsx', 'docs/readme.md', 'Roadmap/09-platform-infra/x/README.md']) {
     assert.equal(
