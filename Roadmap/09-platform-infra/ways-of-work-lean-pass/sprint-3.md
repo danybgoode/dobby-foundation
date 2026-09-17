@@ -86,9 +86,9 @@ Env: local, across `dobby-foundation`, `medusa-bonsai` and `golden-beans`
    → ≤160 and ≤220 respectively (from 446 and 514).
 2. Open `RETROSPECTIVE.md` and find the cut ledger.
    → Every removed paragraph is listed as moved, replaced-by-a-check, or deliberately dropped.
-3. Run `grep -rn "2+ failed attempts" plugins/ template/ | wc -l`.
-   → **1**.
-4. Run `node scripts/epic-dod.mjs --check 09-platform-infra/dobby-foundation` (a known-closed epic).
+3. Run `grep -rn "2+ failed attempts" plugins/ template/ --exclude=WAYS-OF-WORKING.md | wc -l`.
+   → **1** — the template source; its generated render (excluded) carries the same single list.
+4. In **medusa-bonsai** (where that epic lives), run `node scripts/epic-dod.mjs --check 09-platform-infra/dobby-foundation` (a known-closed epic).
    → All derivable items pass.
 5. Run it against this epic while it's still open.
    → It correctly reports what is outstanding, and does not claim the epic is done.

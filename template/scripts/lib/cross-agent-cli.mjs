@@ -64,10 +64,10 @@ export const AGENT_BIN = { codex: 'codex', antigravity: 'agy', vibe: 'vibe', cla
 // Harmless here since AGY_MODEL/AGY_FALLBACK_MODEL below are always valid, listed model names (checked via
 // `agy models`), but it means a future typo in either constant would silently review with the WRONG model
 // instead of failing loud — watch for that if either constant is ever edited.
-// agy-doctor: last verified 2026-07-17 against 1.1.3.
+// agy-doctor: last verified 2026-09-17 against 1.2.5.
 //   ^ machine-managed marker — `node scripts/agy-doctor.mjs --fix` rewrites it (with the constant
 //   below) after a green live contract probe. Don't hand-edit the marker's shape.
-export const AGY_PINNED = '1.1.3';
+export const AGY_PINNED = '1.2.5';
 
 // agy's `--print` mode prints NOTHING unless `--model` names a model — and, crucially, it ALSO prints
 // nothing (exit 0, empty stdout — the error lands only in agy's log, see --log-file) when the model is
@@ -76,8 +76,15 @@ export const AGY_PINNED = '1.1.3';
 // ("RESOURCE_EXHAUSTED 429: Individual quota reached"), so runAntigravity AUTO-FALLS-BACK to
 // AGY_FALLBACK_MODEL (GPT-OSS, a separate quota pool that worked on the dev machine) when the primary yields
 // empty. Override either via env.
-export const AGY_MODEL = process.env.AGY_MODEL || 'Gemini 3.1 Pro (High)';
-export const AGY_FALLBACK_MODEL = process.env.AGY_FALLBACK_MODEL || 'GPT-OSS 120B (Medium)';
+// Roster note (probed, never assumed — `agy models`): 1.2.x takes SLUGS, not display names, and generation
+// and TIER are independent. 3.6 is the newest generation but ships FLASH-only (`gemini-3.6-pro-high` does
+// not exist); the previous `gemini-3.1-pro-high` was the only PRO-tier Gemini, so this is a generation
+// upgrade and a tier downgrade at once — kept under review against real diffs, not settled by the number.
+export const AGY_MODEL = process.env.AGY_MODEL || 'gemini-3.6-flash-high';
+// Deliberately a DIFFERENT PROVIDER POOL, not merely a different model: the fallback exists so a spent
+// Google quota still leaves a cross-family pass alive. A second `gemini-*` here would share the pool it is
+// supposed to survive.
+export const AGY_FALLBACK_MODEL = process.env.AGY_FALLBACK_MODEL || 'gpt-oss-120b-medium';
 
 // agy takes the prompt+context as a single `-p` argv string (stdin is not the prompt). Guard well under the
 // OS limit (macOS ARG_MAX is 1 MB incl. env) so a huge input fails clearly instead of an opaque E2BIG.

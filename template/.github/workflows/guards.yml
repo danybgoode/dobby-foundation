@@ -51,6 +51,13 @@ jobs:
           echo "scripts=$(echo "$changed" | grep -qE '^scripts/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "claude=$(echo "$changed" | grep -qE '^(\.claude/|scripts/permissions-smoke)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
+      # WAYS-OF-WORKING.md is GENERATED from WAYS-OF-WORKING.template.md + fill-ins.yml. A hand edit to
+      # the generated file is how a fork of the process doc comes back.
+      - name: WAYS-OF-WORKING — rendered file matches its source
+        # Also on a scripts/ change: the renderer itself can change what the committed file should be.
+        if: steps.areas.outputs.roadmap == 'true' || steps.areas.outputs.scripts == 'true'
+        run: node scripts/render-ways-of-working.mjs --check
+
       - name: build-order — status board is fresh
         if: steps.areas.outputs.roadmap == 'true'
         run: node scripts/build-order.mjs --check

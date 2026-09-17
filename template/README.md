@@ -28,7 +28,9 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    ```
 3. **Fill in every `TEMPLATE FILL-IN` marker** — grep for them: `grep -rl "TEMPLATE FILL-IN"
    ~/dobby/<new-project>/`. At minimum: `AGENTS.md`'s rules section, `Roadmap/README.md`'s mission +
-   macro-sections, `Roadmap/WAYS-OF-WORKING.md`'s deploy-rail/tooling notes, and
+   macro-sections, **`Roadmap/fill-ins.yml`** (your deploy rail, tooling, language policy and any
+   project-only sections — then `node scripts/render-ways-of-working.mjs`; `WAYS-OF-WORKING.md` itself is
+   generated and never hand-edited), `scripts/review-config.json`'s `securityPaths`, and
    `.github/workflows/ci.yml.example` → rename to `ci.yml` once real app code exists (at that point
    also rename `.githooks/pre-push.example` → `pre-push` and fill in its own TEMPLATE FILL-IN, so
    local pre-push feedback mirrors `ci.yml`'s real checks).

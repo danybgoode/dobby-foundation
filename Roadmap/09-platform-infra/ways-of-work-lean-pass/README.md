@@ -173,10 +173,19 @@ GitHub secret scanning (+ push protection) and CodeQL are adopted as a free dete
   scalars; anything else is a hard error). Missing key ⇒ fail; unused key ⇒ fail; output carries a
   generated banner; render twice ⇒ byte-identical. Consumers vendor the template file. The key list is
   locked at the start of Sprint 3 **after diffing both consuming files** and recorded here as D12a.
+- **D12a — the slot keys (locked 2026-09-16):** `product_owner`, `operating_posture`, `design_is_scope`,
+  `deploy_rail`, `review_scope_note`, `security_floor`, `kill_switch_dod`, `language_policy`,
+  `project_sections`, `tooling_table`. A column-0 `#` line followed by indented block text is a hard error
+  (never a silently dropped heading). Consuming projects keep only what the template does not state;
+  every paragraph they drop is classified in `RETROSPECTIVE.md`'s cut ledger.
 - **D13 — `epic-dod.mjs --check <macro/slug>` owns five items:** README `status: shipped`; every
-  `sprint-N.md` Status line ✅; `RETROSPECTIVE.md` with a real `_Closed: YYYY-MM-DD_`; every sprint
-  status cites ≥1 PR/commit ref that is merged (git ancestry or gh; unverifiable ⇒ *unavailable*, never
-  green); no `feat/<slug>*` branch left on origin. Exemptions live in a ledger with reasons; a stale
+  `sprint-N.md` Status line ✅ (or 🟩); `RETROSPECTIVE.md` with a real `_Closed: YYYY-MM-DD…`; every sprint
+  **doc** (amended: not only its status line — real sprints cite their PRs in the body) cites ≥1 PR/commit
+  ref that is merged; no `feat/<slug>*` branch left on origin. **Unverifiable ⇒ *unavailable*, never
+  green.** Citations resolve only from a PR link, `owner/repo#N`, a known repo name, or — in a single-repo
+  project that declares `bareRefsRepo` — a bare `#N`; in a multi-repo project a bare `#N` is ambiguous and
+  never guessed (a whole-text scan against the docs repo had verified the wrong PRs on real epics).
+  `sprints_in` is resolved against GitHub, not trusted. Exemptions live in a ledger with reasons; a stale
   exemption fails.
 - **D14 — S2.8's gate is met by this epic's own PRs:** the one-general-pass + fresh-reviewer shape runs
   on ≥5 real PRs across ≥2 repos (S1 and S2a PRs), recorded in `sprint-2.md`, before the router-collapse
