@@ -154,8 +154,7 @@
       "Bash(git commit --all*)",
       "Bash(git commit * -a)",
       "Bash(git commit * --all)",
-      "Edit(/Roadmap/00-ideas/BUILD-ORDER.md)",
-      "Write(/Roadmap/00-ideas/BUILD-ORDER.md)"
+      "Edit(/Roadmap/00-ideas/BUILD-ORDER.md)"
     ],
     "ask": [
       "Bash(vercel env add *)",
