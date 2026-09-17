@@ -1,11 +1,18 @@
-<!-- GENERATED FILE — do not edit by hand.
-     Source: Roadmap/WAYS-OF-WORKING.template.md + Roadmap/fill-ins.yml
-     Regenerate: node scripts/render-ways-of-working.mjs   (CI checks it with --check)
-     Shared process text belongs in the .template.md; this project's own belongs in fill-ins.yml. -->
+<!--
+  SOURCE FILE. `Roadmap/WAYS-OF-WORKING.md` is RENDERED from this plus `Roadmap/fill-ins.yml`:
+
+      node scripts/render-ways-of-working.mjs            # write it
+      node scripts/render-ways-of-working.mjs --check    # CI: fail if the rendered file drifted
+
+  Edit THIS file for anything every project shares, and `fill-ins.yml` for anything one project's own.
+  Rendering twice with no source change is a byte-for-byte no-op (ways-of-work-lean-pass S3.5).
+-->
 # Ways of Working
 
-How the product owner and Claude (builder) ship product together. Small slices, plan first, ship
+How {{fill:product_owner}} and Claude (builder) ship product together. Small slices, plan first, ship
 the moment each slice works — and each slice is a piece of the final product, never a test of it.
+
+{{fill:operating_posture}}
 
 ## Roles and the unit of work
 
@@ -25,13 +32,13 @@ Plan → branch + scaffold docs → build story → verify → QA/smoke → PR �
 ```
 
 1. **Plan.** Non-trivial work goes through plan mode as user stories, approved before code, naming its
-   QA/smoke stage. Reference end-states are inspiration, never signed-off scope.
+   QA/smoke stage. {{fill:design_is_scope}}
 2. **Branch + scaffold.** One branch per epic (`feat/<slug>`) off the latest `main`, in each repo you
    touch. Scaffold the epic `README.md` + `sprint-N.md` *before* any code, and keep them current (✅
    ticks, commit refs).
 3. **Build one story at a time.** Reuse before rebuild. Commit per story, **path-limited**.
 4. **Verify + QA.** The deterministic gate — typecheck, lint, build, the suite — is green **before**
-   merge, run by the building agent, not only by CI. **TEMPLATE FILL-IN — your deploy rail:** whether a branch gets a preview and how the gate reaches it, what merging to `main` builds, and — if there is no per-branch preview — who does the post-merge browser half.
+   merge, run by the building agent, not only by CI. {{fill:deploy_rail}}
 5. **PR → review → merge.** Declare a risk tier, run the review the policy asks for, resolve or answer
    every finding, merge on green. **Merging to `main` is the production deploy.** Delete the branch.
 6. **Close.** Sprint close: the sprint-wrap summary. Epic close: the Definition of Done below.
@@ -93,7 +100,7 @@ CI (deterministic gate)            — does it build, typecheck, pass the suite?
 **Which PRs**: `scripts/review-config.json` → `reviewScope` — `every-pr` (all non-trivial PRs;
 `--skip-trivial` drops docs-only and tiny diffs) or `security-paths-only`. The **security lens** is
 triggered by a `securityPaths` glob or a `risk: high` body in either scope — paths, not judgement, so a
-builder can add it but never skip it.
+builder can add it but never skip it. {{fill:review_scope_note}}
 
 **Who reviews** is printed by `node scripts/review-route.mjs --builder <who> <PR#>`, never picked by hand:
 the highest-preference family that did **not** build the diff takes the general pass, the next takes the
@@ -112,7 +119,7 @@ migrations, shared infra; **LOW** = the rest; unsure means HIGH. The **builder m
 risk tier** once CI is green and findings are resolved — the tier selects the review
 scope, not the merge authority. Roll back with `git revert` on `main`.
 
-**A deterministic floor runs underneath, free and without an LLM:** GitHub secret scanning with push protection, and CodeQL default setup on any repo with app code. The lens finds logic flaws; the scanners find known patterns and leaked credentials.
+{{fill:security_floor}}
 
 ## Escalate, don't guess — the ONE trigger list
 
@@ -158,7 +165,7 @@ retrospective, no leftover branch) — **and** the three judgment items are true
 - [ ] **`RETROSPECTIVE.md`** says what actually happened, and its durable learnings are promoted into
       `Roadmap/LEARNINGS.md` — sharpen the existing line, don't append a near-duplicate.
 - [ ] **Each sprint has a smoke walkthrough** a person can follow blind, with real URLs; money/auth steps
-      are flagged by name as owed to the product owner.
+      are flagged by name as owed to the product owner. {{fill:kill_switch_dod}}
 
 ## Documentation map
 
@@ -181,11 +188,11 @@ derived views. **`Roadmap/bets/`** holds one file per wave; **`tasks/`** is the 
 - **Worker death is a normal case.** Each builder on its own worktree; a killed worker's uncommitted tree
   is evidence, not garbage; **verify by re-deriving repo state, never by trusting a completion report** —
   a rate-limited subagent still returns a plausible-sounding result. Compact at sprint/PR boundaries.
-- Commit messages end with the `Co-Authored-By: Claude` trailer. - **Language.** Docs, comments and PR descriptions are in **English**. **TEMPLATE FILL-IN:** if your user-facing copy has its own policy (a default plus a bilingual allow-list), state it here and in `AGENTS.md`.
+- Commit messages end with the `Co-Authored-By: Claude` trailer. {{fill:language_policy}}
 
 ## Tooling
 
-**TEMPLATE FILL-IN:** list this project's authenticated CLI access and what each is used for — at minimum **git/gh** (branches, PRs, merges) and **node/npm** (typecheck, lint, build, dev server), plus your deploy, database and container CLIs.
+{{fill:tooling_table}}
 
 Actions that touch live production, real money, or paid infrastructure are surfaced to the product owner
 before running.
