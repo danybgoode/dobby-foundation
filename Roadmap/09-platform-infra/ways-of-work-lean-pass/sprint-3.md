@@ -1,6 +1,6 @@
 # Ways-of-work lean pass — Sprint 3: The ceremony diet and the derivable DoD
 
-**Status:** ⬜ not started
+**Status:** ✅ shipped — danybgoode/dobby-foundation#17 · danybgoode/golden-beans#146 · danybgoode/miyagi-product-management#179
 
 **Epic:** [Ways-of-work lean pass](README.md) · **Risk: MIXED (LOW + HIGH)** — S3.5 is HIGH (it rewrites two live consuming repos' process docs); the rest is LOW
 

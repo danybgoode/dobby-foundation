@@ -1,8 +1,8 @@
 # Ways-of-work lean pass — Sprint 2: One cross-family pass + one fresh reviewer
 
-**Status:** 🟦 In review — S2a (2.2/2.3/2.4/2.6/2.7) and S2b (2.1/2.5/2.8) are open as stacked PRs
+**Status:** ✅ shipped — danybgoode/dobby-foundation#12, #13, #14, #15, #16 · danybgoode/golden-beans#144, #145 · danybgoode/miyagi-product-management#176, #177, #178
 
-**Epic:** [Ways-of-work lean pass](README.md) · **Risk: HIGH — the product owner merges** (removing a review layer is a security decision)
+**Epic:** [Ways-of-work lean pass](README.md) · **Risk: HIGH** (removing a review layer is a security decision)
 
 **Wave 2 of 3.** The sprint that defines the contract the rest of the system imports — it runs on the
 stronger model, and its own PR gets the strongest available reviewer.

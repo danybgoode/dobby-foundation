@@ -157,6 +157,30 @@ accumulate below them, same one-liner + why + date shape.
   silently advancing state a scheduled run depends on — keep on-demand modes explicitly
   non-state-mutating and lock that with a test.
 
+## Permissions & guardrails (ways-of-work-lean-pass, 2026-09-16)
+- **A deny rule is text matching, and a per-rule patch cannot close a rule CLASS.** A leading assignment
+  whose value contains an expansion (`PATH=/x:$PATH vercel deploy --prod`) was observed LIVE to escape a bare
+  rule. Patching the four rules someone had probed left `vercel --yes --prod`, `rm -fr`, `supabase db reset`,
+  `git push origin +main`, `git -C <path> push --force` and `npx supabase --debug db push` matching nothing —
+  found one at a time across four review rounds. Generate the spellings from a list the contract checks
+  (`CRITICAL_COMMANDS` → bare + `*=*` + `env *`), so a bare-only rule fails CI instead of waiting for a reader.
+- **The same escape applies to `ask`, where it is WORSE.** An escaped deny is a gap; an escaped ask is a
+  silent downgrade from "a human decides" to "the classifier decides". Carry ask rules in all three spellings
+  too, and treat a deny that swallows an ask as a finding — a refusal cannot be approved once.
+- **`*=*` matches an `=` ANYWHERE, not an assignment prefix.** `Bash(*=* vercel*)` hard-refused
+  `grep -rn --include=*.json vercel .` — ordinary reading. Keep prefixed rules per dangerous SUBCOMMAND and
+  pin the safe negations in a `MUST_NOT_DENY` list; a guard that rejects correct output gets bypassed.
+- **`Write(<path>)` permission rules are INERT** — Claude Code checks only `Edit(<path>)` for file tools, and
+  a nested `claude -p` refuses to start while one is present. `Edit` covers Write, Edit and NotebookEdit.
+- **An ALLOW skips the classifier, so it must be read as "runs with no second look".** `Bash(node scripts/*)`
+  pre-approved a script that writes production secrets through a REST call, while the `ask` rules guarded only
+  the CLI path nobody used — one door guarded out of several. Deny the dangerous invocations by name.
+- **Project-level `defaultMode: "auto"` is ignored AND masks the user default.** Auto mode is a user setting;
+  a config guard should fail on the wrong-scope setting, not only on the missing one.
+- **Say where the line is.** The deny list matches command text, so it is not a sandbox: wrappers (`nice`,
+  `timeout`, `sudo`) and `/bin/rm` are out of scope by design. Write that boundary into the file, or the next
+  reviewer re-finds it as a bug.
+
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
   state (the plan file, sprint docs, team memory) makes re-entry cheap by design — compact at each
