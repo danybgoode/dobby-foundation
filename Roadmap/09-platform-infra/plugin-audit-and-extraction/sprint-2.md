@@ -1,6 +1,6 @@
 # Plugin audit + medusa extraction — Sprint 2: Extract the Tier-1 rails
 
-**Status:** 🟦 In review
+**Status:** ✅ Shipped — [#21](https://github.com/danybgoode/dobby-foundation/pull/21) squash `f8be490`; same-wave origin migration danybgoode/miyagi-product-management#183 `d8e84d6`
 
 **Epic:** [Plugin audit + medusa extraction](README.md) · **Risk: LOW** (2.2 touches shared surface in consuming repos — **announce before merging**)
 
