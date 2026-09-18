@@ -1,5 +1,6 @@
 ---
 name: standup-post
+summary: "Posts a delta-only daily standup of overnight PR, CI, smoke and board signals across the project's repos."
 description: >
   Posts a delta-only daily standup to a chat destination, aggregating overnight signals across every
   repo the project spans: opened/merged PRs + CI status, the latest browser-smoke workflow run,
@@ -9,14 +10,31 @@ description: >
   (against the `claude/standup-log` branch), story-deck link generation, and the actual send.
   Read-only aggregation + one chat post + a log commit — never merges, never gates, never touches
   any repo's code.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - standup.mjs
-  - build-order.mjs
-  - vercel-prune-previews.mjs
+  - weekly-recap.mjs
+  - lib/reporting-config.mjs
+  - lib/gh-rest.mjs
   - lib/log-branch.mjs
+  - lib/telegram-format.mjs
+  - lib/cross-agent-cli.mjs
+  - lib/prose-brief.mjs
+  - lib/prose-guard.mjs
+  - lib/prose-writer.mjs
+  - prose/cpo-persona.md
+  - prose-lessons.md
+  - prose/standup.task.md
+  - lib/standup-deck.mjs
+  - lib/pmo-templates.mjs
+  - lib/report-registry.mjs
+  - standup/templates/daily-story-deck.md
+  - build-order.mjs
+  - roadmap-extract.mjs
+  - vercel-prune-previews.mjs
 ---
 
 # standup-post — the daily standup post
@@ -28,20 +46,31 @@ requires_scripts:
 > script is missing, say so and stop rather than reimplementing its logic inline.
 
 > This skill never merges a PR, retries CI, or edits any repo's code. Its only writes are a chat
-> message and an append to `scripts/standups.log` (committed + pushed so the next run — including a
-> fresh nightly-routine session — can diff against it).
+> message and an append to `standups.log` on the dedicated `claude/standup-log` branch (so the next run —
+> including a fresh nightly-routine session — can diff against it).
 
-## Project config — TEMPLATE FILL-IN
+## Project config — `reporting.config.json` (TEMPLATE FILL-IN)
 
-Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
-say which and stop.
+`standup-post`, `weekly-recap` and `pmo-report` read **one** file: `reporting.config.json` at the
+consuming project's repo root, validated by `scripts/lib/reporting-config.mjs`. It is committed. Nothing
+in it is a secret, and a routine's cloud sandbox is a fresh checkout every run, so a gitignored per-skill
+config never survived to the next run anyway. Copy `reporting.config.example.json` to start. In a **public** repo, keep the chat id out of git: put it in a gitignored
+`reporting.config.local.json`, which is merged over the committed file.
 
-| Value | What it is |
-|---|---|
-| `<REPOS>` | every repo this standup aggregates over — the project's own repo list, one or many. `weekly-recap`, `babysit-pr` and `pmo-report` read the **same** list; define it once for the project, don't fork a per-skill copy. |
-| `<CHAT_DESTINATION>` | where the post lands — the chat id in `TELEGRAM_CHAT_ID` (or this skill's `config.json`), and the bot that owns it |
-| `<SMOKE_WORKFLOW_REPO>` | which repo actually runs the browser-smoke workflow (often only the frontend one — see Gotchas) |
-| `<STORY_DECK>` | the story-deck/summary link generator the script appends to the post, if the project has one |
+| Key | What it is | Absent means |
+|---|---|---|
+| `repos` | every repo the reports aggregate over. **Required.** Shared by all three reports, so define it once | the script refuses to run and names the file |
+| `deployRepos` | `[{label, repo}]` — the repos where a merge to `main` IS a deploy | no deploys line |
+| `telegram.chatId` / `telegram.chatIds.<standup\|weekly\|pmo>` | where each report posts. A surface id wins over the project id, which wins over `TELEGRAM_CHAT_ID` | the send refuses; `--dry-run` still works |
+| `smoke` | `{repo, workflow}` — the browser-smoke workflow the standup reports on | no smoke signal |
+| `stalePreviewAgeDays` | the age the standup's stale-preview count uses | no stale-preview signal |
+| `liveFlags` | `{command, cwd}` — prints the flag keys that are ON, one per line | the prose brief treats flag state as *unknown*, never "none" |
+| `artifacts.docViewerUrl` | the project's URL-hash markdown viewer, for deck/packet links | no deck links (the Telegram text stands alone) |
+| `artifacts.registry` | `{resolverBaseUrl, bucket}` — short-link registry for those decks | links stay URL-hash links |
+| `prose.extraBannedToolNames` | this project's own stack names, which the prose guard must reject | only the universal list is enforced |
+
+**This skill refuses to guess.** If the file is missing or a key is malformed, the script exits with a
+message naming the file and the key. Report that message, then stop.
 
 ## When to run me
 The product owner asks for a standup / "what happened overnight", or the nightly **ops-nightly**
@@ -49,30 +78,32 @@ routine (`scripts/routines/ops-nightly.prompt.md`) invokes me as its one step.
 
 ## What already exists (reuse, don't rebuild)
 - **`scripts/standup.mjs`** — the mechanical part. Run it, always: `node scripts/standup.mjs` (gathers,
-  diffs, posts the plain standup plus the `<STORY_DECK>` link, commits the log) or
+  diffs, posts the plain standup plus the `deck` link, commits the log) or
   `node scripts/standup.mjs --dry-run` (gathers + prints the same message, skips the send and the git
   commit — use this to sanity-check without touching anything).
 - **`gh` CLI** — the PR/CI/workflow-run signals. Must be authenticated with read access to every repo in
-  `<REPOS>`; a repo it can't reach degrades to "unavailable" in that section, it doesn't fail the whole run.
+  `repos`; a repo it can't reach degrades to "unavailable" in that section, it doesn't fail the whole run.
 - **`scripts/build-order.mjs --check`** — the build-order drift signal. Don't re-implement its diff logic.
-- **`scripts/vercel-prune-previews.mjs`** (dry-run, `--age 7`) — the stale-preview count. Never pass
+- **`scripts/vercel-prune-previews.mjs`** (dry-run, `--age <stalePreviewAgeDays>`) — the stale-preview count. Never pass
   `--apply` from this skill.
 - **The app's own chat-client module**, if it has one — the reference HTTP-call shape (`sendMessage`,
   `parse_mode: 'HTML'`, escape `&`/`<`/`>`) that `standup.mjs` reimplements standalone, since this script
   has no access to the app's build.
 
 ## Stage 1 — ensure config
-`standup.mjs` resolves the chat id two ways, in order: `skills/standup-post/config.json`'s `chat_id`
-first, then the `TELEGRAM_CHAT_ID` env var. **In a routine session (no interactive human present), the
-env var is the one that actually works** — `config.json` is gitignored and a routine's cloud sandbox is
-a fresh checkout every run, so a locally-written `config.json` never survives to the next run. Set
-`TELEGRAM_CHAT_ID` on the routine's environment (the same var its optional failure-ping already needs —
-one setting covers both). `config.json` remains the right mechanism for a local/interactive run:
-1. Use `AskUserQuestion` to ask the product owner for `<CHAT_DESTINATION>`'s chat id — normally the same
-   bot/chat the project's deploy notifiers and routine failure-pings already use.
-2. Copy `config.example.json` → `config.json` and write the answer into `chat_id`.
+**Unattended (a routine — no human present):** the environment's `TELEGRAM_CHAT_ID` counts as a
+configured chat. **Never** `AskUserQuestion` and **never** write a chat id into a committed file. If
+`reporting.config.json` or the chat is missing, stop and use the routine's failure ping. The steps below
+are for an interactive run only.
 
-**Never** ask for or write the bot token here — that's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
+1. If `reporting.config.json` is missing, copy `reporting.config.example.json` and fill it in with the
+   product owner, using `AskUserQuestion` for values you cannot derive. The repo list is usually
+   derivable from `git remote -v` across the project's checkouts. Commit the file.
+2. If the chat is not configured, ask the product owner for the chat id. It is normally the same
+   bot/chat the other reports and deploy notifiers use. Write it to `telegram.chatId`, or to
+   `telegram.chatIds.<surface>` for a separate channel.
+
+**Never** ask for or write the bot token here. That's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
 env var, set outside this flow (the product owner's shell, or the routine's environment config).
 
 ## Stage 2 — ensure the secret
@@ -82,7 +113,7 @@ via `AskUserQuestion`.
 
 ## Stage 3 — run it
 `node scripts/standup.mjs`. Report back what posted — either the delta lines, or the "quiet night, no
-change" case — and mention that the message includes the `<STORY_DECK>` link. That way whoever invoked
+change" case — and mention that the message includes the `deck` link. That way whoever invoked
 this (the product owner, or the routine transcript) has a summary even without opening the chat. Write it
 in prose as if reporting to executive level.
 
@@ -94,23 +125,23 @@ problem, not a flake.
 ---
 
 ## Gotchas
-- **Delta-only depends on `scripts/standups.log` surviving between runs.** If it's ever reset or
+- **Delta-only depends on the `claude/standup-log` branch's `standups.log` surviving between runs.** If it's ever reset or
   deleted, the very next run has nothing to diff against and re-reports everything as "new" — that's
   expected recovery behavior, not a bug.
-- **`gh` needs read access to every repo in `<REPOS>`**, not just the one you're used to working in. A
+- **`gh` needs read access to every repo in `repos`**, not just the one you're used to working in. A
   repo it can't reach (auth, network, wrong repo slug) silently degrades that repo's section to
   "unavailable" — it does not fail the whole standup. If a repo's section is consistently missing, check
   `gh auth status` and repo access before assuming the repo itself is quiet.
-- **`TELEGRAM_BOT_TOKEN` is a secret — it never goes in `config.json`.** Only the non-secret chat id
-  lives there. If you ever see a token-looking value in `config.json`, that's a mistake to fix, not a
-  new convention.
-- **The browser-smoke workflow usually exists in only ONE repo** — `<SMOKE_WORKFLOW_REPO>`, typically the
+- **`TELEGRAM_BOT_TOKEN` is a secret — it never goes in `reporting.config.json`.** That file is
+  committed. Only the non-secret chat id lives there. A token-looking value in it is a leaked secret:
+  rotate it, don't just delete the line.
+- **The browser-smoke workflow usually exists in only ONE repo** — `smoke.repo`, typically the
   frontend, since a backend repo often has no per-branch preview and no Playwright at all (the project's
   `WAYS-OF-WORKING.md` is the SSOT for which). Don't expect, or add, a smoke row for a repo that has no
   such workflow.
 - **`vercel-prune-previews.mjs`'s own default is `--age 0`**, which flags literally every
   non-production preview, including one from a PR opened yesterday — not a meaningful "stale" signal.
-  `standup.mjs` deliberately passes `--age 7`. If you invoke the prune script directly for something
+  `standup.mjs` passes the configured `stalePreviewAgeDays` instead (7 is a sensible start). If you invoke the prune script directly for something
   else, remember its bare default differs from what the standup reports.
 - **The delta log lives on a dedicated `claude/standup-log` branch** (`scripts/lib/log-branch.mjs`, git
   plumbing only), not committed to `main` — needs **no special push permission**, since `claude/`-prefixed

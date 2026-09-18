@@ -1,5 +1,6 @@
 ---
 name: groom
+summary: "The planning front door: shapes a raw ask into a seed, an appetite, and a scaffolded epic."
 description: >
   The front door for any new ask — feature, bug, spike, or chore. Use when the product owner
   has a raw idea in their head (or a seed in Roadmap/00-ideas/seeds) and wants to turn
@@ -9,12 +10,12 @@ description: >
   sprint docs and emits the builder kickoff — epic-mode by default (one orchestrated run
   across the whole epic), per-sprint only as the named exception. Planning only —
   never writes code.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
 requires_scripts:
   - cross-panel.mjs
+  - cross-panel.prompt.md
+  - lib/cross-agent-cli.mjs
   - build-order.mjs
+  - roadmap-extract.mjs
 ---
 
 # Groom — the planning front door (Cowork)

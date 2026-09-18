@@ -38,12 +38,18 @@ jobs:
       # in template/, not in any consuming project. An undeclared skill fails too: silence is
       # exactly what let that survive.
       #
-      # Green on today's known state, red on anything new: the eight never-extracted skills are
-      # recorded in the script's KNOWN_ABSENT ledger with a reason and report as `debt`. A NEW
-      # missing script, an undeclared skill, or a ledger entry whose debt was quietly paid all fail.
+      # The KNOWN_ABSENT ledger is EMPTY since plugin-audit-and-extraction S1 paid the debt, and the
+      # check now also walks each declared script's import closure: an absent import (a partial port)
+      # or an undeclared one (an understated declaration) fails. A NEW missing script, an undeclared
+      # skill, or a ledger entry whose debt was quietly paid all fail.
       # Do not make this green by deleting declarations or padding KNOWN_ABSENT.
       - name: Skill script contract
         run: node scripts/check-skill-scripts.mjs
+
+      # The advertised skill list is GENERATED from plugins/ways-of-work/skills/ into marketplace.json
+      # (twice), plugin.json and the README. It used to be hand-kept in all four and they disagreed.
+      - name: Skill adverts are generated, not hand-kept
+        run: node scripts/render-skill-adverts.mjs --check
 
       # The groom generators' own unit tests. Both kickoff generators are covered — the per-sprint
       # one (the exception path) and the epic-mode one (the default).
@@ -60,6 +66,7 @@ jobs:
         run: |
           node --test \
             scripts/check-skill-scripts.test.mjs \
+            scripts/render-skill-adverts.test.mjs \
             scripts/pack-skills.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
@@ -79,26 +86,30 @@ jobs:
           done
           echo "packaging: archives valid and byte-identical across runs."
 
-      # The reviewer ROUTING POLICY. It is the one rule here that erodes silently: a same-family
-      # review still produces plausible output, so nothing fails when the routing degrades.
-      #
-      # Every template/scripts test is named here EXPLICITLY, and a new port must add its line.
-      # That is a real maintenance cost, accepted for the reason in the groom step above: a glob
-      # would be tidier, but `node --test <dir>` resolves a directory as a module on Node 22 and
-      # dies with MODULE_NOT_FOUND — red in a way that reads like a genuine failure.
+      # Every template/scripts test — the reviewer routing policy, the ported reporting family, live-smoke,
+      # the Roadmap extractor. A bash glob ARRAY, not a directory: `node --test <dir>` resolves a directory
+      # as a module on Node 22 and dies with MODULE_NOT_FOUND, which reads like a genuine failure. The
+      # array expands to explicit files, so a new port's tests run without anyone adding a line here —
+      # the hand-kept list this replaced is the same failure shape as the hand-kept skill adverts.
       - name: template script tests
         run: |
-          node --test \
-            template/scripts/permissions-smoke.test.mjs \
-            template/scripts/cross-review.test.mjs \
-            template/scripts/epic-dod.test.mjs \
-            template/scripts/render-ways-of-working.test.mjs \
-            template/scripts/lib/review-guard.test.mjs \
-            template/scripts/review-route.test.mjs \
-            template/scripts/prose-draft.test.mjs \
-            template/scripts/babysit-pr.test.mjs \
-            template/scripts/build-order-sync.test.mjs \
-            template/scripts/lib/gh-rest.test.mjs
+          shopt -s nullglob
+          files=(template/scripts/*.test.mjs template/scripts/lib/*.test.mjs)
+          test "${#files[@]}" -gt 0 || { echo "no template script tests found — the glob is wrong" >&2; exit 1; }
+          node --test "${files[@]}"
+
+      # The Notion sync is OPT-IN (template/optional/notion/). It imports ./roadmap-extract.mjs, so it can
+      # only run once copied next to it — which is exactly what its README tells a project to do. Do that
+      # in a temp dir and exercise the two modes that need no Notion credentials.
+      - name: optional Notion sync runs from where a project would copy it
+        run: |
+          work="$(mktemp -d)"
+          mkdir -p "$work/scripts" "$work/Roadmap"
+          cp template/scripts/roadmap-extract.mjs template/optional/notion/roadmap-to-notion.mjs "$work/scripts/"
+          test "$(PR_ACTION=opened PR_DRAFT=true node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "In progress"
+          test "$(PR_ACTION=closed PR_DRAFT=false node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "clear"
+          ( cd "$work" && node scripts/roadmap-to-notion.mjs --pr some-epic --dry --status "In review" > /dev/null )
+          echo "optional Notion sync: loads beside the extractor, --lifecycle and --pr --dry work."
 
       # The template's committed permission rules must satisfy their own contract (cited deny/ask
       # rules, verb-class allow list, no project-level auto mode). Run from template/ so the script
@@ -124,7 +135,7 @@ jobs:
       - name: foundation board generator is the template's, and the board is fresh
         run: |
           cmp scripts/build-order.mjs template/scripts/build-order.mjs
-          cmp scripts/roadmap-to-notion.mjs template/scripts/roadmap-to-notion.mjs
+          cmp scripts/roadmap-extract.mjs template/scripts/roadmap-extract.mjs
           node scripts/build-order.mjs --check
 
       # The scaffolder renders three templates into every new epic in every consuming project. A

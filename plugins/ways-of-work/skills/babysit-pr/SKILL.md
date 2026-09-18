@@ -1,5 +1,6 @@
 ---
 name: babysit-pr
+summary: "Advisory PR watch — retries flaky CI and flags merge conflicts; never merges, never gates."
 description: >
   Advisory PR watch for a single open PR — retries flaky CI (re-runs failed workflow runs) and
   surfaces merge conflicts via one comment; never merges, never a required check. Use when the product
@@ -7,11 +8,14 @@ description: >
   this PR moving", or as the nightly ops routine's third step (once per open PR across the project's repos).
   Runs scripts/babysit-pr.mjs, which does the gh reads, the retry, and the comment post. A clean PR
   (no conflict, no failing checks) gets NO comment — this tool never adds nightly noise to a healthy PR.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - babysit-pr.mjs
+  - lib/cross-agent-cli.mjs
+  - lib/gh-rest.mjs
 ---
 
 # babysit-pr — advisory PR watch (never merges, never gates)

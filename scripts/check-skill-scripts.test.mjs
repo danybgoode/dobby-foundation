@@ -5,9 +5,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  audit,
+  importClosure,
   parseRequiresScripts,
   resolveSkill,
   NO_SCRIPTS_EXPECTED,
@@ -94,18 +96,20 @@ test('declaring an empty list is a pass — that is an explicit answer', () => {
 
 // ── the debt ledger ───────────────────────────────────────────────────────────────────────────
 
+// The ledger is EMPTY today (the debt was paid in plugin-audit-and-extraction S1), so these fixtures
+// inject one rather than borrowing a real entry — the rules must stay enforced with nothing recorded.
+const LEDGER = { 'recorded-skill': 'fixture — a reasoned gap, recorded so CI is not permanently red' };
 const resolveNamed = (skill, declared, have = []) =>
   resolveSkill({
     skill,
     declared,
     scriptsDir: '/p/scripts',
     exists: (p) => have.includes(p.replace('/p/scripts/', '')),
+    ledger: LEDGER,
   });
 
-const A_RECORDED_SKILL = Object.keys(KNOWN_ABSENT)[0];
-
 test('a recorded gap reports as debt, not failure — CI must not be permanently red', () => {
-  const r = resolveNamed(A_RECORDED_SKILL, ['nope.mjs']);
+  const r = resolveNamed('recorded-skill', ['nope.mjs']);
   assert.equal(r.status, 'debt');
 });
 
@@ -117,9 +121,92 @@ test('a NEW missing script on an unrecorded skill still fails', () => {
 test('a recorded gap that has been closed fails as a stale ledger entry', () => {
   // Paying the debt without striking the line leaves the ledger describing a repo that no longer
   // exists — which is how an ALLOW/KNOWN list stops being worth reading.
-  const r = resolveNamed(A_RECORDED_SKILL, ['a.mjs'], ['a.mjs']);
+  const r = resolveNamed('recorded-skill', ['a.mjs'], ['a.mjs']);
   assert.equal(r.status, 'stale-debt');
   assert.match(r.note, /delete the entry/);
+});
+
+// Smoke-walkthrough step 4, as a test: the four skills this epic paid for are really present in the
+// template, so re-adding ANY of them to the ledger fails. That is what separates "the debt was paid"
+// from "the line was deleted".
+test('the PAID debts: re-adding weekly-recap / standup-post / pmo-report / live-smoke to the ledger fails as stale', () => {
+  const template = new URL('../template/', import.meta.url).pathname;
+  const skillsDir = new URL('../plugins/ways-of-work/skills/', import.meta.url).pathname;
+  for (const skill of ['weekly-recap', 'standup-post', 'pmo-report', 'live-smoke']) {
+    const declared = parseRequiresScripts(readFileSync(join(skillsDir, skill, 'SKILL.md'), 'utf8'));
+    const r = resolveSkill({
+      skill,
+      declared,
+      scriptsDir: join(template, 'scripts'),
+      exists: existsSync,
+      read: readFileSync,
+      ledger: { [skill]: 'fixture — pretending the debt is still open' },
+    });
+    assert.equal(r.status, 'stale-debt', `${skill} would not be flagged stale — is it really paid?`);
+  }
+});
+
+test('the real ledger is empty and the whole plugin audits clean against template/', () => {
+  assert.deepEqual(KNOWN_ABSENT, {});
+  const results = audit({ target: new URL('../template/', import.meta.url).pathname });
+  const bad = results.filter((r) => r.status !== 'ok');
+  assert.deepEqual(bad, [], `not ok: ${JSON.stringify(bad)}`);
+});
+
+// ── the closure check ─────────────────────────────────────────────────────────────────────────
+
+const FILES = {
+  'entry.mjs': "import { a } from './lib/a.mjs';\nimport x from 'node:fs';\n",
+  'lib/a.mjs': "export { b } from './b.mjs';\nconst lazy = () => import('./c.mjs');\n",
+  'lib/b.mjs': 'export const b = 1;\n',
+  'lib/c.mjs': 'export const c = 1;\n',
+};
+const fsOf = (files) => ({
+  scriptsDir: '/p/scripts',
+  exists: (p) => Object.hasOwn(files, p.replace('/p/scripts/', '')),
+  read: (p) => {
+    const rel = p.replace('/p/scripts/', '');
+    if (!Object.hasOwn(files, rel)) throw new Error('ENOENT');
+    return files[rel];
+  },
+});
+
+test('importClosure follows static, re-export and dynamic relative imports, and ignores bare specifiers', () => {
+  const c = importClosure('entry.mjs', fsOf(FILES));
+  assert.deepEqual(c.files, ['lib/a.mjs', 'lib/b.mjs', 'lib/c.mjs']);
+  assert.deepEqual(c.broken, []);
+});
+
+test('a declaration that understates the closure FAILS — the old ledger undercounted exactly this way', () => {
+  const r = resolveSkill({ skill: 's', declared: ['entry.mjs', 'lib/a.mjs'], ...fsOf(FILES) });
+  assert.equal(r.status, 'undeclared-dependency');
+  assert.match(r.note, /lib\/b\.mjs, lib\/c\.mjs/);
+});
+
+test('a present entry whose import is absent FAILS as a broken closure (a partial port is dark)', () => {
+  const files = { ...FILES };
+  delete files['lib/c.mjs'];
+  const r = resolveSkill({ skill: 's', declared: ['entry.mjs', 'lib/a.mjs', 'lib/b.mjs'], ...fsOf(files) });
+  assert.equal(r.status, 'broken-import');
+  assert.match(r.note, /lib\/a\.mjs → lib\/c\.mjs/);
+});
+
+test('an import that climbs out of scripts/ is broken — a skill\'s scripts must be self-contained', () => {
+  const r = resolveSkill({
+    skill: 's',
+    declared: ['entry.mjs'],
+    ...fsOf({ 'entry.mjs': "import '../app/thing.mjs';\n" }),
+  });
+  assert.equal(r.status, 'broken-import');
+});
+
+test('the full closure declared (data files alongside) is ok', () => {
+  const r = resolveSkill({
+    skill: 's',
+    declared: ['entry.mjs', 'lib/a.mjs', 'lib/b.mjs', 'lib/c.mjs'],
+    ...fsOf({ ...FILES, 'prompt.md': 'x' }),
+  });
+  assert.equal(r.status, 'ok');
 });
 
 test('every KNOWN_ABSENT entry carries a reason a reviewer can act on', () => {

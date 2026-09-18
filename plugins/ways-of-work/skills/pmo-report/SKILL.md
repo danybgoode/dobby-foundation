@@ -1,5 +1,6 @@
 ---
 name: pmo-report
+summary: "Posts the weekly PMO report (throughput, DORA-style delivery, doc-ops) with optional deck links."
 description: >
   Posts the weekly PMO operational report to a chat destination with headline scrum/DORA/doc-ops
   metrics and a story-deck link, or generates the on-demand monthly stakeholder packet plus metrics
@@ -7,38 +8,69 @@ description: >
   monthly PMO packet", or as the pmo-report routine's one step. Runs scripts/pmo-report.mjs, which
   reuses gh-rest, the PMO window log, log-branch persistence, the story-deck templates, and the
   message-format safety nets.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - pmo-report.mjs
+  - weekly-recap.mjs
+  - lib/reporting-config.mjs
   - lib/gh-rest.mjs
   - lib/log-branch.mjs
   - lib/telegram-format.mjs
+  - lib/cross-agent-cli.mjs
+  - lib/prose-brief.mjs
+  - lib/prose-guard.mjs
+  - lib/prose-writer.mjs
+  - prose/cpo-persona.md
+  - prose-lessons.md
+  - lib/pmo-benchmarks.mjs
   - lib/pmo-delivery.mjs
+  - lib/pmo-metrics.mjs
+  - lib/pmo-templates.mjs
+  - lib/pmo-window-log.mjs
+  - lib/report-registry.mjs
+  - pmo/benchmarks.json
+  - pmo/templates/weekly-story-deck.md
+  - pmo/templates/monthly-stakeholder-packet.md
+  - pmo/templates/metrics-sheet.md
+  - roadmap-extract.mjs
 ---
 
 # pmo-report - weekly PMO delivery
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/pmo-report.mjs` +
-> `scripts/lib/{gh-rest,log-branch,telegram-format,pmo-delivery}.mjs`, which ship in the *consuming
-> project's* `scripts/` dir, not inside this plugin — a project spawned from the `dobby-foundation`
+> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/pmo-report.mjs` and the
+> closure listed in `requires_scripts:` above. Those files ship in the *consuming project's* `scripts/`
+> dir, not inside this plugin — a project spawned from the `dobby-foundation`
 > template gets them via `template/scripts/`. If a script or its config is missing, say so and stop
 > rather than reimplementing or guessing it.
 
 > This skill never merges, approves, blocks, or edits app code. Its normal writes are one chat
 > message plus one append to the `claude/pmo-reports-log` branch after a successful non-dry run.
 
-## Project config — TEMPLATE FILL-IN
+## Project config — `reporting.config.json` (TEMPLATE FILL-IN)
 
-Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
-say which and stop.
+`standup-post`, `weekly-recap` and `pmo-report` read **one** file: `reporting.config.json` at the
+consuming project's repo root, validated by `scripts/lib/reporting-config.mjs`. It is committed. Nothing
+in it is a secret, and a routine's cloud sandbox is a fresh checkout every run, so a gitignored per-skill
+config never survived to the next run anyway. Copy `reporting.config.example.json` to start. In a **public** repo, keep the chat id out of git: put it in a gitignored
+`reporting.config.local.json`, which is merged over the committed file.
 
-| Value | What it is |
-|---|---|
-| `<REPOS>` | the repos the metrics are gathered from — **the same project-level list `standup-post` and `weekly-recap` use** |
-| `<CHAT_DESTINATION>` | where the report lands — the chat id in `TELEGRAM_CHAT_ID` (or this skill's own `config.json`) |
-| `<STORY_DECK>` | the story-deck generator the report links to, and the templates it fills |
+| Key | What it is | Absent means |
+|---|---|---|
+| `repos` | every repo the reports aggregate over. **Required.** Shared by all three reports, so define it once | the script refuses to run and names the file |
+| `deployRepos` | `[{label, repo}]` — the repos where a merge to `main` IS a deploy | no deploys line |
+| `telegram.chatId` / `telegram.chatIds.<standup\|weekly\|pmo>` | where each report posts. A surface id wins over the project id, which wins over `TELEGRAM_CHAT_ID` | the send refuses; `--dry-run` still works |
+| `smoke` | `{repo, workflow}` — the browser-smoke workflow the standup reports on | no smoke signal |
+| `stalePreviewAgeDays` | the age the standup's stale-preview count uses | no stale-preview signal |
+| `liveFlags` | `{command, cwd}` — prints the flag keys that are ON, one per line | the prose brief treats flag state as *unknown*, never "none" |
+| `artifacts.docViewerUrl` | the project's URL-hash markdown viewer, for deck/packet links | no deck links (the Telegram text stands alone) |
+| `artifacts.registry` | `{resolverBaseUrl, bucket}` — short-link registry for those decks | links stay URL-hash links |
+| `prose.extraBannedToolNames` | this project's own stack names, which the prose guard must reject | only the universal list is enforced |
+
+**This skill refuses to guess.** If the file is missing or a key is malformed, the script exits with a
+message naming the file and the key. Report that message, then stop.
 
 ## When to run me
 The product owner asks for the PMO weekly report, the on-demand monthly packet, or the weekly
@@ -52,17 +84,24 @@ The product owner asks for the PMO weekly report, the on-demand monthly packet, 
 - **`scripts/lib/log-branch.mjs`** - dedicated `claude/pmo-reports-log` persistence, no main-branch
   push needed.
 - **`scripts/lib/telegram-format.mjs`** and **`scripts/lib/pmo-delivery.mjs`** - message length guard,
-  headline formatter, chat-id loading, and sendMessage wrapper.
-- **`scripts/pmo/templates/`** - the `<STORY_DECK>` templates; the script fills values only.
+  headline formatter, and sendMessage wrapper. Chat routing is `scripts/lib/reporting-config.mjs`.
+- **`scripts/pmo/templates/`** - the `deck` templates; the script fills values only.
 
-## Stage 1 - ensure config
-`pmo-report.mjs` resolves `<CHAT_DESTINATION>` two ways, in order: `skills/pmo-report/config.json`'s
-`chat_id` first, then `TELEGRAM_CHAT_ID`. In a routine session, the env var is the one that actually
-works because `config.json` is gitignored and a routine's sandbox is a fresh checkout every run. For a
-local/interactive run, copy `config.example.json` to `config.json` and put the chat id there.
+## Stage 1 — ensure config
+**Unattended (a routine — no human present):** the environment's `TELEGRAM_CHAT_ID` counts as a
+configured chat. **Never** `AskUserQuestion` and **never** write a chat id into a committed file. If
+`reporting.config.json` or the chat is missing, stop and use the routine's failure ping. The steps below
+are for an interactive run only.
 
-Never ask for or write the bot token here. `TELEGRAM_BOT_TOKEN` is a secret and belongs in the shell or
-routine environment.
+1. If `reporting.config.json` is missing, copy `reporting.config.example.json` and fill it in with the
+   product owner, using `AskUserQuestion` for values you cannot derive. The repo list is usually
+   derivable from `git remote -v` across the project's checkouts. Commit the file.
+2. If the chat is not configured, ask the product owner for the chat id. It is normally the same
+   bot/chat the other reports and deploy notifiers use. Write it to `telegram.chatId`, or to
+   `telegram.chatIds.<surface>` for a separate channel.
+
+**Never** ask for or write the bot token here. That's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
+env var, set outside this flow (the product owner's shell, or the routine's environment config).
 
 ## Stage 2 - run it
 For the weekly routine path, run:
@@ -83,7 +122,7 @@ For the monthly packet path, run:
 node scripts/pmo-report.mjs --monthly
 ```
 
-Report back the headline metrics and the generated `<STORY_DECK>` links.
+Report back the headline metrics and the generated `deck` links.
 
 ## Stage 3 - on failure
 Surface stderr verbatim. Do not retry blindly; a missing chat env var, a missing chat id, GitHub auth, or
@@ -97,5 +136,5 @@ same cause escalate to the product owner.
   product owner should not need a second flag.
 - **The log write happens after delivery.** If the send fails, the window is not advanced, so the next
   run can retry the same reporting window.
-- **The `<STORY_DECK>` URL may be hash-only state** (it is in the origin implementation). If so, don't
+- **The `deck` URL may be hash-only state** (it is in the origin implementation). If so, don't
   add short-link persistence or a database to work around it.

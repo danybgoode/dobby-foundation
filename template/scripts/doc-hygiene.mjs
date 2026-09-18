@@ -9,7 +9,7 @@
 //   node scripts/doc-hygiene.mjs             # print the report + write Roadmap/00-ideas/DOC-HYGIENE-REPORT-<date>.md
 //   node scripts/doc-hygiene.mjs --check     # print only, write nothing (quick look / CI-safe)
 //
-// Reuse, don't rebuild: epic status comes from `roadmap-to-notion.mjs --extract` (the same SSOT
+// Reuse, don't rebuild: epic status comes from `roadmap-extract.mjs` (the same SSOT
 // build-order.mjs reads) — this script does not re-parse frontmatter itself.
 
 import { execFileSync } from 'node:child_process';
@@ -70,7 +70,7 @@ function measure() {
 // Epic status via the existing extractor — never a second frontmatter parser.
 function archivedEpicSlugs() {
   try {
-    const json = execFileSync('node', [join(__dirname, 'roadmap-to-notion.mjs'), '--extract'], {
+    const json = execFileSync('node', [join(__dirname, 'roadmap-extract.mjs')], {
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
     });

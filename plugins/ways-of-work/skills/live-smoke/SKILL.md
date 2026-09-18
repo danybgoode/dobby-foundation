@@ -1,5 +1,6 @@
 ---
 name: live-smoke
+summary: "Verifies rendered behavior in a real headless browser, with a screenshot and a JSON report."
 description: >
   Verifies real, rendered behavior on this project's frontend (local/preview/staging/prod, unauthed
   or authed) via a real headless-Chromium Playwright browser — the DEFAULT way to check "does this
@@ -7,55 +8,64 @@ description: >
   Claude Code. Use when asked to "smoke test", "verify the live/prod page", "check if X actually
   rendered", "run a browser smoke", "does this look right on preview", "verify an authed role's
   flow", or as a post-merge/pre-PR verification step. Wraps the project's
-  <APP_DIR>/scripts/live-smoke.mjs — a real screenshot + JSON report, not just an HTTP status check.
+  scripts/live-smoke.mjs — a real screenshot + JSON report, not just an HTTP status check.
   Reach for THIS before Claude-in-Chrome; see the fallback boundary below.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - live-smoke.mjs
 ---
 
 # live-smoke — the scripted default for verifying rendered behavior
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/live-smoke.mjs` and a
-> Playwright `browser` project, which ship in the *consuming project's* own tree, not inside this
-> plugin. The template's e2e harness carries the Playwright `browser` project pattern; the script
-> and the auth helpers are the project's. **If the referenced script/spec path doesn't exist in the
-> consuming project, say so and stop rather than guessing an equivalent.**
+> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/live-smoke.mjs` (repo
+> root `scripts/`, like every other skill), which drives the app's own Playwright `browser` project. A
+> project spawned from the `dobby-foundation` template gets the script, a runnable
+> `apps/example-app` harness with the ad-hoc spec, and an auth-helper stub to fill in. **If the script,
+> its config, or the app's harness is missing, say so and stop rather than guessing an equivalent.**
 
 > **This is the default browser-verification tool for every agent, not a Claude-specific
 > capability.** Any coding-agent session in this repo can run the exact same `node
 > scripts/live-smoke.mjs` command Claude Code does — no Chrome extension, no special access needed.
 > Claude-in-Chrome is a narrower fallback (see below), not the default.
 
-## Project config — TEMPLATE FILL-IN
+## Project config — `live-smoke.config.json` (TEMPLATE FILL-IN)
 
-Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
-say which and stop.
+`scripts/live-smoke.mjs` reads `live-smoke.config.json` at the repo root (copy
+`live-smoke.config.example.json`). If it is missing, the script refuses and names the file, so report
+that and stop. It holds only the **names** of the env vars that carry secrets, never the values.
 
-| Value | What it is |
+| Key | What it is |
 |---|---|
-| `<APP_DIR>` | the app root the script and e2e suite live under (repo root in a single-app project) |
-| `<AUTH_PROVIDER>` | the auth provider backing authed flows, and where its keys come from (e.g. `.env.local`) |
-| `<ADMIN_PREDICATE>` | the single SSOT that decides whether a user is an admin — a module path plus the env list or metadata field it reads |
-| `<TEST_IDENTITY_ENV>` | the env vars naming the per-role test identities (one per `--flow` this project supports) |
-| `<ROLES>` | which `--flow` values exist here (this doc assumes `unauthed` plus one or more role flows) |
-| `<PROD_DOMAIN>` | the production base URL `--env=prod` resolves to |
+| `appDir` | the app root that holds `playwright.config.ts` and `e2e/` |
+| `envs` | env name → base URL (`local`, `staging`, `prod`, …). The first is the default `--env`; `preview` is reserved for `--preview-url` |
+| `flows` | role flows beyond `unauthed`: `{ "<role>": { "identityEnv": "<VAR holding that role's test identity>" } }` |
+| `auth.requiredEnv` | env vars an authed flow needs from the shell or `<appDir>/.env.local` (the auth provider's dev/test keys) |
+| `auth.forbidKeyPattern` | a substring that marks a PRODUCTION key (e.g. `_live_`); matching keys are refused even locally |
+| `auth.unsupportedEnvs` | envs where authed flows are refused outright (typically `prod`) |
+| `previewBypassEnv` | the env var holding the hosting platform's deployment-protection bypass secret |
+
+Authed flows also need `<appDir>/e2e/_helpers/auth.ts`'s `signIn()` implemented for the project's
+auth provider. Until then they **skip with a reason** rather than pass unauthenticated.
+
+**A project whose live-smoke predates the template** may keep an app-local script behind a repo-root
+`scripts/live-smoke.mjs` that delegates to it, with the same flags. It has no `live-smoke.config.json`,
+because the app script owns its environment matrix. That is expected; run it the same way.
 
 > The concrete values — which auth instance, which provisioned test accounts, which admin emails —
 > are **operational facts and belong in the consuming project's own docs** (its `LEARNINGS.md` or
 > AGENTS.md), not in this portable skill. Record them there and point at them here.
 
 ## What already exists (reuse, don't rebuild)
-- **`<APP_DIR>/scripts/live-smoke.mjs`** — does all the actual work: resolves `--env`/`--flow` to a
-  base URL + the right secrets, spawns the existing Playwright `browser` project, and prints where
-  the JSON report + screenshot landed. Zero new browser-driving logic — it's a thin wrapper around
-  infrastructure that already existed (`playwright.config.ts`'s `browser` project, and the e2e
-  auth helper that performs `<AUTH_PROVIDER>` sign-in).
-- **`<APP_DIR>/e2e/_live/ad-hoc.browser.spec.ts`** — the one generic spec `--path` mode runs. Never
+- **`scripts/live-smoke.mjs`** — does all the actual work: resolves `--env`/`--flow` to a base URL
+  and the right secrets, refuses the combinations that cannot work, spawns the app's Playwright
+  `browser` project, and prints where the JSON report + screenshot landed. There is no new
+  browser-driving logic in it.
+- **`<appDir>/e2e/_live/ad-hoc.browser.spec.ts`** — the one generic spec `--path` mode runs. Never
   edit this to check a specific page — it's parametrized by env vars the script sets.
-- **`<APP_DIR>/e2e/*.browser.spec.ts`** — the permanent regression suite. A shipped story's
+- **`<appDir>/e2e/*.browser.spec.ts`** — the permanent regression suite. A shipped story's
   browser-testable acceptance criterion belongs here (`groom`'s own "one spec per browser/API-testable
   story" rule), run via `--spec` once written.
 
@@ -64,7 +74,6 @@ say which and stop.
 **Ad-hoc (`--path`)** — active-development "does this look right" checks. Nothing permanent is
 left behind.
 ```
-cd <APP_DIR>
 node scripts/live-smoke.mjs --env=prod  --flow=unauthed --path=/<public-page>
 node scripts/live-smoke.mjs --env=local --flow=<role>   --path=/<authed-page>
 ```
@@ -76,15 +85,15 @@ node scripts/live-smoke.mjs --env=local --spec="<the spec's test name>"
 ```
 
 ## Stage 1 — pick env + flow
-- `--env`: `local` (assumes the dev or standalone server is already running — this script starts
-  nothing itself) · `preview` (needs `--preview-url=` plus whatever bypass secret the hosting
-  platform's deployment protection requires) · `staging` · `prod` (default).
-- `--flow`: `unauthed` (default, works everywhere) · any of `<ROLES>` (works on **local only** in the
+- `--env`: any key under `envs` — the target must already be running, this script starts nothing
+  itself — or `preview` (needs `--preview-url=` plus `previewBypassEnv`'s secret). The first `envs`
+  entry is the default.
+- `--flow`: `unauthed` (default, works everywhere) · any key under `flows` (works on **local only** in the
   common case — see the environment matrix in Gotchas; the script refuses the unsupported
   combinations itself and tells you why, so you won't discover this the hard way).
 
 ## Stage 2 — run it
-`node scripts/live-smoke.mjs <args>` from `<APP_DIR>`. Exit code 0 = pass.
+`node scripts/live-smoke.mjs <args>` from the repo root. Exit code 0 = pass.
 
 ## Stage 3 — read the result back, don't trust the exit code alone
 The script prints the report/screenshot paths. **Always `Read` the screenshot** (multimodal) even
@@ -102,7 +111,7 @@ logged-in identity and data (their real orders, their real account); a visual/UX
 genuinely benefits from live interactive poking beyond a screenshot.
 
 **Stop and ask the product owner** (don't silently fall back) when a credential this tool needs
-isn't provisioned yet — the environment matrix below says which `<TEST_IDENTITY_ENV>` fixture
+isn't provisioned yet — the environment matrix below says which `flows.<role>.identityEnv` fixture
 unlocks which combination.
 
 **For agents without Claude-in-Chrome:** this script is still the full default — it needs no
@@ -117,7 +126,7 @@ money/auth-path smoke.
 
 ## Gotchas
 
-- **Fill in the honest environment × auth matrix for `<AUTH_PROVIDER>` before trusting any authed
+- **Fill in the honest environment × auth matrix for the project's auth provider before trusting any authed
   run — no tool choice routes around a platform constraint.** The shape this usually takes, and
   which is worth verifying rather than assuming:
   - **Local:** unauthed ✅, authed ✅ — usually the only fully-working authed combination, because a
@@ -135,20 +144,20 @@ money/auth-path smoke.
   *(This matrix is the generic shape of a constraint confirmed live on a Clerk-based project,
   2026-07-12. Verify each cell for your own provider and record the result in this project's own
   docs — don't inherit these ✅/❌ marks on faith.)*
-- **Instance-match, for any authed `--flow`:** the app's `<AUTH_PROVIDER>` keys, the
-  `<TEST_IDENTITY_ENV>` test users, and the target environment must all point at the **same** auth
+- **Instance-match, for any authed `--flow`:** the app's the project's auth provider keys, the
+  `flows.<role>.identityEnv` test users, and the target environment must all point at the **same** auth
   instance, or sign-in hangs with no useful error. Source keys from the project's env file, never
   guess from a provider dashboard's display name — a provider's app *name* and its actual instance
   are routinely different things.
 - **An admin-ish `--flow` needs a test user that is actually an admin** — a generic test identity
-  usually isn't one. `<ADMIN_PREDICATE>` is the SSOT for what makes a user an admin; set the matching
-  `<TEST_IDENTITY_ENV>` var explicitly, or the script may silently fall back to a lower-privilege
+  usually isn't one. The project's admin predicate is the SSOT for what makes a user an admin; set the matching
+  `flows.<role>.identityEnv` var explicitly, or the script may silently fall back to a lower-privilege
   identity and "pass" a check it never really ran.
 - **A production server can silently serve a STALE build.** If `--env=local` smokes show content
   that doesn't match a just-built change, don't trust the framework's production-start command —
   serve the built output directly instead. (Next.js: with `output: 'standalone'` set, `next start`
   prints an "unsupported" warning but still boots and serves old content, with no further error;
-  run `node .next/standalone/<APP_DIR>/server.js`, copying `public/` and `.next/static/` into the
+  run `node .next/standalone/<appDir>/server.js`, copying `public/` and `.next/static/` into the
   standalone output first — they aren't included automatically — and sourcing the env file into the
   process, since standalone doesn't auto-load it.)
 - **A dev bundler's CSS scanner can hard-crash on a literal string in a test fixture or a code
