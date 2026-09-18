@@ -69,7 +69,7 @@ all rather than an obvious failure. This is the single most important line in th
 
 Config/secrets first: the committed `reporting.config.json` (repos and signals) plus the chat id — from the
 `TELEGRAM_CHAT_ID` env var in this unattended session (a gitignored `reporting.config.local.json` exists
-only on a local machine, never here). If genuinely BOTH are unset, that's
+only on a local machine, never here). If `TELEGRAM_CHAT_ID` is unset (and nothing is configured), that's
 a hard stop — use the failure ping below instead of guessing; never `AskUserQuestion`, no interactive
 human is present. `TELEGRAM_BOT_TOKEN` must be set.
 
@@ -100,7 +100,7 @@ node scripts/standup.mjs --post --prose-file <your-file>
 - Do not loop more than that. One revision, then post.
 
 The posted message is prose first, then the compact actionable signals (CI red, conflicts, stale
-board), then the `doc-viewer standup:` deck link. Its CI-red and merge-conflict signals are read fresh
+board), then the `Deck standup:` deck link. Its CI-red and merge-conflict signals are read fresh
 at this point — after steps 1–3 had a chance to fix/flag things — so they reflect current state, not a
 stale pre-run snapshot.
 

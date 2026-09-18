@@ -41,7 +41,7 @@ all rather than an obvious failure. This is the single most important line in th
 
 Config/secrets first: the committed `reporting.config.json` (repos and signals) plus the chat id — from the
 `TELEGRAM_CHAT_ID` env var in this unattended session (a gitignored `reporting.config.local.json` exists
-only on a local machine, never here). If genuinely BOTH are unset, that's a
+only on a local machine, never here). If `TELEGRAM_CHAT_ID` is unset (and nothing is configured), that's a
 hard stop — use the failure ping below; never `AskUserQuestion`, no interactive human is present.
 `TELEGRAM_BOT_TOKEN` must be set.
 
