@@ -55,8 +55,10 @@ const ALWAYS_READ = [
 const FLAG_TARGETS = ['LEARNINGS.md', 'README.md (poster)'];
 
 const STOPWORDS = new Set(
-  ('the a an and or but of to in on for with at by from as is are was were be been being this that '
-    + 'it its own not no never every each any one two both same real still only just also once new').split(' ')
+  (
+    'the a an and or but of to in on for with at by from as is are was were be been being this that ' +
+    'it its own not no never every each any one two both same real still only just also once new'
+  ).split(' ')
 );
 
 function measure() {
@@ -220,7 +222,9 @@ function buildReport() {
   );
   lines.push('| Doc | Lines | KB |', '|---|---|---|');
   for (const s of sizes) {
-    lines.push(`| ${s.label} | ${s.missing ? '—' : fmt(s.lines)} | ${s.missing ? 'missing' : (s.bytes / 1024).toFixed(1)} |`);
+    lines.push(
+      `| ${s.label} | ${s.missing ? '—' : fmt(s.lines)} | ${s.missing ? 'missing' : (s.bytes / 1024).toFixed(1)} |`
+    );
   }
   lines.push(`| **Total** | **${fmt(totalLines)}** | **${(totalBytes / 1024).toFixed(1)}** |`, '');
 
@@ -231,18 +235,28 @@ function buildReport() {
       continue;
     }
     if (f.dupes.length) {
-      lines.push(`**Possible near-duplicate bullets** (same section, high word overlap — verify before merging):`, '');
-      for (const d of f.dupes) lines.push(`- \`${f.label}\` section "${d.section}": line ${d.a} vs line ${d.b} (${d.sim}% shared words)`);
+      lines.push(
+        `**Possible near-duplicate bullets** (same section, high word overlap — verify before merging):`,
+        ''
+      );
+      for (const d of f.dupes)
+        lines.push(
+          `- \`${f.label}\` section "${d.section}": line ${d.a} vs line ${d.b} (${d.sim}% shared words)`
+        );
       lines.push('');
     }
     if (f.deadPaths.length) {
-      lines.push(`**Referenced paths not found in this checkout** (verify against the app repo before treating as stale — this checkout can be behind the app's own \`main\`):`, '');
+      lines.push(
+        `**Referenced paths not found in this checkout** (verify against the app repo before treating as stale — this checkout can be behind the app's own \`main\`):`,
+        ''
+      );
       for (const d of f.deadPaths) lines.push(`- \`${f.label}\` line ${d.line}: \`${d.path}\``);
       lines.push('');
     }
     if (f.archivedMentions.length) {
       lines.push(`**Mentions an archived epic** (check whether the lesson is superseded):`, '');
-      for (const d of f.archivedMentions) lines.push(`- \`${f.label}\` line ${d.line}: mentions archived epic \`${d.slug}\``);
+      for (const d of f.archivedMentions)
+        lines.push(`- \`${f.label}\` line ${d.line}: mentions archived epic \`${d.slug}\``);
       lines.push('');
     }
   }
@@ -251,12 +265,14 @@ function buildReport() {
   return { markdown: lines.join('\n'), sizes, totalBytes, totalLines };
 }
 
-const { markdown, sizes, totalBytes, totalLines } = buildReport();
+const { markdown, totalBytes, totalLines } = buildReport();
 console.log(markdown);
 
 if (!process.argv.includes('--check')) {
   const date = new Date().toISOString().slice(0, 10);
   const outPath = join(IDEAS, `DOC-HYGIENE-REPORT-${date}.md`);
   writeFileSync(outPath, markdown);
-  console.error(`\nWrote ${outPath} (always-read set: ${fmt(totalLines)} lines / ${(totalBytes / 1024).toFixed(1)} KB)`);
+  console.error(
+    `\nWrote ${outPath} (always-read set: ${fmt(totalLines)} lines / ${(totalBytes / 1024).toFixed(1)} KB)`
+  );
 }
