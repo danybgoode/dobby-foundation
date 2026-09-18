@@ -33,7 +33,7 @@ import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, isAbsolute, normalize } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -73,6 +73,11 @@ export function validateConfig(raw, path = CONFIG_FILENAME) {
   const fail = (m) => { throw new Error(`${path}: ${m}`); };
   if (!raw || typeof raw !== 'object') fail('must be a JSON object');
   if (typeof raw.appDir !== 'string' || !raw.appDir) fail('"appDir" must name the app directory (e.g. "apps/web")');
+  // Relative and inside the repo: live-smoke reads <appDir>/.env.local, so an appDir that climbs out of the
+  // repo would read some other tree's secrets. (Cross-review finding on PR #20.)
+  if (isAbsolute(raw.appDir) || normalize(raw.appDir).split(/[\\/]/)[0] === '..') {
+    fail('"appDir" must be a relative path inside the repo (e.g. "apps/web")');
+  }
   const envs = raw.envs ?? {};
   if (!Object.keys(envs).length) fail('"envs" must map at least one env name to a base URL');
   for (const [k, v] of Object.entries(envs)) {
@@ -106,6 +111,12 @@ export function planRun({ args, config, env = {}, dotenv = {} }) {
   const flow = args.flow ?? 'unauthed';
   const flowNames = ['unauthed', ...Object.keys(config.flows)];
   if (!flowNames.includes(flow)) return { error: `--flow must be one of ${flowNames.join('|')} (got "${flow}")` };
+
+  // A path, not a URL: `//host/x` is protocol-relative and would silently smoke a DIFFERENT host than the
+  // resolved --env, and a scheme would override it outright. (Cross-review finding on PR #20.)
+  if (args.path && (!args.path.startsWith('/') || args.path.startsWith('//'))) {
+    return { error: `--path must be a path on the target env, starting with a single "/" (got "${args.path}")` };
+  }
 
   const modes = [args.path, args.spec, args.file].filter(Boolean);
   if (modes.length === 0) return { error: 'pass --path=<url-path> (ad-hoc), --spec=<name>, or --file=<path> (a committed spec)' };

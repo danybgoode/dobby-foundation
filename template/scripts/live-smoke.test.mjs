@@ -76,3 +76,17 @@ test('an authed flow needs its keys, and PRODUCTION-looking keys are refused eve
   assert.equal(ok.childEnv.TEST_ADMIN_EMAIL, 'admin@example.test');
   assert.equal(ok.childEnv.LIVE_SMOKE_IDENTITY_ENV_ADMIN, 'TEST_ADMIN_EMAIL');
 });
+
+test('--path must be a path on the target env — not protocol-relative, not a URL (PR #20 review)', () => {
+  for (const bad of ['//evil.example/x', 'https://evil.example/', 'relative/page']) {
+    assert.match(planRun({ args: { path: bad }, config: CONFIG }).error, /--path must be a path/);
+  }
+  assert.equal(planRun({ args: { path: '/ok?x=1' }, config: CONFIG }).error, undefined);
+});
+
+test('appDir must stay inside the repo — it is where .env.local is read from (PR #20 review)', () => {
+  for (const bad of ['../elsewhere', '/etc', 'apps/../../x']) {
+    assert.throws(() => validateConfig({ appDir: bad, envs: { local: 'http://x' } }), /relative path inside the repo/);
+  }
+  assert.equal(validateConfig({ appDir: 'apps/web', envs: { local: 'http://x' } }).appDir, 'apps/web');
+});
