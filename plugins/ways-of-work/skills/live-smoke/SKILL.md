@@ -50,6 +50,10 @@ that and stop. It holds only the **names** of the env vars that carry secrets, n
 Authed flows also need `<appDir>/e2e/_helpers/auth.ts`'s `signIn()` implemented for the project's
 auth provider. Until then they **skip with a reason** rather than pass unauthenticated.
 
+**A project whose live-smoke predates the template** may keep an app-local script behind a repo-root
+`scripts/live-smoke.mjs` that delegates to it, with the same flags. It has no `live-smoke.config.json`,
+because the app script owns its environment matrix. That is expected; run it the same way.
+
 > The concrete values — which auth instance, which provisioned test accounts, which admin emails —
 > are **operational facts and belong in the consuming project's own docs** (its `LEARNINGS.md` or
 > AGENTS.md), not in this portable skill. Record them there and point at them here.
