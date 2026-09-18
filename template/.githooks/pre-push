@@ -1,5 +1,6 @@
 #!/bin/sh
-# Local-first pre-push gate — budgeted at UNDER 30 SECONDS.
+# Local-first pre-push gate — budgeted at UNDER 30 SECONDS. Auto-enabled by the root package.json's
+# "prepare" script (git config core.hooksPath .githooks) on every `npm install` / `npm ci`.
 #
 # Two sections, and the split matters:
 #   BLOCKING  — cheap, deterministic, whole-repo. A failure here is unambiguous, so it stops the push.
@@ -8,6 +9,7 @@
 #
 # ── Read .githooks/README.md before adding anything here ────────────────────────────────────────
 # pre-commit < 2s (staged files only) · pre-push < 30s (cheap whole-repo) · CI unbounded.
+# Cost decides the stage, not importance.
 #
 # What belongs here rather than in pre-commit: whole-repo checks that can't be scoped to a diff, and
 # the unit test suite. What does NOT belong here: integration tests that spawn processes or walk the
@@ -20,18 +22,54 @@
 # Bypass with `git push --no-verify` if you genuinely need to.
 
 if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: node not found — skipping local guards (CI still applies)." >&2
   exit 0
 fi
 
-# What is actually being pushed. Falls back to origin/main for a brand-new branch, then to the last
-# commit — a hook that can't determine scope should still run the cheap suite rather than guess.
-remote_head=$(git rev-parse --verify --quiet '@{upstream}' 2>/dev/null)
-if [ -n "$remote_head" ]; then
-  changed=$(git diff --name-only "$remote_head"...HEAD 2>/dev/null)
-else
-  changed=$(git diff --name-only origin/main...HEAD 2>/dev/null)
+# ── What is actually being pushed — read from git, not guessed from HEAD ─────────────────────────
+# git feeds a pre-push hook one line per ref on STDIN: "<local ref> <local sha> <remote ref> <remote
+# sha>". An earlier version of this hook ignored that and derived its scope from the CURRENT BRANCH
+# (`@{upstream}...HEAD`, then `origin/main...HEAD`, then `HEAD~1...HEAD`). For an ordinary push of the
+# checked-out branch those agree, so the bug stays invisible.
+#
+# They do NOT agree when the pushed ref is not the checked-out branch — which is exactly what
+# scripts/lib/log-branch.mjs does: it pushes append-only log commits by plumbing
+# (`git push origin <sha>:refs/heads/claude/<log>`) for the session journal, the standup, the weekly
+# recap and the PMO reports. Those commits carry one flat file and share no ancestry with the working
+# tree. In the project this was ported from, a Roadmap-touching commit on `main` made the old hook run
+# the board check against the WORKING TREE, and a stale board — caused by another agent's untracked
+# file in a shared checkout — blocked the journal push. session-note fails soft by design, so the
+# journal silently stopped recording the one thing that cannot be re-derived: intent. (2026-08-25.)
+#
+# Reading stdin fixes the general case: every push is gated on the paths it actually carries.
+# Deletions (local sha all-zero) contribute nothing. A brand-new remote ref (remote sha all-zero) has no
+# range, so it falls back to `origin/main...<local sha>`. If stdin is empty (a manual invocation), fall
+# back to the HEAD-derived scope rather than checking nothing — a hook that cannot determine scope must
+# not silently pass, and must not block either. scripts/pre-push-hook.test.mjs pins all of this.
+zero=0000000000000000000000000000000000000000
+stdin_seen=0
+changed=''
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ -z "$local_sha" ] && continue
+  stdin_seen=1
+  [ "$local_sha" = "$zero" ] && continue                      # branch deletion — carries no paths
+  if [ "$remote_sha" = "$zero" ] || [ -z "$remote_sha" ]; then
+    range=$(git diff --name-only "origin/main...$local_sha" 2>/dev/null)
+  else
+    range=$(git diff --name-only "$remote_sha...$local_sha" 2>/dev/null)
+  fi
+  changed=$(printf '%s\n%s' "$changed" "$range")
+done
+
+if [ "$stdin_seen" -eq 0 ]; then
+  remote_head=$(git rev-parse --verify --quiet '@{upstream}' 2>/dev/null)
+  if [ -n "$remote_head" ]; then
+    changed=$(git diff --name-only "$remote_head"...HEAD 2>/dev/null)
+  else
+    changed=$(git diff --name-only origin/main...HEAD 2>/dev/null)
+  fi
+  [ -z "$changed" ] && changed=$(git diff --name-only HEAD~1...HEAD 2>/dev/null)
 fi
-[ -z "$changed" ] && changed=$(git diff --name-only HEAD~1...HEAD 2>/dev/null)
 
 fail=0
 
@@ -39,11 +77,7 @@ fail=0
 
 # The unit tier. Globs `*.test.mjs` ONLY, so `*.itest.mjs` (process-spawning / corpus-walking) is
 # excluded by pattern rather than by an exclusion list that would rot as files are added.
-has_script_tests=false
-for f in scripts/*.test.mjs scripts/lib/*.test.mjs; do
-  [ -e "$f" ] && has_script_tests=true
-done
-if echo "$changed" | grep -qE '^scripts/' && [ "$has_script_tests" = true ]; then
+if echo "$changed" | grep -qE '^scripts/'; then
   echo "pre-push: scripts/ unit tests..." >&2
   if ! node --test 'scripts/lib/*.test.mjs' 'scripts/*.test.mjs'; then
     echo "pre-push: scripts/ node:test failed — see output above." >&2
@@ -51,16 +85,23 @@ if echo "$changed" | grep -qE '^scripts/' && [ "$has_script_tests" = true ]; the
   fi
 fi
 
-# TEMPLATE FILL-IN — the derived-artifact freshness check, if your project has one. This is the
-# check most likely to grow with your corpus, which is exactly why it lives at push and not commit:
+# The derived board must not be stale. One corpus walk — the most expensive thing here — hence
+# path-gated to Roadmap-touching pushes only. It cannot self-heal (the commit is already made), so it
+# reports and blocks with the exact fix rather than rewriting history.
+if echo "$changed" | grep -qE '^(Roadmap/|scripts/(build-order|roadmap-extract)\.mjs)'; then
+  echo "pre-push: build-order freshness..." >&2
+  if ! node scripts/build-order.mjs --check >/dev/null 2>&1; then
+    echo "pre-push: BUILD-ORDER.md is STALE — it is DERIVED, never hand-edited." >&2
+    echo "          Run:  node scripts/build-order.mjs" >&2
+    echo "          Then: git add Roadmap/00-ideas/BUILD-ORDER.md && git commit --amend --no-edit" >&2
+    fail=1
+  fi
+fi
+
+# TEMPLATE FILL-IN — any other cheap, path-gated whole-repo check (e.g. an infra/ invariant suite):
 #
-#   if echo "$changed" | grep -qE '^(Roadmap/|scripts/build-order\.mjs)'; then
-#     if ! node scripts/build-order.mjs --check; then
-#       echo "pre-push: BUILD-ORDER.md is STALE — it is DERIVED, never hand-edited." >&2
-#       echo "          Run:  node scripts/build-order.mjs" >&2
-#       echo "          Then: git add <the board> && git commit --amend --no-edit" >&2
-#       fail=1
-#     fi
+#   if echo "$changed" | grep -qE '^infra/'; then
+#     node --test 'infra/test/*.test.mjs' || fail=1
 #   fi
 
 if [ "$fail" -ne 0 ]; then

@@ -1,11 +1,9 @@
 # Git hooks — the stage budget
 
-Enable once per clone (or add `"prepare": "git config core.hooksPath .githooks"` to `package.json`
-so `npm install` does it for you):
-
-```
-git config core.hooksPath .githooks
-```
+**Auto-enabled.** The root `package.json`'s `prepare` script runs `git config core.hooksPath .githooks`
+on every `npm install` / `npm ci`, so a fresh clone gets the hooks with no step anyone has to remember.
+That matters more than it sounds: a hook that has to be switched on by hand is a hook most clones never
+run. `scripts/pre-commit-hook.test.mjs` pins the wiring and times pre-commit against its budget.
 
 ## The heuristic: cost decides the stage, not importance
 
