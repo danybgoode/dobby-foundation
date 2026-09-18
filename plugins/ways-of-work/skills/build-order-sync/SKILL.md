@@ -15,6 +15,7 @@ description: >
 requires_scripts:
   - build-order-sync.mjs
   - build-order.mjs
+  - lib/roadmap-status-buckets.mjs
   - roadmap-extract.mjs
   - lib/cross-agent-cli.mjs
   - lib/gh-rest.mjs

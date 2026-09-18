@@ -136,6 +136,7 @@ jobs:
         run: |
           cmp scripts/build-order.mjs template/scripts/build-order.mjs
           cmp scripts/roadmap-extract.mjs template/scripts/roadmap-extract.mjs
+          cmp scripts/lib/roadmap-status-buckets.mjs template/scripts/lib/roadmap-status-buckets.mjs
           node scripts/build-order.mjs --check
 
       # The scaffolder renders three templates into every new epic in every consuming project. A

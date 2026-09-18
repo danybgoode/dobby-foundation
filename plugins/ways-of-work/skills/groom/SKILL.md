@@ -8,13 +8,13 @@ description: >
   already do this?" → disambiguation → platform-first reframe → slicing, lands a Definition-
   of-Ready pitch in 00-ideas/seeds, and on approval scaffolds + commits the epic +
   sprint docs and emits the builder kickoff — epic-mode by default (one orchestrated run
-  across the whole epic), per-sprint only as the named exception. Planning only —
-  never writes code.
+  across the whole epic), per-sprint only as the named exception. Planning only, never code.
 requires_scripts:
   - cross-panel.mjs
   - cross-panel.prompt.md
   - lib/cross-agent-cli.mjs
   - build-order.mjs
+  - lib/roadmap-status-buckets.mjs
   - roadmap-extract.mjs
 ---
 
