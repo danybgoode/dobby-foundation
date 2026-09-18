@@ -1,5 +1,6 @@
 ---
 name: weekly-recap
+summary: "Posts the weekly executive recap: merged PRs, deploys, shipped epics and their retro digests."
 description: >
   Posts a weekly executive recap/retro to a chat destination, aggregating the week's merged PRs across
   every repo the project spans, shipped/closed epics (detected from README frontmatter status: flips to
@@ -9,11 +10,23 @@ description: >
   step. Runs scripts/weekly-recap.mjs, which does all the gathering (gh + git log) and the actual send.
   Read-only aggregation + one chat post + a log commit — never merges, never gates, never touches any
   repo's code.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - weekly-recap.mjs
+  - lib/reporting-config.mjs
+  - lib/gh-rest.mjs
+  - lib/log-branch.mjs
+  - lib/telegram-format.mjs
+  - lib/cross-agent-cli.mjs
+  - lib/prose-brief.mjs
+  - lib/prose-guard.mjs
+  - lib/prose-writer.mjs
+  - prose/cpo-persona.md
+  - prose-lessons.md
+  - prose/weekly.task.md
 ---
 
 # weekly-recap — the weekly executive recap
@@ -24,18 +37,30 @@ requires_scripts:
 > missing, say so and stop rather than reimplementing its logic inline.
 
 > This skill never merges a PR, edits an epic's status, or touches any repo's code. Its only writes are
-> a chat message and an append to `scripts/weekly-recaps.log` (committed + pushed so the next run —
-> including a fresh weekly-routine session — knows where the last window ended).
+> a chat message and an append to `weekly-recaps.log` on the dedicated `claude/weekly-recap-log` branch (so the next
+> run — including a fresh weekly-routine session — knows where the last window ended).
 
-## Project config — TEMPLATE FILL-IN
+## Project config — `reporting.config.json` (TEMPLATE FILL-IN)
 
-Supply these per consuming project. This skill **refuses to guess them** — if one isn't filled in,
-say which and stop.
+`standup-post`, `weekly-recap` and `pmo-report` read **one** file: `reporting.config.json` at the
+consuming project's repo root, validated by `scripts/lib/reporting-config.mjs`. It is committed. Nothing
+in it is a secret, and a routine's cloud sandbox is a fresh checkout every run, so a gitignored per-skill
+config never survived to the next run anyway. Copy `reporting.config.example.json` to start.
 
-| Value | What it is |
-|---|---|
-| `<REPOS>` | every repo this recap aggregates over — **the same project-level list `standup-post` uses**. Define it once for the project; don't fork a per-skill copy that drifts by next quarter. |
-| `<CHAT_DESTINATION>` | where the post lands — the chat id in `TELEGRAM_CHAT_ID` (or this skill's own `config.json`), and the bot that owns it |
+| Key | What it is | Absent means |
+|---|---|---|
+| `repos` | every repo the reports aggregate over. **Required.** Shared by all three reports, so define it once | the script refuses to run and names the file |
+| `deployRepos` | `[{label, repo}]` — the repos where a merge to `main` IS a deploy | no deploys line |
+| `telegram.chatId` / `telegram.chatIds.<standup\|weekly\|pmo>` | where each report posts. A surface id wins over the project id, which wins over `TELEGRAM_CHAT_ID` | the send refuses; `--dry-run` still works |
+| `smoke` | `{repo, workflow}` — the browser-smoke workflow the standup reports on | no smoke signal |
+| `stalePreviewAgeDays` | the age the standup's stale-preview count uses | no stale-preview signal |
+| `liveFlags` | `{command, cwd}` — prints the flag keys that are ON, one per line | the prose brief treats flag state as *unknown*, never "none" |
+| `artifacts.docViewerUrl` | the project's URL-hash markdown viewer, for deck/packet links | no deck links (the Telegram text stands alone) |
+| `artifacts.registry` | `{resolverBaseUrl, bucket}` — short-link registry for those decks | links stay URL-hash links |
+| `prose.extraBannedToolNames` | this project's own stack names, which the prose guard must reject | only the universal list is enforced |
+
+**This skill refuses to guess.** If the file is missing or a key is malformed, the script exits with a
+message naming the file and the key. Report that message, then stop.
 
 ## When to run me
 The product owner asks for the weekly recap / "what shipped this week" / "weekly retro", or the weekly
@@ -48,7 +73,7 @@ The product owner asks for the weekly recap / "what shipped this week" / "weekly
   `--since <ISO date>` overrides the window start; pair it with `--until <ISO date>` to bound the end too
   (e.g. `--since 2026-06-01T00:00:00Z --until 2026-06-30T23:59:59Z` for "what shipped in June" — `--since`
   alone always runs through *now*, not a fixed end date).
-- **`gh` CLI** — the merged-PR signal, over the same `<REPOS>` list `scripts/standup.mjs` already uses. A
+- **`gh` CLI** — the merged-PR signal, over the same `repos` list `scripts/standup.mjs` already uses. A
   repo it can't reach degrades to "unavailable" in its section — it does not fail the whole run.
 - **`git log -p` on epic `README.md`s** — the shipped/closed-epic signal (frontmatter `status:` SSOT,
   same source `scripts/build-order.mjs` reads). Don't re-derive status from anywhere else.
@@ -57,20 +82,15 @@ The product owner asks for the weekly recap / "what shipped this week" / "weekly
   `standup.mjs` does.
 
 ## Stage 1 — ensure config
-`weekly-recap.mjs` resolves the chat id two ways, in order: `skills/weekly-recap/config.json`'s
-`chat_id` first, then the `TELEGRAM_CHAT_ID` env var. **In a routine session (no interactive human
-present), the env var is the one that actually works** — `config.json` is gitignored and a routine's
-cloud sandbox is a fresh checkout every run, so a locally-written `config.json` never survives to the
-next run. Set `TELEGRAM_CHAT_ID` on the routine's environment (the same var its optional failure-ping
-already needs — one setting covers both). `config.json` remains the right mechanism for a
-local/interactive run:
-1. Use `AskUserQuestion` to ask the product owner for `<CHAT_DESTINATION>`'s chat id — normally the
-   **same** bot/chat `standup-post` and the deploy notifiers already use, just configured independently
-   per the per-skill `config.json` convention (don't read `standup-post`'s config directly).
-2. Copy `config.example.json` → `config.json` and write the answer into `chat_id`.
+1. If `reporting.config.json` is missing, copy `reporting.config.example.json` and fill it in with the
+   product owner, using `AskUserQuestion` for values you cannot derive. The repo list is usually
+   derivable from `git remote -v` across the project's checkouts. Commit the file.
+2. If the chat is not configured, ask the product owner for the chat id. It is normally the same
+   bot/chat the other reports and deploy notifiers use. Write it to `telegram.chatId`, or to
+   `telegram.chatIds.<surface>` for a separate channel.
 
-**Never** ask for or write the bot token here — that's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
-env var, set outside this flow.
+**Never** ask for or write the bot token here. That's a secret and belongs in the `TELEGRAM_BOT_TOKEN`
+env var, set outside this flow (the product owner's shell, or the routine's environment config).
 
 ## Stage 2 — ensure the secret
 Confirm `TELEGRAM_BOT_TOKEN` is set in the environment. If it isn't, tell the product owner to export it
@@ -117,9 +137,10 @@ API error). Don't retry blindly; a repeated failure on the same cause is a confi
   backticks) since it isn't re-rendered, just HTML-escaped for Telegram. That's expected, not a bug; if a
   retro's "What shipped" section opens with something that reads oddly as a one-line teaser, that's a
   retro-writing style issue to fix in the retro itself, not in this script.
-- **`skills/weekly-recap/config.json` is its own file, separate from `standup-post/config.json`**, even
-  though both typically hold the exact same `chat_id` (same physical Telegram chat). This is deliberate
-  per-skill decoupling, not duplication to clean up.
+- **One chat config serves all three reports.** `telegram.chatId` covers the project. Use
+  `telegram.chatIds.weekly` only when the recap genuinely goes to a different channel. The old
+  per-skill `config.json` files were retired with the port because they could never survive a routine's
+  fresh checkout.
 - **A busy repo's merged-PR listing caps at 12 titles per repo** (`formatPrList`, folding the rest into
   "…and N more") — the section header's own count is always exact, only the listed titles are capped.
   This is the primary defense against Telegram's 4096-char `sendMessage` limit (confirmed live: an
