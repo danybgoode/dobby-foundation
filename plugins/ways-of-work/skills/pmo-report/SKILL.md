@@ -64,6 +64,7 @@ config never survived to the next run anyway. Copy `reporting.config.example.jso
 | `telegram.chatId` / `telegram.chatIds.<standup\|weekly\|pmo>` | where each report posts. A surface id wins over the project id, which wins over `TELEGRAM_CHAT_ID` | the send refuses; `--dry-run` still works |
 | `smoke` | `{repo, workflow}` — the browser-smoke workflow the standup reports on | no smoke signal |
 | `stalePreviewAgeDays` | the age the standup's stale-preview count uses | no stale-preview signal |
+| `vercelProject` | the Vercel project whose previews that count reads. **Required when `stalePreviewAgeDays` is set** — the prune script has no default project, by design | the config is refused if the age is set without it |
 | `liveFlags` | `{command, cwd}` — prints the flag keys that are ON, one per line | the prose brief treats flag state as *unknown*, never "none" |
 | `artifacts.docViewerUrl` | the project's URL-hash markdown viewer, for deck/packet links | no deck links (the Telegram text stands alone) |
 | `artifacts.registry` | `{resolverBaseUrl, bucket}` — short-link registry for those decks | links stay URL-hash links |
