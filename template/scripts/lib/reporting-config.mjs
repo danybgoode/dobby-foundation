@@ -12,6 +12,12 @@
 // routine's cloud sandbox is a fresh checkout every run, so a gitignored per-skill config.json never
 // survived to the next run anyway. The per-skill `config.json` files this replaces were exactly that trap.
 //
+// ── Public repos: reporting.config.local.json ─────────────────────────────────────────────────
+// A chat id is not a secret, but a PUBLIC repo should still not publish it. An optional, gitignored
+// `reporting.config.local.json` next to the committed file is merged over it (top-level keys replace;
+// `telegram` merges one level deep) — so the committed file carries the repos and signals and the local
+// file carries the chat. Routines keep using TELEGRAM_CHAT_ID, which needs neither.
+//
 // ── Fail loudly, never borrow ─────────────────────────────────────────────────────────────────
 // A missing or malformed file THROWS a ReportingConfigError that names the file. There is no default
 // repo list and no default chat: a reporting script that silently falls back to a baked-in target posts
@@ -28,6 +34,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_ROOT = resolve(__dirname, '..', '..');
 export const CONFIG_FILENAME = 'reporting.config.json';
 export const EXAMPLE_FILENAME = 'reporting.config.example.json';
+export const LOCAL_FILENAME = 'reporting.config.local.json';
 
 export const SURFACES = ['standup', 'weekly', 'pmo'];
 const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
@@ -141,13 +148,31 @@ export function loadReportingConfig({ root = DEFAULT_ROOT, env = process.env, re
         `  Copy ${EXAMPLE_FILENAME} to ${CONFIG_FILENAME} at the repo root, fill it in, and commit it.`
     );
   }
-  let raw;
-  try {
-    raw = JSON.parse(read(path, 'utf8'));
-  } catch (e) {
-    fail(path, `is not valid JSON (${e.message})`);
-  }
+  const parse = (p) => {
+    try {
+      return JSON.parse(read(p, 'utf8'));
+    } catch (e) {
+      return fail(p, `is not valid JSON (${e.message})`);
+    }
+  };
+  let raw = parse(path);
+  const localPath = join(dirname(path), LOCAL_FILENAME);
+  if (exists(localPath)) raw = mergeLocal(raw, parse(localPath));
   return validateReportingConfig(raw, path);
+}
+
+/** Pure — overlay the gitignored local file: top-level keys replace, `telegram` merges one level deep. */
+export function mergeLocal(base, local) {
+  if (!local || typeof local !== 'object' || Array.isArray(local)) return base;
+  const out = { ...base, ...local };
+  if (base?.telegram || local.telegram) {
+    out.telegram = {
+      ...(base?.telegram || {}),
+      ...(local.telegram || {}),
+      chatIds: { ...(base?.telegram?.chatIds || {}), ...(local.telegram?.chatIds || {}) },
+    };
+  }
+  return out;
 }
 
 /**

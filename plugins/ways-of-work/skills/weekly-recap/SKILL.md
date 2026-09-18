@@ -45,7 +45,8 @@ requires_scripts:
 `standup-post`, `weekly-recap` and `pmo-report` read **one** file: `reporting.config.json` at the
 consuming project's repo root, validated by `scripts/lib/reporting-config.mjs`. It is committed. Nothing
 in it is a secret, and a routine's cloud sandbox is a fresh checkout every run, so a gitignored per-skill
-config never survived to the next run anyway. Copy `reporting.config.example.json` to start.
+config never survived to the next run anyway. Copy `reporting.config.example.json` to start. In a **public** repo, keep the chat id out of git: put it in a gitignored
+`reporting.config.local.json`, which is merged over the committed file.
 
 | Key | What it is | Absent means |
 |---|---|---|

@@ -10,6 +10,7 @@ import {
   chatIdFor,
   configPath,
   loadReportingConfig,
+  LOCAL_FILENAME,
   validateReportingConfig,
 } from './reporting-config.mjs';
 import { buildMessage } from '../weekly-recap.mjs';
@@ -109,4 +110,15 @@ test('weekly deploys line renders the CONFIGURED deploy repos, and is omitted wh
   const withDeploys = buildMessage({ ...base, deployRepos: [{ label: 'Frontend', repo: 'acme/web' }, { label: 'Backend', repo: 'acme/api' }] });
   assert.match(withDeploys, /Deploys<\/b> \(merges to main\)\nFrontend: 1 · Backend: unavailable/);
   assert.doesNotMatch(buildMessage(base), /Deploys/);
+});
+
+test('a gitignored reporting.config.local.json overlays the committed file — the chat id stays out of a public repo', () => {
+  const root = tempRoot({ ...MIN, telegram: { chatIds: { pmo: 'committed-pmo' } } });
+  writeFileSync(join(root, LOCAL_FILENAME), JSON.stringify({ telegram: { chatId: 'local-chat' } }));
+  const cfg = loadReportingConfig({ root, env: {} });
+  assert.deepEqual(cfg.repos, ['acme/web']);
+  assert.equal(chatIdFor(cfg, 'standup', {}), 'local-chat');
+  assert.equal(chatIdFor(cfg, 'pmo', {}), 'committed-pmo', 'a committed per-surface id survives the overlay');
+  writeFileSync(join(root, LOCAL_FILENAME), '{ nope');
+  assert.throws(() => loadReportingConfig({ root, env: {} }), /reporting\.config\.local\.json: is not valid JSON/);
 });
