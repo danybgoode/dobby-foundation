@@ -988,8 +988,11 @@ test('runChecks refuses to run with no checks — nothing checked is never a pas
   await assert.rejects(runWith('https://shop.example.test', { checks: [] }), /no checks given/);
 });
 
-test('the shipped example checks module is a valid, runnable table', async () => {
-  const ex = await import('./prod-smoke.checks.example.mjs');
+test("the project's checks module (else the shipped example) is a valid, runnable table", async () => {
+  // In a configured project this pins the REAL checks the daily routine runs; in the template, the example.
+  const { existsSync } = await import('node:fs');
+  const own = new URL('./prod-smoke.checks.mjs', import.meta.url);
+  const ex = await import(existsSync(own) ? own.href : './prod-smoke.checks.example.mjs');
   assert.ok(Array.isArray(ex.CHECKS) && ex.CHECKS.length > 0);
   for (const c of ex.CHECKS) {
     assert.ok(c.id && c.name && (c.path || c.dependsOn) && c.expect && typeof c.expect.status === 'number', c.id);
