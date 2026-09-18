@@ -103,6 +103,15 @@ export function validateConfig(raw, path = CONFIG_FILENAME) {
   };
 }
 
+function sameOrigin(path) {
+  const probe = 'https://target.invalid';
+  try {
+    return new URL(path, probe).origin === probe;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Pure — turn args + config + the resolvable environment into a run plan, or an error string. Every
  * refusal the script makes is decided here so a test can pin it without spawning a browser.
@@ -114,7 +123,9 @@ export function planRun({ args, config, env = {}, dotenv = {} }) {
 
   // A path, not a URL: `//host/x` is protocol-relative and would silently smoke a DIFFERENT host than the
   // resolved --env, and a scheme would override it outright. (Cross-review finding on PR #20.)
-  if (args.path && (!args.path.startsWith('/') || args.path.startsWith('//'))) {
+  // Checked by RESOLUTION, not by prefix: `/\\host` resolves to another origin too (WHATWG treats `\\` as
+  // `/`), so the rule is simply that the path must land on the base URL's own origin.
+  if (args.path && (!args.path.startsWith('/') || !sameOrigin(args.path))) {
     return { error: `--path must be a path on the target env, starting with a single "/" (got "${args.path}")` };
   }
 

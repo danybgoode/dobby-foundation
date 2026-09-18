@@ -37,11 +37,15 @@
 // Exit 0 = no NEW breakage. Exit 1 = a skill is missing a script that isn't recorded debt, a skill
 // declares nothing at all, or a recorded gap has quietly been closed without updating the ledger.
 //
-// A permanently-red check is worse than no check — it trains everyone to scroll past it. So the
-// eight skills that have never had a script anywhere are recorded in KNOWN_ABSENT with a reason and
-// reported as `debt`, not failure. What DOES fail: an undeclared skill, a NEW missing script, and a
-// stale KNOWN_ABSENT entry. Same discipline as check-plugin-leaks.mjs's ALLOW list — the ledger has
-// to keep describing the repo as it actually is.
+// A permanently-red check is worse than no check — it trains everyone to scroll past it. So a skill
+// with a genuinely known gap can be recorded in KNOWN_ABSENT with a reason and reported as `debt`, not
+// failure. The ledger is EMPTY today (see its comment). What always fails: an undeclared skill, a NEW
+// missing script, an import-closure hole or understatement, and a stale KNOWN_ABSENT entry. Same
+// discipline as check-plugin-leaks.mjs's ALLOW list — the ledger has to keep describing the repo as it is.
+//
+// Against a CONSUMING project (--repo-root) this reports what that project would need to run every
+// advertised skill as the template ships it; a project on an older or forked copy of a rail shows up here
+// until it migrates, which is the point.
 //
 // Zero deps — Node 18+.
 

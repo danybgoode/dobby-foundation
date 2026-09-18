@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -72,6 +72,9 @@ test('shape errors name the offending key', () => {
     [{ ...MIN, artifacts: { docViewerUrl: 'viewer.example' } }, /artifacts\.docViewerUrl/],
     [{ ...MIN, artifacts: { registry: { resolverBaseUrl: 'https://r.example' } } }, /artifacts\.registry\.bucket/],
     [{ ...MIN, prose: { extraBannedToolNames: 'acmecart' } }, /prose\.extraBannedToolNames/],
+    [{ ...MIN, prose: { extraBannedToolNames: ['acme(cart'] } }, /invalid regex fragment "acme\(cart"/],
+    [{ ...MIN, telegram: { chatId: { id: 1 } } }, /telegram\.chatId" must be a string or number/],
+    [{ ...MIN, smoke: 'acme/web' }, /"smoke" must be an object/],
   ];
   for (const [raw, re] of cases) assert.throws(() => validateReportingConfig(raw), re);
 });
@@ -90,10 +93,12 @@ test('chatIdFor: surface id, then project id, then TELEGRAM_CHAT_ID, then null â
   assert.equal(chatIdFor(none, 'pmo', {}), null);
 });
 
-test('the template ships an example that validates â€” a spawned project starts from a working shape', () => {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const example = JSON.parse(readFileSync(join(here, '..', '..', 'reporting.config.example.json'), 'utf8'));
-  const cfg = validateReportingConfig(example, 'reporting.config.example.json');
+test("the project's own reporting.config.json (else the shipped example) validates", () => {
+  // In a configured project this pins the REAL committed config; in the template it pins the example a
+  // spawned project starts from. Either way a malformed file fails here, not in a 3am routine.
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+  const name = existsSync(join(root, CONFIG_FILENAME)) ? CONFIG_FILENAME : 'reporting.config.example.json';
+  const cfg = validateReportingConfig(JSON.parse(readFileSync(join(root, name), 'utf8')), name);
   assert.ok(cfg.repos.length >= 1);
 });
 

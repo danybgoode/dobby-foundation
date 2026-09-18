@@ -78,7 +78,7 @@ test('an authed flow needs its keys, and PRODUCTION-looking keys are refused eve
 });
 
 test('--path must be a path on the target env — not protocol-relative, not a URL (PR #20 review)', () => {
-  for (const bad of ['//evil.example/x', 'https://evil.example/', 'relative/page']) {
+  for (const bad of ['//evil.example/x', '/\\evil.example/x', 'https://evil.example/', 'relative/page']) {
     assert.match(planRun({ args: { path: bad }, config: CONFIG }).error, /--path must be a path/);
   }
   assert.equal(planRun({ args: { path: '/ok?x=1' }, config: CONFIG }).error, undefined);

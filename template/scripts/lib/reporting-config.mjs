@@ -83,6 +83,9 @@ export function validateReportingConfig(raw, path = CONFIG_FILENAME) {
 
   const telegram = raw.telegram ?? {};
   if (!telegram || typeof telegram !== 'object' || Array.isArray(telegram)) fail(path, '"telegram" must be an object');
+  for (const k of ['chatId']) {
+    if (telegram[k] != null && typeof telegram[k] !== 'string' && typeof telegram[k] !== 'number') fail(path, `"telegram.${k}" must be a string or number`);
+  }
   const chatIds = telegram.chatIds ?? {};
   for (const k of Object.keys(chatIds)) {
     if (!SURFACES.includes(k)) fail(path, `"telegram.chatIds.${k}" is not a surface — use one of ${SURFACES.join(', ')}`);
@@ -90,6 +93,7 @@ export function validateReportingConfig(raw, path = CONFIG_FILENAME) {
 
   let smoke = null;
   if (raw.smoke != null) {
+    if (typeof raw.smoke !== 'object' || Array.isArray(raw.smoke)) fail(path, '"smoke" must be an object {repo, workflow}');
     repoList(path, [raw.smoke.repo], 'smoke.repo');
     if (typeof raw.smoke.workflow !== 'string' || !raw.smoke.workflow) fail(path, '"smoke.workflow" must name a workflow file');
     smoke = { repo: raw.smoke.repo, workflow: raw.smoke.workflow };
@@ -122,6 +126,14 @@ export function validateReportingConfig(raw, path = CONFIG_FILENAME) {
   const extraBannedToolNames = prose.extraBannedToolNames ?? [];
   if (!Array.isArray(extraBannedToolNames) || extraBannedToolNames.some((t) => typeof t !== 'string')) {
     fail(path, '"prose.extraBannedToolNames" must be an array of regex fragments');
+  }
+  // Compile each fragment NOW: a bad one would otherwise throw inside the prose guard at --post time.
+  for (const t of extraBannedToolNames) {
+    try {
+      new RegExp(`\\b${t}\\b`, 'i');
+    } catch (e) {
+      fail(path, `"prose.extraBannedToolNames" has an invalid regex fragment "${t}" (${e.message})`);
+    }
   }
 
   return {

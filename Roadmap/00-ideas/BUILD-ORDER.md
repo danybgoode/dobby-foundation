@@ -27,15 +27,5 @@
 
 _None._
 
-## ⚠️ Status drift — README frontmatter vs sprint/retro-derived (1)
-
-These epics’ authoritative README-frontmatter `status:` disagrees with what the sprint/retro
-derivation infers. The board trusts the **frontmatter**; a mismatch usually means a close-out
-forgot to set `status:` (or the README is stale). Reconcile the README, then this advisory clears.
-
-| Epic | frontmatter (used) | sprint/retro-derived |
-|---|---|---|
-| Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded | In progress | Scaffolded |
-
 ---
-_Epics: 4 · seeds in funnel: 0 · status drift: 1. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 4 · seeds in funnel: 0 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
