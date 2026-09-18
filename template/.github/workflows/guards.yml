@@ -47,7 +47,7 @@ jobs:
         run: |
           base="${{ github.event.pull_request.base.sha }}"
           changed=$(git diff --name-only "$base"...HEAD)
-          echo "roadmap=$(echo "$changed" | grep -qE '^(Roadmap/|scripts/(build-order|roadmap-to-notion)\.mjs)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "roadmap=$(echo "$changed" | grep -qE '^(Roadmap/|scripts/(build-order|roadmap-extract)\.mjs)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "scripts=$(echo "$changed" | grep -qE '^scripts/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "claude=$(echo "$changed" | grep -qE '^(\.claude/|scripts/permissions-smoke)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
 

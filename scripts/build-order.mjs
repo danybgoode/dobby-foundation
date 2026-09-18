@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// build-order.mjs — render Roadmap/00-ideas/BUILD-ORDER.md from the SAME projection the Notion
-// sync uses (roadmap-to-notion.mjs --extract). One source of truth: seed frontmatter + epic/sprint
+// build-order.mjs — render Roadmap/00-ideas/BUILD-ORDER.md from the SAME projection every roadmap
+// tool reads (roadmap-extract.mjs). One source of truth: seed frontmatter + epic/sprint
 // status lines. This file is GENERATED — never hand-edit BUILD-ORDER.md; run this instead.
 //
 //   node scripts/build-order.mjs            # write Roadmap/00-ideas/BUILD-ORDER.md
@@ -18,10 +18,10 @@ import { dirname, join, resolve } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
 const OUT = join(REPO, 'Roadmap', '00-ideas', 'BUILD-ORDER.md');
-const EXTRACTOR = join(__dirname, 'roadmap-to-notion.mjs');
+const EXTRACTOR = join(__dirname, 'roadmap-extract.mjs');
 
 function extract() {
-  const json = execFileSync('node', [EXTRACTOR, '--extract'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const json = execFileSync('node', [EXTRACTOR], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return JSON.parse(json);
 }
 
@@ -69,7 +69,7 @@ function render(rows) {
   out.push('<!-- GENERATED FILE — do not edit by hand.');
   out.push('     Regenerate:  node scripts/build-order.mjs');
   out.push('     Status SSOT: each epic README\'s frontmatter `status:` field (set at epic close). Funnel');
-  out.push('     ordering: seed frontmatter (priority). Both projected via scripts/roadmap-to-notion.mjs --extract. -->');
+  out.push('     ordering: seed frontmatter (priority). Both projected via scripts/roadmap-extract.mjs. -->');
   out.push('');
   out.push('# Build order — generated status board');
   out.push('');

@@ -1,5 +1,6 @@
 ---
 name: doc-hygiene
+summary: "Measures the always-read session-start docs and writes a dated report of bloat and duplication."
 description: >
   Keeps the always-read session-start docs (this project's AGENTS.md, Roadmap/WAYS-OF-WORKING.md,
   Roadmap/LEARNINGS.md, Roadmap/README.md poster) from re-bloating after the one-time de-noise sweep.
@@ -8,12 +9,13 @@ description: >
   scripts/doc-hygiene.mjs, reviews its flagged candidates against the source docs, and emits a dated
   advisory report. Never edits Roadmap docs — proposals only, the product owner or the builder
   hand-merges.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - doc-hygiene.mjs
-  - roadmap-to-notion.mjs
+  - roadmap-extract.mjs
 ---
 
 # Doc hygiene — rolling maintenance for the always-read set (Cowork or Claude Code)
@@ -32,8 +34,9 @@ fourth step (`scripts/routines/roadmap-hygiene.prompt.md`).
 - **`scripts/doc-hygiene.mjs`** — the mechanical part. Run it first, always:
   `node scripts/doc-hygiene.mjs` (writes the dated report) or `node scripts/doc-hygiene.mjs --check`
   (prints only, writes nothing — use this for a quick look or when just verifying the script itself).
-- **`scripts/roadmap-to-notion.mjs --extract`** — the epic-status SSOT the script's "archived epic
-  mention" check reads. Don't re-parse frontmatter yourself.
+- **`scripts/roadmap-extract.mjs`** — the epic-status SSOT the script's "archived epic mention" check
+  reads. Don't re-parse frontmatter yourself. (A project scaffolded before the extractor was split out
+  of `roadmap-to-notion.mjs` has the same rows behind `roadmap-to-notion.mjs --extract`.)
 - **`Roadmap/00-ideas/HYGIENE-REPORT-*.md`** — the sibling dated-advisory-report format from Routine C
   (funnel/status drift). This skill's report is a **different concern** (doc size/dedupe, not
   funnel/epic status), hence the distinct `DOC-HYGIENE-REPORT-` filename — don't conflate the two.
