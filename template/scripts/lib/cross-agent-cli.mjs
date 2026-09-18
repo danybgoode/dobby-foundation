@@ -126,7 +126,9 @@ export const AGY_ARG_LIMIT = 256 * 1024;
 // client to get a single review out of it. `vibe --prompt` is the scripting/CI path, and it is the one
 // Mistral documents for exactly this.
 export const VIBE_ARG_LIMIT = 256 * 1024;
-export const VIBE_MAX_TURNS = process.env.VIBE_MAX_TURNS || '4';
+// Four turns was a truncation generator once denied reads consumed the budget; the origin project's live
+// probes settled on 24 as the bounded floor. VIBE_MAX_TURNS stays an explicit operator override.
+export const VIBE_MAX_TURNS = process.env.VIBE_MAX_TURNS || '24';
 // Optional: pin a model with `VIBE_MODEL`. Left unset by default so vibe uses the account's configured
 // default — unlike agy, an unset model here is not known to blank the output.
 export const VIBE_MODEL = process.env.VIBE_MODEL || null;
@@ -542,8 +544,9 @@ export function runAntigravity(fullArgv, opts = {}, deps = {}) {
 
 // One `vibe --prompt "<prompt+context>" --agent plan --output text` invocation. Like agy, vibe takes the
 // whole thing as an argv string, so the same size cap applies (and for the same reason: a clear message
-// beats an opaque E2BIG). `--agent plan` is NOT optional — see the header block: programmatic mode
-// otherwise defaults to `auto-approve`, and an advisory reviewer must not be able to write.
+// beats an opaque E2BIG). `--agent plan` is NOT optional. `--disabled-tools '*'` is equally non-optional:
+// plan mode describes intended behavior, while the tool filter enforces that an injected diff cannot read
+// host files, shell out or mutate anything. All review context is already embedded in `fullArgv`.
 //
 // Empty stdout is treated as a FAILURE, not as "no findings". Every CLI on this roster can exit 0 having
 // produced nothing when it is quota-capped or misconfigured, and a review that silently becomes empty is
@@ -558,7 +561,19 @@ export function runVibe(fullArgv, opts = {}, deps = {}) {
     );
   }
 
-  const args = ['--prompt', fullArgv, '--agent', 'plan', '--output', 'text', '--max-turns', String(VIBE_MAX_TURNS), '--trust'];
+  const args = [
+    '--prompt',
+    fullArgv,
+    '--agent',
+    'plan',
+    '--output',
+    'text',
+    '--max-turns',
+    String(VIBE_MAX_TURNS),
+    '--trust',
+    '--disabled-tools',
+    '*',
+  ];
   if (VIBE_MODEL) args.push('--model', VIBE_MODEL);
 
   const r = spawn('vibe', args, { input: '', encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -568,7 +583,13 @@ export function runVibe(fullArgv, opts = {}, deps = {}) {
       `vibe not found or failed to spawn (${r.error.message}) — install the Mistral Vibe CLI ` +
         `(\`uv tool install mistral-vibe\`) and authenticate it, or use --agent codex/antigravity.`
     );
-  if (r.status !== 0) return fail(opts.soft, `vibe --prompt failed: ${lastLine(r.stderr)}`);
+  if (r.status !== 0) {
+    const detail = lastLine(r.stderr) || lastLine(r.stdout);
+    const hint = /turn limit/i.test(`${r.stderr || ''}${r.stdout || ''}`)
+      ? ` — the agent ran out of turns, not quota. Raise VIBE_MAX_TURNS (currently ${VIBE_MAX_TURNS}) and re-run.`
+      : '';
+    return fail(opts.soft, `vibe --prompt failed: ${detail}${hint}`);
+  }
 
   const out = (r.stdout || '').trim();
   if (!out)
@@ -578,6 +599,15 @@ export function runVibe(fullArgv, opts = {}, deps = {}) {
         `\`vibe --prompt "say OK" --output text --trust\`; if that is empty too, re-authenticate. ` +
         `(An empty result is a failure, never "no findings" — see runVibe's header.)`
     );
+  // With tools disabled, Vibe can still emit a literal tool request as its
+  // final text. That is an unfinished attempt, not review findings; accepting
+  // and posting it would turn a failed pass into a confident green-looking one.
+  if (/^(?:read_file|grep|list_directory|shell|run_command|edit_file|write_file|apply_patch)\s*\{[\s\S]*\}$/.test(out)) {
+    return fail(
+      opts.soft,
+      'vibe requested a disabled tool and no review was produced — re-run the bounded diff; never count this output as a pass.'
+    );
+  }
   return out;
 }
 

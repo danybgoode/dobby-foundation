@@ -63,6 +63,7 @@ test('repos is required, non-empty, and every entry is owner/name', () => {
 test('shape errors name the offending key', () => {
   const cases = [
     [{ ...MIN, deployRepos: [{ repo: 'acme/web' }] }, /deployRepos\[0\]" needs a "label"/],
+    [{ ...MIN, telegram: [] }, /"telegram" must be an object/],
     [{ ...MIN, telegram: { chatIds: { nightly: '1' } } }, /telegram\.chatIds\.nightly" is not a surface/],
     [{ ...MIN, smoke: { repo: 'acme/web' } }, /smoke\.workflow/],
     [{ ...MIN, liveFlags: { command: 'node flags.mjs' } }, /liveFlags\.command/],

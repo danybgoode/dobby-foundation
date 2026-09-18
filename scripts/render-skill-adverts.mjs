@@ -42,7 +42,10 @@ export function parseSkillHeader(source, file = 'SKILL.md') {
     const m = fm.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
     if (!m) return null;
     const raw = m[1].trim();
-    return raw.startsWith('"') && raw.endsWith('"') ? JSON.parse(raw) : raw;
+    if (raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) return JSON.parse(raw);
+    // YAML single-quoted scalar: the only escape is '' for a literal quote.
+    if (raw.length >= 2 && raw.startsWith("'") && raw.endsWith("'")) return raw.slice(1, -1).replace(/''/g, "'");
+    return raw;
   };
   const name = field('name');
   const summary = field('summary');

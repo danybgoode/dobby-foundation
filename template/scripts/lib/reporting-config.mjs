@@ -75,7 +75,7 @@ export function validateReportingConfig(raw, path = CONFIG_FILENAME) {
   });
 
   const telegram = raw.telegram ?? {};
-  if (typeof telegram !== 'object') fail(path, '"telegram" must be an object');
+  if (!telegram || typeof telegram !== 'object' || Array.isArray(telegram)) fail(path, '"telegram" must be an object');
   const chatIds = telegram.chatIds ?? {};
   for (const k of Object.keys(chatIds)) {
     if (!SURFACES.includes(k)) fail(path, `"telegram.chatIds.${k}" is not a surface — use one of ${SURFACES.join(', ')}`);
