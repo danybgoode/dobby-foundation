@@ -1,5 +1,5 @@
 ---
-status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: plugin-audit-and-extraction
 build_order: 4
 ---
@@ -108,6 +108,40 @@ ledger — it makes the remaining work look like an afternoon and gets scheduled
   `pod-report.mjs`, `commit-report.mjs`, `report-main-daemon.mjs`). Porting medusa's versions into the
   template creates a **third** copy unless golden-beans migrates onto the ported ones in the same run.
   **This is the most likely way this epic increases duplication instead of reducing it.** Decide here.
+
+## Decisions — locked 2026-09-18 (Story 1.1)
+
+The product owner's direction for this run was explicit: **nothing ships dark, nothing is disabled,
+everything is in production.** That settles D1 and D3 as *pay*, not *delete*. Deleting would have been
+honest, but it would also have left the advertised capability absent.
+
+- **D1 — PAY, as one unit.** `weekly-recap`, `standup-post` and `pmo-report` port together. The ledger's
+  counts (+7 / +11 / +14) were verified by walking the real import graph, not re-derived by hand. The
+  real closures are larger once subprocess scripts and data files are counted: 12 / 20 / 23 declared
+  paths, including the seam, prompts and templates. `weekly-recap.mjs` ported first, and the other two
+  import it.
+- **D2 — one committed `reporting.config.json`, locked against what the scripts actually read.** Only
+  `repos` is required. `deployRepos`, `telegram.{chatId,chatIds}`, `smoke`, `stalePreviewAgeDays`,
+  `liveFlags`, `artifacts.{docViewerUrl,registry}` and `prose.extraBannedToolNames` are each **off when
+  absent, never defaulted**. Absent or malformed config exits with a message naming the file and key.
+  The origin's hard-coded Cloud Run doc-viewer URL and GCS bucket became config, with no default. The
+  config is **committed** (it holds nothing secret), which also fixes the old trap of a gitignored
+  per-skill `config.json` never surviving a routine's fresh checkout. The three per-skill
+  `config.example.json` files are retired.
+- **D3 — PORT `live-smoke`.** It is now `template/scripts/live-smoke.mjs` plus `live-smoke.config.json`,
+  and it drives `apps/example-app`, which became a real runnable harness (story 1.5's
+  "example-app's fate"). The origin's refusals are kept: authed-against-prod, and production-looking
+  keys even locally.
+- **D4 — generalize without neutering.** It applies here to the prose guard: the origin's own
+  stack names moved to `prose.extraBannedToolNames` rather than being dropped. It applies fully to
+  Sprint 3's `smoke-triage-scope`, where thresholds are required and fail closed.
+- **D5 — one implementation per rail, decided per rail in Sprint 3.** The rule: the template takes
+  whichever existing implementation is the superset. The other consumer either migrates onto it in the
+  same wave, or records a written divergence reason in its own docs. Finding from the S1 survey:
+  golden-beans is the **origin** of the prose rail (`prose-guard`/`prose-writer`) that medusa forked,
+  and it runs its own merge-report stack (`commit-report` + `report-new-commits` +
+  `report-main-daemon`, with Slack and a launchd retry daemon). So the "third copy" risk is real for
+  the prose libs and the merge-report rail specifically.
 
 ## Scope — stories
 

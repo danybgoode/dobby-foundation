@@ -1,6 +1,6 @@
 # Plugin audit + medusa extraction — Sprint 1: Pay or delete the dark-skill debt
 
-**Status:** ⬜ not started
+**Status:** 🟦 In review
 
 **Epic:** [Plugin audit + medusa extraction](README.md) · **Risk: LOW**
 
@@ -105,3 +105,39 @@ Env: local · a freshly spawned project from `dobby-foundation/template/`
 If any step fails, note the step number + what you saw — that's the bug report.
 
 **Steps 2 and 4 are the point of the sprint.** Everything else is housekeeping.
+
+## Sprint 1 — Smoke walkthrough results (2026-09-18)
+
+Run by the building agent in a project freshly spawned from `template/` (`cp -R template/.` into a
+scratch dir, `git init`), with live GitHub data. Every step was run, none skipped.
+
+1. **Advertised list = skills that exist.** `node scripts/render-skill-adverts.mjs --check` →
+   *"every advert matches plugins/ways-of-work/skills/"*. All 10 are listed. `prose-draft`, which the
+   marketplace's plugin entry had dropped, is back.
+2. **Every advertised skill's script runs.** `check-skill-scripts --repo-root <spawn>` → 10/10 `ok`,
+   full closures present. Real runs: `weekly-recap --dry-run` and `--brief`, `standup --dry-run` and
+   `--brief`, `pmo-report --dry-run --weekly` (all live GitHub), `live-smoke --path=/` (a real
+   Chromium run: report.json `httpStatus: 200`, screenshot read back), `build-order-sync`
+   (*"up to date — no PR needed"*), `doc-hygiene --check`, `babysit-pr 19 --dry-run`. `vercel-prune`,
+   `prose-draft` and `cross-panel` stop on their own required arguments, never on a missing module.
+3. **`check-skill-scripts` green, `KNOWN_ABSENT` empty.** `✓ every declared script is present.`
+4. **Re-adding a paid skill fails.** Adding `weekly-recap` back produced
+   *"1 STALE LEDGER ENTRY — the debt was paid: weekly-recap"*. Reverted. The same assertion is a test
+   for all four paid skills.
+5. **Leak guard green.** `check-plugin-leaks: clean (141 files scanned, 4 deliberate matches allowed)`.
+   It caught 4 personal names in the ported code on the way, now replaced with the role name.
+6. **Recap uses *your* config.** With `repos: [dobby-foundation, golden-beans]` and a `Foundation`
+   deploy repo, the recap listed exactly those repos (9 and 16 merged PRs) and
+   `📦 Deploys … Foundation: 9`. No origin-project repo appears.
+7. **Config absent → readable refusal naming the file.** All three scripts exit 1 with
+   *"…/reporting.config.json not found — the reporting scripts refuse to guess which repos to read or
+   where to post. Copy reporting.config.example.json…"*. `live-smoke` does the same for its config.
+8. **`.DS_Store`.** `git ls-files | grep -c DS_Store` → `0`. The 11 on disk were swept (the plan said
+   7; the README said 10). `find . -name .DS_Store` → `0`.
+9. **A new skill directory needs no advert edit.** Covered by `render-skill-adverts.test.mjs`
+   ("smoke step 9"). The new skill appears in all four adverts, and CI's `--check` fails on a
+   hand-stale list.
+
+**Gaps, stated:** no Telegram message was actually *sent*. Every run was `--dry-run`/`--brief`,
+because a real send would post into a live channel. The send path is the origin's unchanged
+`sendMessage` shape, and it already runs nightly in the origin project.
