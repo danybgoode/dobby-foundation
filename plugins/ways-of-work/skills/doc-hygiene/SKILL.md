@@ -16,6 +16,8 @@ description: >
 requires_scripts:
   - doc-hygiene.mjs
   - roadmap-extract.mjs
+  - doc-format.mjs
+  - doc-format.enforced.json
 ---
 
 # Doc hygiene — rolling maintenance for the always-read set (Cowork or Claude Code)
@@ -34,6 +36,10 @@ fourth step (`scripts/routines/roadmap-hygiene.prompt.md`).
 - **`scripts/doc-hygiene.mjs`** — the mechanical part. Run it first, always:
   `node scripts/doc-hygiene.mjs` (writes the dated report) or `node scripts/doc-hygiene.mjs --check`
   (prints only, writes nothing — use this for a quick look or when just verifying the script itself).
+- **`scripts/doc-format.mjs`** — the FORMAT half of doc hygiene (this script is the content half):
+  epic README / sprint / retrospective shape against the groom templates. `node scripts/doc-format.mjs`
+  reports every finding; `--check` fails only on the paths in `scripts/doc-format.enforced.json`;
+  `--fix` rewrites only the mechanical ones. Include its report summary in yours.
 - **`scripts/roadmap-extract.mjs`** — the epic-status SSOT the script's "archived epic mention" check
   reads. Don't re-parse frontmatter yourself. (A project scaffolded before the extractor was split out
   of `roadmap-to-notion.mjs` has the same rows behind `roadmap-to-notion.mjs --extract`.)
