@@ -37,8 +37,8 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    **`live-smoke.config.json`** (copy `live-smoke.config.example.json` — the app dir and environment
    URLs `scripts/live-smoke.mjs` smokes), and
    `.github/workflows/ci.yml.example` → rename to `ci.yml` once real app code exists (at that point
-   also rename `.githooks/pre-push.example` → `pre-push` and fill in its own TEMPLATE FILL-IN, so
-   local pre-push feedback mirrors `ci.yml`'s real checks).
+   fill in `.githooks/pre-push`'s advisory TEMPLATE FILL-IN, so local pre-push feedback mirrors
+   `ci.yml`'s real checks).
 4. **Wire the marketplace and the permissions** — `.claude/settings.json` already points at this
    repo's `ways-of-work` plugin and carries the committed `permissions` block: an `allow` list of verb
    classes, a `deny` list (CLI deploys, `supabase db push|reset`, force pushes, `rm -rf`, whole-tree
@@ -49,13 +49,12 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    settings file is ignored *and* masks the user default, so the smoke fails on it. Keep
    `.claude/settings.local.json` for genuinely machine-specific entries only — a one-off approval that
    is really a verb class belongs in the committed list.
-5. **Wire local-first hooks** — once `package.json` exists (from your app's own bootstrap, e.g.
-   `create-next-app`), add `"prepare": "git config core.hooksPath .githooks"` to its `"scripts"`
-   block. This auto-activates `.githooks/pre-commit` (blocking — build-order + scripts/ node:test,
-   the local-free equivalent of `guards.yml`) and, once you've filled it in, `pre-push` (advisory —
-   never blocks) on every `npm install`/`npm ci`, with no manual per-clone step. Until `package.json`
-   exists, activate manually once with `git config core.hooksPath .githooks` if you want the hook
-   live immediately.
+5. **Hooks are already wired** — the root `package.json`'s `"prepare": "git config core.hooksPath .githooks"`
+   runs on the first `npm install`, activating `.githooks/pre-commit` (blocking, < 2s: `doc-format` on the
+   Roadmap docs you staged) and `.githooks/pre-push` (< 30s: the `scripts/` unit tests and the board's
+   freshness, gated on the paths the push actually carries). When your app adds its own `package.json`
+   (e.g. under `apps/`), keep this root one. Read `.githooks/README.md` before adding a check: cost
+   decides the stage, not importance.
 6. **Commit + push**, then verify: `node scripts/build-order.mjs --check` (should report the board
    up to date on an empty funnel), and confirm the `guards` GitHub Actions workflow goes green on
    the initial commit (or is simply skipped — it's `pull_request`-only, so a direct push to `main`

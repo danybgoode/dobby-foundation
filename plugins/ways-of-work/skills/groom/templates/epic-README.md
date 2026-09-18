@@ -40,7 +40,7 @@ build_order: null    # integer position in the ONE global build sequence — the
 <!-- Backend-first? Frontend degrade gracefully? Preview vs prod. -->
 
 ## Definition of Done (epic)
-- [ ] All sprints merged to `main` + smoke-tested (gaps stated)
+- [ ] All sprints merged to `main` + smoke-tested (gaps stated — `node scripts/owed-ledger.mjs` counts what is still owed)
 - [ ] Each `sprint-N.md` has its smoke walkthrough (real URLs)
 - [ ] This README marked ✅; every sprint status ticked with commit refs
 - [ ] `RETROSPECTIVE.md` written

@@ -1,6 +1,6 @@
 # Plugin audit + medusa extraction — Sprint 1: Pay or delete the dark-skill debt
 
-**Status:** 🟦 In review
+**Status:** ✅ Shipped — [#20](https://github.com/danybgoode/dobby-foundation/pull/20) squash `2cfd281`; same-wave origin migration danybgoode/miyagi-product-management#182 `7ac3354`
 
 **Epic:** [Plugin audit + medusa extraction](README.md) · **Risk: LOW**
 

@@ -188,4 +188,13 @@ jobs:
           grep -q 'security lens' "$work/epic-kickoff.txt"
           grep -q 'Done means shipped' "$work/epic-kickoff.txt"
           echo "kickoff generators: both rendered, contract lines present."
+
+          # The producer validates its own templates (plugin-audit-and-extraction S2.4): the docs the
+          # scaffolder just wrote must pass the template's doc-format checker, run the way a spawned
+          # project runs it. The real flow writes the seed first, so the smoke does too.
+          mkdir -p "$work/scripts" "$work/Roadmap/00-ideas/seeds"
+          printf -- '---\nstatus: ready\nepic: 09-platform-infra/ci-smoke\n---\n# CI smoke\n' > "$work/Roadmap/00-ideas/seeds/ci-smoke.md"
+          cp template/scripts/doc-format.mjs template/scripts/roadmap-extract.mjs template/scripts/doc-format.enforced.json "$work/scripts/"
+          ( cd "$work" && node scripts/doc-format.mjs --check )
+          echo "doc-format: the scaffolder's own output is clean."
           rm -rf "$work"

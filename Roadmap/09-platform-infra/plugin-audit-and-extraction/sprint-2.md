@@ -1,6 +1,6 @@
 # Plugin audit + medusa extraction — Sprint 2: Extract the Tier-1 rails
 
-**Status:** ⬜ not started
+**Status:** 🟦 In review
 
 **Epic:** [Plugin audit + medusa extraction](README.md) · **Risk: LOW** (2.2 touches shared surface in consuming repos — **announce before merging**)
 
@@ -82,7 +82,7 @@ Env: local · a freshly spawned project, plus `golden-beans`
    → **Under 30 seconds.**
 5. Clone the spawned project fresh and run `npm install`, then make a commit.
    → The hooks ran. No manual `git config core.hooksPath` was needed.
-6. Run `node scripts/session-note.mjs "locked D3, starting sprint 2"`, then `node scripts/session-resume.mjs`.
+6. Run `node scripts/session-note.mjs --kind decision "locked D3, starting sprint 2"`, then `node scripts/session-resume.mjs`.
    → The note is on the journal branch; resume derives live state across the project's repos and
      leads with what is surprising — not with a stored snapshot.
 7. Run `node scripts/doc-format.mjs --check` in `golden-beans`.
@@ -94,3 +94,38 @@ If any step fails, note the step number + what you saw — that's the bug report
 
 **Steps 3 and 4 are the survival test.** A hook that breaks the budget is a hook that gets disabled,
 and then none of this ported.
+
+## Sprint 2 — Smoke walkthrough results (2026-09-18)
+
+Run by the building agent in a freshly spawned project (`cp -R template/.`, `git init`, a local bare
+`origin`), plus golden-beans for step 7. None skipped.
+
+1. **Routines.** `ls template/scripts/routines/` lists 7 prompts plus the README, and the stub is gone.
+   `routines.test.mjs` passes (11), which pins the one-merge-authority rule.
+2. **Fill-in slots and doctrine.** Project names are now `<root-repo>`, `<appDir>`, `<PROD_DOMAIN>` and
+   `<trigger-id>`. "A prompt file in this directory is NOT what the cloud stores" and the advisory-only
+   rule are verbatim. The leak guard is clean.
+3. **Commit under 2s.** 0.06s, staging 4 scaffolded epic docs; `doc-format: 4 staged doc(s) clean`.
+   `pre-commit-hook.test.mjs` times the real hook against the budget on every run.
+4. **Push under 30s.** 2.36s, running 461 `scripts/` tests plus the board freshness check.
+5. **Fresh clone + `npm install` → hooks on.** `core.hooksPath` read `.githooks` right after
+   `npm install`, with no manual step.
+6. **Note → resume.** `✓ journalled [decision] to claude/session-journal`, and `session-resume` led its
+   journal section with that line. Run against this repo, it opened with a stray-branch and a dirty-tree
+   anomaly that were both genuinely true. **The walkthrough command above was corrected**: the real
+   interface requires `--kind`.
+7. **`doc-format` over golden-beans.** It runs: 30 files had findings. Triaged: two rules were tuned to
+   the origin's corpus and are **relaxed** — the retro close line (any close marker with a date) and
+   canonical sections (matched by stem). 4 tests pin the relaxation, and all 39 origin tests still pass.
+   The remaining **28 findings are real drift** from the groom templates. They're fixed in golden-beans'
+   own PR (Sprint 3.3), so it is not left permanently red.
+8. **Owed ledger.** `owed-ledger: 1 owed across 1 files — 1 money-path, 0 auth-path, 0 admin-only,
+   0 other`. It found the marker in an auto-discovered `apps/*/e2e`; `--check` → up to date.
+
+**Same wave, origin (D5):** danybgoode/miyagi-product-management moves onto these template copies with
+its values in data. The `doc-hygiene` skill now declares `doc-format.enforced.json`, which that repo
+lacked. Verified equivalent there: the owed ledger is byte-identical (87 owed); `doc-format --check`
+passes the same 165 enforced paths; `session-resume` reports the same repos, anomalies and gaps.
+
+**Shared surface, announced (2.2):** the hook changes are in the *template*. No consuming project's
+hooks change in this PR, and each one's own hooks stay theirs.
