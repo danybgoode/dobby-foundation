@@ -32,6 +32,12 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
 export default defineConfig({
   testDir: './e2e',
+  // With no PLAYWRIGHT_BASE_URL, the harness starts the app itself so `npm run test:e2e` is runnable on a
+  // fresh clone. TEMPLATE FILL-IN: point `command` at your real app's dev/start command. When a base URL IS
+  // given (scripts/live-smoke.mjs always sets one), nothing is started — the target is assumed to be up.
+  ...(process.env.PLAYWRIGHT_BASE_URL
+    ? {}
+    : { webServer: { command: 'node server.mjs', url: baseURL, reuseExistingServer: !process.env.CI } }),
   // TEMPLATE FILL-IN: if authed browser smokes need a testing-token/session bypass from your auth
   // provider, wire it here via a globalSetup file (no-op without the relevant env vars set, so the
   // api gate stays unaffected). Example: `globalSetup: './e2e/global.setup.ts'`.
