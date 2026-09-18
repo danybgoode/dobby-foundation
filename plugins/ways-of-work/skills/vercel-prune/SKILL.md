@@ -1,5 +1,6 @@
 ---
 name: vercel-prune
+summary: "Reports stale Vercel preview deployments for a frontend project; dry-run by default."
 description: >
   Reports stale Vercel PREVIEW deployments for a named frontend project — dry-run only, never deletes
   anything on its own. Use when the product owner asks to "check stale previews", "run vercel prune",
@@ -7,9 +8,10 @@ description: >
   second step. Wraps scripts/vercel-prune-previews.mjs with the open-PR-protected branch list
   computed fresh each run. --apply is a SEPARATE, human-confirmed action this skill never takes on
   its own — see Stage 3.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - vercel-prune-previews.mjs
 ---

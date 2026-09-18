@@ -17,9 +17,17 @@
 // predicted-but-unguarded failure is structural — put every instance in ONE registry the checker
 // walks".)
 //
+// ── The closure check (plugin-audit-and-extraction S1) ─────────────────────────────────────────
+// Existence of the ENTRY script is not enough: pmo-report declared five files and actually needed
+// fifteen. So for every declared .mjs that is present, this walks its relative-import closure inside
+// the target's scripts/ and fails on (a) an import that does not exist — a ported script with a hole
+// in its closure — and (b) an import the skill does not declare. `requires_scripts:` therefore has to
+// match reality, which is the only way a consuming project can audit a skill without reading source.
+//
 // ── What it does NOT do ────────────────────────────────────────────────────────────────────────
 // It checks EXISTENCE, not correctness. A present script that is broken, or wraps a different
-// contract than the skill expects, passes here. This is a floor.
+// contract than the skill expects, passes here. Data files a script reads by path (prompt bodies,
+// templates) are declared by hand — only `import` edges are walked. This is a floor.
 //
 // ── Usage ──────────────────────────────────────────────────────────────────────────────────────
 //   node scripts/check-skill-scripts.mjs                      # audit template/ (the CI gate)
@@ -39,7 +47,7 @@
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, normalize, isAbsolute } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -72,31 +80,14 @@ export const NO_SCRIPTS_EXPECTED = {
 // needed "lib/log-branch.mjs" (actual: 11). A debt ledger that understates the debt is worse than
 // no ledger — it makes the remaining work look like an afternoon and gets scheduled as one.
 export const KNOWN_ABSENT = {
-  // The reporting family. These three share a dependency web (prose-writer/-brief/-guard,
-  // report-registry, pmo-templates, telegram-format) and weekly-recap.mjs is imported by the other
-  // two, so they port as ONE unit or not at all. Several carry project-specific delivery config
-  // (Telegram targets, benchmark thresholds) that needs a config seam before it can be templated.
-  'pmo-report':
-    'not extracted — scripts/pmo-report.mjs + 14 transitive deps (incl. weekly-recap.mjs, '
-    + 'lib/pmo-{benchmarks,delivery,metrics,templates,window-log}.mjs, lib/prose-{brief,guard,writer}.mjs, '
-    + 'lib/report-registry.mjs, lib/telegram-format.mjs, lib/log-branch.mjs, lib/gh-rest.mjs)',
-  'standup-post':
-    'not extracted — scripts/standup.mjs + 11 transitive deps (incl. weekly-recap.mjs, '
-    + 'lib/standup-deck.mjs, lib/report-registry.mjs, lib/prose-{brief,guard,writer}.mjs, '
-    + 'lib/pmo-templates.mjs, lib/telegram-format.mjs, lib/log-branch.mjs)',
-  'weekly-recap':
-    'not extracted — scripts/weekly-recap.mjs + 7 transitive deps (lib/prose-{brief,guard,writer}.mjs, '
-    + 'lib/telegram-format.mjs, lib/log-branch.mjs, lib/gh-rest.mjs, lib/cross-agent-cli.mjs). '
-    + 'Port this one FIRST — the other two import it.',
-
-  // Not a port at all. The origin project's live-smoke.mjs lives under apps/<app>/scripts/, not
-  // scripts/, and depends on that app's Playwright project + auth helpers. The SKILL.md already
-  // says it wraps the CONSUMING project's own <APP_DIR>/scripts/live-smoke.mjs and must stop if it
-  // is absent, so this stays a per-project obligation the template seeds a pattern for, not a file
-  // this repo can ship. Reclassify only if the template grows an owned e2e harness.
-  'live-smoke':
-    'project-local by design — script lives at apps/<app>/scripts/live-smoke.mjs and needs that '
-    + "app's Playwright browser project + auth helpers; the template seeds the pattern, not the file",
+  // EMPTY since 2026-09-18 (plugin-audit-and-extraction S1). The debt was PAID, not reworded away:
+  //   • weekly-recap (+7), standup-post (+11), pmo-report (+14) — ported into template/scripts/ as one
+  //     unit behind one config seam (reporting.config.json, scripts/lib/reporting-config.mjs).
+  //   • live-smoke — reclassified "project-local by design" on 2026-09-17, then ported anyway (D3):
+  //     template/scripts/live-smoke.mjs + live-smoke.config.json, driving the now-runnable
+  //     apps/example-app harness.
+  // The guard proves it: a line re-added here for any of them fails as a STALE entry, because every
+  // script it names is present. Add a line only for a genuinely new, reasoned gap.
 };
 
 /**
@@ -148,8 +139,16 @@ export function listSkills(skillsDir = SKILLS_DIR) {
  * prose-only era looked exactly like "no dependencies" to any checker, and eight broken skills rode
  * that ambiguity. An intentional no-dependency skill says so in NO_SCRIPTS_EXPECTED.
  */
-export function resolveSkill({ skill, declared, scriptsDir, exists }) {
-  const exempt = Object.prototype.hasOwnProperty.call(NO_SCRIPTS_EXPECTED, skill);
+export function resolveSkill({
+  skill,
+  declared,
+  scriptsDir,
+  exists,
+  read = null,
+  ledger = KNOWN_ABSENT,
+  exemptions = NO_SCRIPTS_EXPECTED,
+}) {
+  const exempt = Object.prototype.hasOwnProperty.call(exemptions, skill);
 
   if (declared === null) {
     return exempt
@@ -176,7 +175,7 @@ export function resolveSkill({ skill, declared, scriptsDir, exists }) {
 
   const missing = declared.filter((rel) => !exists(join(scriptsDir, rel)));
   const present = declared.filter((rel) => exists(join(scriptsDir, rel)));
-  const recorded = Object.prototype.hasOwnProperty.call(KNOWN_ABSENT, skill);
+  const recorded = Object.prototype.hasOwnProperty.call(ledger, skill);
 
   if (!missing.length) {
     // A recorded gap that is now satisfied must be struck from the ledger, or the ledger starts
@@ -189,13 +188,83 @@ export function resolveSkill({ skill, declared, scriptsDir, exists }) {
           present,
           note: 'listed in KNOWN_ABSENT but every script is present now — delete the entry',
         }
-      : { skill, status: 'ok', missing, present };
+      : closureStatus({ skill, declared, present, scriptsDir, exists, read });
   }
 
   return { skill, status: recorded ? 'debt' : 'missing', missing, present };
 }
 
-export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync } = {}) {
+// Static and dynamic RELATIVE imports only — bare specifiers (node:*, packages) are not ours to supply.
+const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
+
+/**
+ * Pure (given `read`/`exists`) — the relative-import closure of one script, as paths relative to
+ * scriptsDir. `broken` lists edges whose target does not exist. An import that climbs out of scripts/
+ * is reported as broken too: a skill's scripts must be self-contained in the consuming project.
+ */
+export function importClosure(entry, { scriptsDir, read, exists }) {
+  const files = new Set();
+  const broken = [];
+  const stack = [entry];
+  while (stack.length) {
+    const rel = stack.pop();
+    if (files.has(rel)) continue;
+    files.add(rel);
+    let src;
+    try {
+      src = read(join(scriptsDir, rel), 'utf8');
+    } catch {
+      continue; // absence of the entry itself is reported by the caller as `missing`
+    }
+    for (const m of src.matchAll(IMPORT_RE)) {
+      const target = normalize(join(dirname(rel), m[1]));
+      if (target.startsWith('..') || isAbsolute(target)) {
+        broken.push({ from: rel, to: m[1] });
+        continue;
+      }
+      if (!exists(join(scriptsDir, target))) {
+        broken.push({ from: rel, to: target });
+        continue;
+      }
+      stack.push(target);
+    }
+  }
+  files.delete(entry);
+  return { files: [...files].sort(), broken };
+}
+
+function closureStatus({ skill, declared, present, scriptsDir, exists, read }) {
+  if (!read) return { skill, status: 'ok', missing: [], present };
+  const declaredSet = new Set(declared);
+  const broken = [];
+  const undeclared = new Set();
+  for (const rel of declared.filter((d) => d.endsWith('.mjs'))) {
+    const c = importClosure(rel, { scriptsDir, read, exists });
+    broken.push(...c.broken);
+    for (const f of c.files) if (!declaredSet.has(f)) undeclared.add(f);
+  }
+  if (broken.length) {
+    return {
+      skill,
+      status: 'broken-import',
+      missing: [],
+      present,
+      note: `a declared script imports something absent: ${broken.map((b) => `${b.from} → ${b.to}`).join(', ')}`,
+    };
+  }
+  if (undeclared.size) {
+    return {
+      skill,
+      status: 'undeclared-dependency',
+      missing: [],
+      present,
+      note: `imported but not in requires_scripts: ${[...undeclared].sort().join(', ')}`,
+    };
+  }
+  return { skill, status: 'ok', missing: [], present };
+}
+
+export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync, read = readFileSync } = {}) {
   const scriptsDir = join(target, 'scripts');
   return listSkills(skillsDir).map((skill) =>
     resolveSkill({
@@ -203,6 +272,7 @@ export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync } = 
       declared: parseRequiresScripts(readFileSync(join(skillsDir, skill, 'SKILL.md'), 'utf8')),
       scriptsDir,
       exists,
+      read,
     })
   );
 }
@@ -283,6 +353,23 @@ function main(argv) {
       `\n  ${stale.length} STALE LEDGER ENTR${stale.length === 1 ? 'Y' : 'IES'} — the debt was paid:`,
       `  ${stale.map((r) => r.skill).join(', ')}`,
       '  Delete them from KNOWN_ABSENT / NO_SCRIPTS_EXPECTED so the ledger keeps describing reality.'
+    );
+  }
+  const brokenImports = byStatus('broken-import');
+  if (brokenImports.length) {
+    lines.push(
+      `\n  ${brokenImports.length} BROKEN CLOSURE — a present script imports a file that is not there:`,
+      ...brokenImports.map((r) => `  ${r.skill}: ${r.note}`),
+      '  The entry script exists but cannot load. Port the missing file with it — a partial port is dark.'
+    );
+  }
+  const undeclaredDeps = byStatus('undeclared-dependency');
+  if (undeclaredDeps.length) {
+    lines.push(
+      `\n  ${undeclaredDeps.length} UNDERSTATED DECLARATION${undeclaredDeps.length === 1 ? '' : 'S'} — requires_scripts: omits an import:`,
+      ...undeclaredDeps.map((r) => `  ${r.skill}: ${r.note}`),
+      '  Add them. A declaration that understates the closure is how the old ledger said "four helpers"',
+      '  for a skill that needed fourteen files.'
     );
   }
   const undeclared = byStatus('undeclared');

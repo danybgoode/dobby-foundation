@@ -1,5 +1,6 @@
 ---
 name: build-order-sync
+summary: "Regenerates BUILD-ORDER.md when it has drifted from the epic READMEs and opens a PR for it."
 description: >
   Regenerates Roadmap/00-ideas/BUILD-ORDER.md when it has drifted from the SSOT (each epic README's
   frontmatter status:) and opens a claude/ docs PR with the fix — never hand-edits the board. Use when
@@ -7,12 +8,16 @@ description: >
   build-order board stale", "open a build-order PR", or as the nightly ops routine's first step. Runs
   scripts/build-order-sync.mjs, which does the check, the regen, and (on real drift) the branch/commit/
   push/PR — this skill just invokes it and reports the result.
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - build-order-sync.mjs
   - build-order.mjs
+  - roadmap-extract.mjs
+  - lib/cross-agent-cli.mjs
+  - lib/gh-rest.mjs
 ---
 
 # build-order-sync — keep the generated board honest

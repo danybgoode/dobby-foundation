@@ -1,5 +1,6 @@
 ---
 name: prose-draft
+summary: "Drafts internal close-out prose (retros, poster entries) with a foreign model, for human review."
 description: >
   First-draft internal close-out prose (retrospectives, product-poster entries, sprint-wrap
   summaries) by delegating to a cheap different-family model via the cross-agent rail. Use at
@@ -9,12 +10,14 @@ description: >
   committed as-is — the coordinating agent edits it for factual accuracy first (drafts invent
   plausible-sounding gaps; the output banner says so). PR bodies are NOT in scope: the agent
   that built a PR writes its body (it already holds the context).
-# Repo-local scripts this skill wraps. Paths are relative to the CONSUMING project's
-# scripts/ dir — they deliberately do NOT ship inside this plugin (see the README Gotcha).
-# scripts/check-skill-scripts.mjs verifies these; keep it in sync or CI fails.
+# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
+# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
+# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
+# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - prose-draft.mjs
   - prose-draft.prompt.md
+  - lib/cross-agent-cli.mjs
 ---
 
 # prose-draft — delegated first drafts for file-derived close-out prose
