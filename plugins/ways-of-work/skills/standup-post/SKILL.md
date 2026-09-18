@@ -91,6 +91,11 @@ routine (`scripts/routines/ops-nightly.prompt.md`) invokes me as its one step.
   has no access to the app's build.
 
 ## Stage 1 — ensure config
+**Unattended (a routine — no human present):** the environment's `TELEGRAM_CHAT_ID` counts as a
+configured chat. **Never** `AskUserQuestion` and **never** write a chat id into a committed file. If
+`reporting.config.json` or the chat is missing, stop and use the routine's failure ping. The steps below
+are for an interactive run only.
+
 1. If `reporting.config.json` is missing, copy `reporting.config.example.json` and fill it in with the
    product owner, using `AskUserQuestion` for values you cannot derive. The repo list is usually
    derivable from `git remote -v` across the project's checkouts. Commit the file.
