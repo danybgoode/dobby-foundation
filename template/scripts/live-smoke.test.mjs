@@ -82,6 +82,7 @@ test('--path must be a path on the target env — not protocol-relative, not a U
     assert.match(planRun({ args: { path: bad }, config: CONFIG }).error, /--path must be a path/);
   }
   assert.equal(planRun({ args: { path: '/ok?x=1' }, config: CONFIG }).error, undefined);
+  assert.match(planRun({ args: { path: true }, config: CONFIG }).error, /--path must be a path/);
 });
 
 test('appDir must stay inside the repo — it is where .env.local is read from (PR #20 review)', () => {

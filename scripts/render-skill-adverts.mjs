@@ -34,6 +34,7 @@ export const END = '<!-- skills:end -->';
 
 /** Pure — read `name:` and `summary:` from a SKILL.md's frontmatter. Throws, naming the file, if either is absent. */
 export function parseSkillHeader(source, file = 'SKILL.md') {
+  source = source.replace(/\r\n/g, '\n'); // a CRLF checkout must parse the same as LF
   if (!source.startsWith('---\n')) throw new Error(`${file}: no frontmatter`);
   const close = source.indexOf('\n---\n', 3);
   if (close === -1) throw new Error(`${file}: frontmatter is never closed`);

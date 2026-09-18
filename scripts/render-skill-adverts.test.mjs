@@ -35,6 +35,7 @@ test('parseSkillHeader reads name + quoted summary, and refuses a skill with no 
   assert.throws(() => parseSkillHeader('---\nname: a\n---\n', 'a/SKILL.md'), /a\/SKILL\.md: no summary/);
   // YAML single quotes are unquoted too ('' is the escaped quote) — cross-review finding on PR #20.
   assert.equal(parseSkillHeader("---\nname: a\nsummary: 'It''s: fine'\n---\n").summary, "It's: fine");
+  assert.deepEqual(parseSkillHeader('---\r\nname: a\r\nsummary: "x"\r\n---\r\n'), { name: 'a', summary: 'x' });
 });
 
 test('smoke step 9 — a NEW skill directory appears in every advert without touching the advert files', () => {
