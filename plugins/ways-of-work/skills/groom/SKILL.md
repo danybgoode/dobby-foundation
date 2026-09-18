@@ -10,10 +10,6 @@ description: >
   sprint docs and emits the builder kickoff — epic-mode by default (one orchestrated run
   across the whole epic), per-sprint only as the named exception. Planning only —
   never writes code.
-# Repo-local scripts this skill wraps — its FULL closure: the entry script, everything it imports,
-# scripts it runs as subprocesses, and data files it reads by path. Paths are relative to the
-# CONSUMING project's scripts/ dir; they deliberately do NOT ship inside this plugin. CI
-# (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - cross-panel.mjs
   - cross-panel.prompt.md
