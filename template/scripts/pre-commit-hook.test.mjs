@@ -102,7 +102,11 @@ test('pre-commit: a commit with no Roadmap docs pays nothing', () => {
 
 test('package.json: `prepare` wires core.hooksPath, so a fresh clone gets the hooks from npm install', () => {
   const pkg = JSON.parse(readFileSync(join(TEMPLATE, 'package.json'), 'utf8'));
-  assert.equal(pkg.scripts?.prepare, 'git config core.hooksPath .githooks');
+  // Guarded: outside a git checkout (a Docker `COPY package.json && npm ci`, a tarball install) a bare
+  // `git config` exits 128 and fails the whole install. Found by the fresh reviewer on PR #21.
+  assert.match(pkg.scripts?.prepare, /git rev-parse --git-dir .*&& git config core\.hooksPath \.githooks \|\| true/);
+  const noRepo = mkdtempSync(join(tmpdir(), 'no-git-'));
+  execFileSync('sh', ['-c', pkg.scripts.prepare], { cwd: noRepo, env: { ...sealedEnv(), GIT_CEILING_DIRECTORIES: tmpdir() } });
   // Run the script's command the way npm would, in a fresh repo, and read the result back.
   const { dir, git } = fixtureRepo();
   execFileSync('sh', ['-c', pkg.scripts.prepare], { cwd: dir, env: sealedEnv() });
