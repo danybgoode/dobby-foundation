@@ -132,11 +132,20 @@ export function createFlags({ env = process.env, loadSdk = () => import(SDK_PACK
     }
   }
 
-  /** For a health endpoint. Never includes credential material — the SDK's status never carries it. */
+  /**
+   * For a health endpoint. Never includes credential material — the SDK's status never carries it.
+   *
+   * ⚠️ `ready` is the SDK's OWN state, not "a provider object exists". The first version returned
+   * `true` whenever one had been constructed, which put `ready: true` next to `state: 'NOT_READY'`
+   * in the same object — caught in the epic's own smoke walkthrough, at step 4, with Golden pointed
+   * at a dead host. A health endpoint that contradicts itself is worse than one that says nothing:
+   * whichever field a reader believes, half of them are wrong.
+   */
   function status() {
     if (!provider) return { provider: 'golden-frijoles', ready: false, degraded };
     try {
-      return { provider: 'golden-frijoles', ready: true, degraded, ...provider.getStatus() };
+      const sdkStatus = provider.getStatus();
+      return { provider: 'golden-frijoles', ready: sdkStatus.state === 'READY', degraded, ...sdkStatus };
     } catch {
       return { provider: 'golden-frijoles', ready: false, degraded: 'status unavailable' };
     }

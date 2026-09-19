@@ -103,6 +103,24 @@ test('THE SNAPSHOT IS UNREACHABLE at startup: not ready, still no throw, provide
   assert.equal(flags.isEnabled('demo.hello_enabled', false), true);
 });
 
+test('status(): ready reflects the SDK state, never merely that a provider was constructed', async () => {
+  // Found at step 4 of this epic's smoke walkthrough: with Golden pointed at a dead host the
+  // endpoint served `ready: true` beside `state: 'NOT_READY'` in one object.
+  const flags = createFlags({
+    env: CONFIGURED,
+    loadSdk: stubSdk({
+      initialize: async () => ({ ok: false, errorCode: 'GENERAL', errorMessage: 'network' }),
+      getStatus: () => ({ state: 'NOT_READY' }),
+    }),
+    log: quiet,
+  });
+  await flags.initialize();
+  const status = flags.status();
+  assert.equal(status.ready, false);
+  assert.equal(status.state, 'NOT_READY');
+  assert.ok(status.degraded, 'and it says why');
+});
+
 test('A THROWING PROVIDER: a read that explodes still returns the call-site default', async () => {
   const flags = createFlags({
     env: CONFIGURED,
