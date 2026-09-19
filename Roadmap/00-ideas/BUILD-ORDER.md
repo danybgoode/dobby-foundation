@@ -10,14 +10,13 @@
 > funnel), then run `node scripts/build-order.mjs`. This board and the Notion "Marketplace Roadmap"
 > DB are both *derived views* — never hand-edit the board.
 
-## 🏗️ Building now (0)
+## 🏗️ Building now (1)
 
-_None._
+- [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 0/13 stories · risk: Low · wave-2026-09-16
 
-## 📋 Ready to build (scaffolded, not started) (2)
+## 📋 Ready to build (scaffolded, not started) (1)
 
 - [Jev semantic guards — review-guard and prose-guard decide with Jev, not regex](../../09-platform-infra/jev-semantic-guards/README.md) — 09 Platform-infra · 0/15 stories · risk: High · wave-2026-09-19
-- [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 0/13 stories · risk: Low · wave-2026-09-16
 
 ## ✅ Shipped (3)
 

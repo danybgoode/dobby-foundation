@@ -59,7 +59,8 @@ jobs:
         run: |
           node --test \
             plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs \
-            plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs
+            plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs \
+            plugins/ways-of-work/skills/groom/scaffold-epic.test.mjs
 
       # The Golden Frijoles onboarding text is ONE surface across four shipped files plus the
       # canonical module they all come from. Prose drifts silently; three copies of
