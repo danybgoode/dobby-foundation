@@ -124,3 +124,48 @@ skipped. Two are partial, and each says why.
 
 **Same wave:** danybgoode/miyagi-product-management (origin, equivalence verified per rail) and
 danybgoode/golden-beans (prose migration, skill scripts, 41 doc-format findings fixed as real drift).
+
+**Corrected after review (2026-09-18).** Step 8's "10/10 for the origin" was **wrong when written**: run
+against the origin, `check-skill-scripts --repo-root` reported 4 skills with undeclared imports. The
+origin's `build-order` imported a status-buckets lib the template lacked, and its `prose-draft` used the
+shared writer while the template's was the retired agy-only pair. That is two rails with three
+implementations each. Chasing one reviewer finding then showed a byte-compare had never been run, and
+running one turned up eight more ported rails where the origin still ran its pre-generalization copy.
+Now:
+
+- The origin's `lib/roadmap-status-buckets.mjs` and `prose-draft.mjs` were promoted to the template. All
+  three repos run the same bytes.
+- The eight rails were adopted in the origin. Its own report-hub publisher reads the registry from config,
+  and the resolved values were checked identical to the old constants.
+- Every template script was compared byte for byte against both consumers. What still differs is listed,
+  with a reason, in each consumer's `scripts/README.md`: project fill-ins, two delegates, and the review
+  rail (out of scope here).
+- `check-skill-scripts --repo-root` is now **10/10 for both**. That is now verified, not assumed.
+
+Step 7's "459/459 of its tests unchanged" was **also wrong**. golden-beans' prose guard had checked the
+no-impact exemption **per sentence**, and its no-impact pattern covered client/shopper/subscriber. The
+template's guard checked the whole draft instead, and the migration deleted the two golden-beans tests
+that pinned the difference. The effect: one "no customer-visible effect" sentence let an invented
+benefit elsewhere in the draft pass. That is measured failure 1 again. The template now takes the
+superset (D5): its extra patterns, plus golden-beans' per-sentence check and its nouns. Both tests are
+restored, and golden-beans' original guard suite passes 20/20 against it. That suite was re-run against
+every other replaced file too: the remaining gaps are tests of the retired prose-draft model pair,
+superseded by design, and codex-writer tests that exist in the template under other names.
+
+The review round also hardened two gates:
+
+- **prod-smoke** now exits 2, never 1, when its checks file is missing, fails to import, or exports no
+  or empty `CHECKS`. Exit 1 means "an assertion was observed false", and the routine reads that as a
+  production regression.
+- **smoke-triage-scope** blocks any PR that edits its own policy or script, and it rejects a rule that
+  pairs an `exact` with a malformed `prefix` instead of throwing on it.
+
+`prose-draft.prompt.md` is retired. Nothing read it after the shared-writer promotion. Its two rules the
+shared files lacked, the outcome → behavior → implementation ladder and English for internal docs, moved
+into `prose/internal.task.md` first.
+
+The same finding exposed a bug on main since S1. `vercel-prune-previews` lost its default project, but
+the standup still called it with only `--age`, so every standup reported stale previews as
+"unavailable". The standup now reads `reporting.config.json` → `vercelProject`; setting the age without
+it is a config error. **Gap:** the live preview count could not be checked from the build machine,
+because its Vercel token is invalid (HTTP 403). It will first run live in the next ops-nightly.
