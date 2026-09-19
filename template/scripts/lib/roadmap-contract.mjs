@@ -25,8 +25,9 @@
 // Deliberately small, so a zero-dependency parser owns it completely: top-level `key: scalar` lines
 // (an unquoted value may carry a trailing ` # comment`), whole-line `#` comments at any indent, and a
 // top-level `key:` followed by a list of flat maps (`  - k: v` then `    k: v`). A scalar is `null`,
-// `~` or empty (→ null), an integer, a double-quoted JSON string, a single-quoted YAML string, or a
-// bare string. Anything else is a parse error, reported rather than guessed around.
+// `~` or empty (→ null), `[]` (an empty list), an integer, a double-quoted JSON string, a single-quoted
+// YAML string, or a bare string; any of them may carry a trailing ` # comment`. Booleans and floats are
+// not in the subset (no contract field uses one). Anything else is a parse error, not guessed around.
 
 export const PHASES = ['Shaping', 'Locking architecture', 'Building', 'Verifying', 'In review', 'Shipped'];
 export const STORY_STATUSES = ['planned', 'in-progress', 'done'];
@@ -44,11 +45,16 @@ export const STORY_ID_RE = /^S(\d+)\.(\d+)$/;
 
 function parseScalar(raw, where) {
   let v = raw.trim();
-  if (!v.startsWith('"') && !v.startsWith("'")) {
+  // A trailing ` # comment` is allowed after any value — quoted ones included, so a hand-edit that
+  // annotates a quoted title does not turn into a parse error.
+  const quoted = v.match(/^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*')(?:\s+#.*)?$/);
+  if (quoted) v = quoted[1];
+  else {
     const hash = v.search(/\s#/);
     if (hash >= 0) v = v.slice(0, hash).trim();
   }
   if (v === '' || v === 'null' || v === '~') return null;
+  if (v === '[]') return [];
   if (/^-?\d+$/.test(v)) return Number(v);
   if (v.startsWith('"')) {
     try {
@@ -140,7 +146,9 @@ export function serializeFields(data, keys) {
   const out = [];
   for (const key of keys) {
     const v = data[key];
-    if (Array.isArray(v)) {
+    if (Array.isArray(v) && !v.length) {
+      out.push(`${key}: []`); // an empty list stays a list on the way back in
+    } else if (Array.isArray(v)) {
       out.push(`${key}:`);
       for (const entry of v) {
         Object.keys(entry).forEach((k, i) =>

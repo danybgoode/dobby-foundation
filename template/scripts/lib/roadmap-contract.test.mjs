@@ -195,3 +195,17 @@ test('epic README: compliant passes; each missing field, bad enum and wrong tota
 test('an archived epic is frozen record — exempt from the new fields', () => {
   assert.deepEqual(validateEpicFrontmatter(epicDoc({ status: 'archived', slug: 'old' })), []);
 });
+
+test('an empty stories list round-trips as a list, not null', () => {
+  const empty = { ...SPRINT, stories_total: 0, stories: [] };
+  const parsed = parseDocFrontmatter(sprintDoc(serializeFields(empty, SPRINT_FIELDS)));
+  assert.deepEqual(parsed.data.stories, []);
+  assert.deepEqual(validateSprintFrontmatter(parsed, { n: 1 }), []);
+});
+
+test('a trailing comment is allowed after a quoted value too', () => {
+  const { data, error } = parseDocFrontmatter(sprintDoc(`title: "x # y"   # note\nrisk: 'low'  # tier`));
+  assert.equal(error, null);
+  assert.equal(data.title, 'x # y');
+  assert.equal(data.risk, 'low');
+});
