@@ -62,7 +62,10 @@ function repo({ readme = README(EPIC_FM), sprint = SPRINT(SPRINT_FM) } = {}) {
   mkdirSync(join(root, 'scripts', 'lib'), { recursive: true });
   for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json'])
     copyFileSync(join(HERE, f), join(root, 'scripts', f));
-  copyFileSync(join(HERE, 'lib', 'roadmap-contract.mjs'), join(root, 'scripts', 'lib', 'roadmap-contract.mjs'));
+  copyFileSync(
+    join(HERE, 'lib', 'roadmap-contract.mjs'),
+    join(root, 'scripts', 'lib', 'roadmap-contract.mjs')
+  );
   writeFileSync(join(root, 'scripts', 'doc-format.enforced.json'), '{ "enforced": ["Roadmap/"] }\n');
   const epic = join(root, 'Roadmap', '09-platform-infra', 'fixture-epic');
   mkdirSync(epic, { recursive: true });
@@ -72,7 +75,10 @@ function repo({ readme = README(EPIC_FM), sprint = SPRINT(SPRINT_FM) } = {}) {
 }
 
 function check(root, extra = []) {
-  const r = spawnSync('node', ['scripts/doc-format.mjs', '--check', ...extra], { cwd: root, encoding: 'utf8' });
+  const r = spawnSync('node', ['scripts/doc-format.mjs', '--check', ...extra], {
+    cwd: root,
+    encoding: 'utf8',
+  });
   rmSync(root, { recursive: true, force: true });
   return { code: r.status, out: r.stdout + r.stderr };
 }
@@ -91,7 +97,9 @@ test('an epic README missing a required field fails, naming the file and the fie
 });
 
 test('an invalid phase value fails', () => {
-  const { code, out } = check(repo({ sprint: SPRINT(SPRINT_FM.replace('phase: Building', 'phase: Nonsense')) }));
+  const { code, out } = check(
+    repo({ sprint: SPRINT(SPRINT_FM.replace('phase: Building', 'phase: Nonsense')) })
+  );
   assert.equal(code, 1, out);
   assert.match(out, /fixture-epic\/sprint-1\.md/);
   assert.match(out, /\[contract-phase-invalid\] phase: "Nonsense"/);
@@ -104,7 +112,9 @@ test('a sprint-N.md with no frontmatter fails', () => {
 });
 
 test('an epic whose declared totals disagree with its sprints fails', () => {
-  const { code, out } = check(repo({ readme: README(EPIC_FM.replace('stories_total: 1', 'stories_total: 4')) }));
+  const { code, out } = check(
+    repo({ readme: README(EPIC_FM.replace('stories_total: 1', 'stories_total: 4')) })
+  );
   assert.equal(code, 1, out);
   assert.match(out, /stories_total: 4, but its sprints declare 1 stories/);
 });

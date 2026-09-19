@@ -129,7 +129,7 @@ export function parseDocFrontmatter(md) {
 
 // ── Serialize ────────────────────────────────────────────────────────────────────────────────────
 
-const BARE_SAFE = /^[A-Za-z][A-Za-z0-9 _.,/()&+-]*$/;
+const BARE_SAFE = /^[A-Za-z0-9][A-Za-z0-9 _.,/()&+-]*$/;
 const RESERVED = new Set(['null', 'true', 'false', 'yes', 'no', 'on', 'off', '~']);
 
 /** One scalar in the subset's syntax: bare when unambiguous, else a double-quoted JSON string. */
@@ -137,7 +137,7 @@ export function formatScalar(v) {
   if (v === null || v === undefined) return 'null';
   if (typeof v === 'number') return String(v);
   const s = String(v);
-  if (BARE_SAFE.test(s) && !RESERVED.has(s.toLowerCase()) && !s.endsWith(' ')) return s;
+  if (BARE_SAFE.test(s) && !/^-?\d+$/.test(s) && !RESERVED.has(s.toLowerCase()) && !s.endsWith(' ')) return s;
   return JSON.stringify(s);
 }
 

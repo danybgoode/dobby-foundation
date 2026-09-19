@@ -34,7 +34,11 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve, relative } from 'node:path';
-import { parseDocFrontmatter, validateEpicFrontmatter, validateSprintFrontmatter } from './lib/roadmap-contract.mjs';
+import {
+  parseDocFrontmatter,
+  validateEpicFrontmatter,
+  validateSprintFrontmatter,
+} from './lib/roadmap-contract.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
@@ -270,10 +274,16 @@ export function contractContext(readmeRelPath, { read = readRelative } = {}) {
   const slug = dir.split('/').at(-1);
   const epic = parseDocFrontmatter(read(readmeRelPath));
   const { sprints } = siblingDocs(readmeRelPath);
-  const parsedSprints = sprints.map((p) => ({ path: p, n: Number(p.match(/sprint-(\d+)\.md$/)[1]), parsed: parseDocFrontmatter(read(p)) }));
+  const parsedSprints = sprints.map((p) => ({
+    path: p,
+    n: Number(p.match(/sprint-(\d+)\.md$/)[1]),
+    parsed: parseDocFrontmatter(read(p)),
+  }));
   // The epic's story total is only cross-checked when every sprint's list could be read — a sprint that
   // fails to parse is already its own finding, and a sum over a partial set would add a false second one.
-  const allRead = parsedSprints.every((s) => s.parsed.hasFrontmatter && !s.parsed.error && Array.isArray(s.parsed.data.stories));
+  const allRead = parsedSprints.every(
+    (s) => s.parsed.hasFrontmatter && !s.parsed.error && Array.isArray(s.parsed.data.stories)
+  );
   return {
     slug,
     archived: epic.data.status === 'archived',
@@ -288,8 +298,12 @@ export function contractContext(readmeRelPath, { read = readRelative } = {}) {
 export function checkContract(docType, content, ctx) {
   if (ctx.archived) return []; // frozen historical record (doc-format-consistency D3)
   if (docType === 'epic-README')
-    return validateEpicFrontmatter(parseDocFrontmatter(content), { sprintCount: ctx.sprintCount, storyCount: ctx.storyCount });
-  if (docType === 'sprint') return validateSprintFrontmatter(parseDocFrontmatter(content), { n: ctx.n, slug: ctx.slug });
+    return validateEpicFrontmatter(parseDocFrontmatter(content), {
+      sprintCount: ctx.sprintCount,
+      storyCount: ctx.storyCount,
+    });
+  if (docType === 'sprint')
+    return validateSprintFrontmatter(parseDocFrontmatter(content), { n: ctx.n, slug: ctx.slug });
   return [];
 }
 
@@ -532,7 +546,10 @@ export function findAllOffenses({ activeOnly = false } = {}) {
     for (const sprintPath of sprints) {
       const sprintText = readRelative(sprintPath);
       const n = Number(sprintPath.match(/sprint-(\d+)\.md$/)[1]);
-      const sprintOffenses = [...checkSprintDoc(sprintText), ...checkContract('sprint', sprintText, { ...ctx, n })];
+      const sprintOffenses = [
+        ...checkSprintDoc(sprintText),
+        ...checkContract('sprint', sprintText, { ...ctx, n }),
+      ];
       if (sprintOffenses.length)
         results.push({ path: sprintPath, docType: 'sprint', offenses: sprintOffenses });
     }
@@ -677,7 +694,10 @@ export function checkOneDoc(relPath) {
   const ctx = segs.length === 3 && existsRelative(readme) ? contractContext(readme) : null;
   if (base === 'README.md') {
     if (segs.length !== 3) return null; // ['Roadmap', section, epic] ⇒ epic README; else skip
-    return [...checkEpicReadme(content, { slug: segs.at(-1) }), ...(ctx ? checkContract('epic-README', content, ctx) : [])];
+    return [
+      ...checkEpicReadme(content, { slug: segs.at(-1) }),
+      ...(ctx ? checkContract('epic-README', content, ctx) : []),
+    ];
   }
   if (/^sprint-\d+\.md$/.test(base)) {
     const n = Number(base.match(/\d+/)[0]);
