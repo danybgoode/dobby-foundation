@@ -59,7 +59,24 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    up to date on an empty funnel), and confirm the `guards` GitHub Actions workflow goes green on
    the initial commit (or is simply skipped — it's `pull_request`-only, so a direct push to `main`
    won't trigger it; that's expected, `.githooks/pre-commit` covers that path locally instead).
-7. **Groom your first idea** in a fresh Claude Code session — the `groom` skill should trigger from
+7. **Wire the flag provider** — feature flags are Golden Frijoles here, and this is the one step
+   that is checked rather than described:
+   ```
+   node scripts/preflight.mjs
+   ```
+   On a fresh spawn it **fails**, and prints the two commands that fix it:
+   ```
+   npx @golden-frijoles/cli login
+   npx @golden-frijoles/cli init
+   ```
+   `npm i -g @golden-frijoles/cli` puts `gf` on your PATH; every command takes `--json`. `gf init`
+   creates the project if there isn't one, mints a `flag_read` key, writes `.env.local` at mode 0600
+   (refusing if git does not actually ignore it) and prints the snippet that reads it. Re-run the
+   preflight: it passes. See `AGENTS.md` rule 1 and
+   [`references/flags-runtime.md`](references/flags-runtime.md) for the runtime rules — the short
+   version is that **a Golden outage never fails a build**, because every read resolves
+   synchronously against a default you supply at the call site.
+8. **Groom your first idea** in a fresh Claude Code session — the `groom` skill should trigger from
    the marketplace-installed plugin.
 
 ## What ships runnable on day one
@@ -70,6 +87,11 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
   which proves the wiring. Replace the server with your app and keep the harness.
 - **Every skill the `ways-of-work` plugin advertises runs here.** `scripts/` carries each skill's full
   script closure, and the plugin's CI proves it against this directory.
+- **The flag seam is already wired.** `apps/example-app/flags.mjs` wraps `createFlagProvider` with a
+  fallback-per-call contract, `server.mjs` reads a demo kill-switch through it, and
+  `flags.test.mjs` + `e2e/flags.spec.ts` prove the app boots, serves and passes its gate with **no
+  credentials and the SDK not installed at all**. Your first high-risk epic starts at "create the
+  flag", not at "integrate an SDK".
 
 ## Opt-in, not copied by default
 

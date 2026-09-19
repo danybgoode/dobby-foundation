@@ -78,6 +78,46 @@ node scripts/pack-skills.mjs --skill groom   # just the one you need
 Then attach the `.skill` file in a Cowork session and click **Save skill**. Archives are
 byte-for-byte reproducible, so rebuilding without a source change is a no-op rather than noise.
 
+## Flags are Golden Frijoles, and a spawn already carries the provider
+
+A project spawned from `template/` gets the flag provider **already wired** — the seam
+(`apps/example-app/flags.mjs`), the runtime rules
+([`template/references/flags-runtime.md`](template/references/flags-runtime.md)), the
+cannot-be-violated rule in `AGENTS.md`, and a preflight that fails loudly when the project has no
+Golden Frijoles project linked:
+
+```
+node scripts/preflight.mjs
+```
+
+It checks that a project is linked, that the `flag_read` key actually resolves a snapshot, and that
+the CLI is installed and current. When it isn't, it prints the two commands that fix it:
+
+```
+npx @golden-frijoles/cli login
+npx @golden-frijoles/cli init
+```
+
+`npm i -g @golden-frijoles/cli` puts `gf` on your PATH; every command takes `--json`. `gf init`
+creates the project if there isn't one, mints a `flag_read` key, writes `.env.local` at mode 0600
+(refusing if git does not actually ignore it), and prints the snippet that reads exactly the
+variables it just wrote. The whole kill-switch story is then three commands:
+
+```
+gf flags create <domain>.<feature>_enabled --kill-switch --all-envs
+gf flags ls --env production          # ← the ACTIVATION check: it must not read "never turned on"
+gf flags kill <domain>.<feature>_enabled --env production
+```
+
+**One provider, no parallel flag store.** `groom`'s Stage 6b plans every `risk: high` kill-switch
+against this mechanism, and `scripts/check-plugin-leaks.mjs` fails if a template or plugin file
+starts naming another one — which is exactly how this repo shipped one consumer's in-house flag
+table to every future project for months.
+
+**⚠️ The plan tiers are written down but NOT ENFORCED.** Every account gets everything, unlimited —
+there is no metering, no quota display and no upgrade prompt. The table lives in
+[`template/AGENTS.md`](template/AGENTS.md); do not build against its numbers.
+
 ## Origin
 
 Extracted from `medusa-bonsai` (`danybgoode/miyagi-product-management`) as the S0 workstream of the

@@ -61,13 +61,23 @@ jobs:
             plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs \
             plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs
 
-      # The two repo-tooling scripts added with the skill-script contract.
+      # The Golden Frijoles onboarding text is ONE surface across four shipped files plus the
+      # canonical module they all come from. Prose drifts silently; three copies of
+      # `npx @golden-frijoles/cli init` agree right up until one of them is edited.
+      - name: Golden onboarding surfaces agree
+        run: node scripts/check-onboarding-parity.mjs
+
+      # The repo-tooling scripts. check-plugin-leaks.test.mjs fires the guard's own rules against
+      # FIXTURES: until golden-flags-by-default S1.3 this guard had no test at all, and its
+      # behaviour was only ever observed as "CI was green" — the one observation that cannot tell a
+      # working guard from a broken pattern. The leak that produced that epic sat here for months.
       - name: harness tooling tests
         run: |
           node --test \
             scripts/check-skill-scripts.test.mjs \
             scripts/render-skill-adverts.test.mjs \
-            scripts/pack-skills.test.mjs
+            scripts/pack-skills.test.mjs \
+            scripts/check-plugin-leaks.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
@@ -97,6 +107,13 @@ jobs:
           files=(template/scripts/*.test.mjs template/scripts/lib/*.test.mjs)
           test "${#files[@]}" -gt 0 || { echo "no template script tests found — the glob is wrong" >&2; exit 1; }
           node --test "${files[@]}"
+
+      # The template's example app ships the flag seam wired (golden-flags-by-default S1.6). These
+      # tests run with NO node_modules and no credentials, which is the point: the epic's DoD says
+      # "a Golden outage does not break a build or a test run — proven by a test, not asserted", and
+      # a package that is not installed at all is the most complete outage there is.
+      - name: example-app flag seam — the fail-soft contract
+        run: node --test template/apps/example-app/flags.test.mjs
 
       # The Notion sync is OPT-IN (template/optional/notion/). It imports ./roadmap-extract.mjs, so it can
       # only run once copied next to it — which is exactly what its README tells a project to do. Do that
