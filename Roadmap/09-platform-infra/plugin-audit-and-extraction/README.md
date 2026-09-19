@@ -175,7 +175,10 @@ honest, but it would also have left the advertised capability absent.
 Branches stack: `feat/plugin-audit-and-extraction` → `-s2` → `-s3`, cut from the lean pass's final branch.
 
 ## Definition of Done (epic)
-- [x] All sprints merged to `main` + smoke-tested (gaps stated): #20 `2cfd281`, #21 `f8be490`, #22 `8aa5e54`
+- [x] All sprints merged to `main` + smoke-tested (gaps stated): #20 `2cfd281`, #21 `f8be490`, #22 `8aa5e54`.
+      *`epic-dod --check` shows `sprints-merged` as `?`: the sprint status lines also cite the consumers'
+      squash SHAs, which this repo cannot resolve. The linked `owner/repo#N` PRs are the proof, and all
+      are MERGED.*
 - [x] Each `sprint-N.md` has its smoke walkthrough (S3's carries a correction after review)
 - [x] This README marked ✅; every sprint status ticked with commit refs
 - [x] `RETROSPECTIVE.md` written

@@ -24,9 +24,9 @@ _None._
 - [✅ Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded](../../09-platform-infra/plugin-audit-and-extraction/README.md) — 09 Platform-infra · 14/14 stories · risk: Low · wave-2026-09-16
 - [Ways-of-work lean pass — remove the training wheels, close the adoption gap](../../09-platform-infra/ways-of-work-lean-pass/README.md) — 09 Platform-infra · 19/19 stories · risk: High · wave-2026-09-16
 
-## ⬜ Funnel — seeds not yet scaffolded (0)
+## ⬜ Funnel — seeds not yet scaffolded (1)
 
-_None._
+- [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
 
 ---
-_Epics: 4 · seeds in funnel: 0 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 4 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._

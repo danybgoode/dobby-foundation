@@ -47,8 +47,8 @@ project (danybgoode/miyagi-product-management) and, in S3, in golden-beans.
   passed 8/8 against production both ways; the gate BLOCKed `miyagisanchezcommerce#422` with the same two
   blockers; and perf-probe's fixture URLs were identical.
 - **The merge rail ran live on the new code the moment it merged.** Pulling the origin's `main` posted the
-  report for `cf99bb8` in the background, and a second pull posted nothing. That closed S3's one stated
-  smoke gap by running the real thing.
+  report for `cf99bb8` in the background, and a second pull posted nothing. That closed S3's step-4 partial
+  (once-per-commit with a configured chat) by running the real thing.
 - **Fail-closed paid off in review.** Each gap reviewers found, fixed before merge, was a case of
   "could not look" being reported as something else: a checks file that failed to import exited 1
   (read as a production regression), and a malformed policy rule threw instead of refusing.
@@ -57,10 +57,10 @@ project (danybgoode/miyagi-product-management) and, in S3, in golden-beans.
 
 - **"Byte-identical" is a claim until a byte-compare runs.** S3's walkthrough said the origin was 10/10 on
   `check-skill-scripts`, and it was not: 4 skills had undeclared imports, and eight ported rails still ran
-  the origin's pre-generalization copies. One reviewer finding about `vercel-prune` callers led to
-  comparing every template script against every consumer. That comparison found the rest, including a
+  the origin's pre-generalization copies. One reviewer finding about `vercel-prune` callers exposed a
   bug live since S1: the standup's stale-preview count read "unavailable" in every run, because its
-  callee had lost its default project.
+  callee had lost its default project. Chasing it led to comparing every template script against every
+  consumer, and that comparison found the eight rails.
 - **"The template takes the superset" has to be checked in both directions.** The template's prose guard
   came from the origin. golden-beans had since made it stricter: the no-impact exemption was per
   sentence, with more nouns. Adopting the template's copy silently undid that, and deleted the two tests
@@ -87,7 +87,9 @@ project (danybgoode/miyagi-product-management) and, in S3, in golden-beans.
   `4d05b0d`, shows the same), but a flagged post reaching the channel is worth a look on the prose rail.
 - **The review rail stays forked in both consumers.** `cross-review`, `cross-panel`, `cross-agent-cli` and
   their prompts are out of this epic's scope, and each consumer's `scripts/README.md` records that.
-  Unifying them belongs to the review-stack work.
+  Unifying them belongs to the review-stack work. Found at close: the template's agy pin error names an
+  `agy-doctor.mjs` it doesn't ship, so with agy at 1.2.7 against a 1.2.5 pin, the agy seat is refused in
+  the foundation. Seeded as [`review-rail-one-implementation`](../../00-ideas/seeds/review-rail-one-implementation.md).
 - **golden-beans' `prose/cpo-persona.md` is still the template's neutral copy.** It only reaches
   `prose-draft` there, so filling it in with this product's real people is a voice decision for the
   product owner.

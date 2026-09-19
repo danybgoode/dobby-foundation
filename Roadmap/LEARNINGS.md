@@ -197,7 +197,8 @@ accumulate below them, same one-liner + why + date shape.
 - **"Byte-identical" is a claim until a byte-compare runs.** Compare every template script against every
   consumer (`cmp` in a loop) before claiming one implementation per rail, and put every surviving
   difference in the consumer's own docs with a reason. The epic's walkthrough claimed it and was wrong on
-  eight rails, and a bug hid underneath: a callee's required flag that a caller never passed.
+  eight rails. The review finding that prompted the compare was itself a live bug: a callee's newly
+  required flag that a caller never passed.
 - **Replacing a file with the shared copy? Run the consumer's OLD tests against the NEW code.** The shared
   copy can be weaker than the local one it replaces. A consumer's stricter prose guard was silently undone
   that way, and the tests that pinned it were deleted as "superseded". `git show origin/main:<test>` into a
