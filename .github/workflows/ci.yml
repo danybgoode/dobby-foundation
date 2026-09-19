@@ -185,6 +185,10 @@ jobs:
           cmp scripts/doc-format.mjs template/scripts/doc-format.mjs
           cmp scripts/lib/roadmap-contract.mjs template/scripts/lib/roadmap-contract.mjs
           node scripts/doc-format.mjs --check
+          # …and the build view resolves against them here too (the same resolver bytes as the template).
+          cmp scripts/build-state.mjs template/scripts/build-state.mjs
+          cmp scripts/lib/session-journal.mjs template/scripts/lib/session-journal.mjs
+          node scripts/build-state.mjs --json --offline > /dev/null
 
       # The scaffolder renders three templates into every new epic in every consuming project. A
       # broken placeholder here is invisible until someone scaffolds an epic, so render one and
