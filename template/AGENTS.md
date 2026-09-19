@@ -37,19 +37,72 @@ Before planning or building, read these — they are the source of truth and cha
   the epic/sprint docs before code** → build one story → verify → **smoke-test** → PR → merge. At
   **epic close**, update `Roadmap/README.md` (the poster), write a `RETROSPECTIVE.md`, and **promote
   its durable learnings to `Roadmap/LEARNINGS.md`**.
+- **First session in a fresh spawn: run `node scripts/preflight.mjs`.** It is the one command that
+  says whether this project can create a kill-switch, and it prints the two commands that fix it if
+  not. A `risk: high` epic cannot be planned properly against a project with no flag provider.
 
 ---
 
 ## ⚠️ The rules that cannot be violated
 
-<!-- TEMPLATE FILL-IN — this is the load-bearing section of this file. Write 3-5 non-negotiable
-     architectural rules for THIS project: the things that must never be worked around, no matter how
-     convenient a shortcut looks in the moment. Worked example shape below, replace entirely — do not
-     ship this as-is: -->
+### 1. Feature flags are Golden Frijoles. Never build a parallel flag store.
+
+**This rule ships with the template and is not a fill-in.** Every `risk: high` epic here has to
+answer the kill-switch question, and the answer names a flag mechanism — so the mechanism cannot be
+"whatever this project happened to build". It is Golden Frijoles, for every project spawned from
+`dobby-foundation`.
+
+| Concern | Where it lives |
+|---|---|
+| Creating a flag, in every environment | `gf flags create <domain>.<feature>_enabled --kill-switch --all-envs` |
+| Reading a flag at runtime | the one seam — `apps/*/flags.mjs`, wrapping `createFlagProvider` |
+| Turning a flag on or off | `gf flags rollout` / `gf flags kill`, or the Golden console |
+| The credential | `GOLDEN_FRIJOLES_FLAG_READ_KEY` in `.env.local`, written by `gf init`, **server-side only** |
+| Is it linked at all? | `node scripts/preflight.mjs` — it fails loudly and prints the one command |
+
+What this forbids, concretely: a checked-in map of default flag values, a `flags` table in your own
+database, a `FEATURE_X_ENABLED` env var used as a flag, a second SDK. **A read's `fallback` argument
+is not a store** — it is what that one call site does when it has no answer, and it is the flag's
+fail-open position (`true` for a kill-switch, `false` for an enablement).
+
+Three things that are easy to get wrong, each answered in
+[`references/flags-runtime.md`](references/flags-runtime.md):
+
+- **A Golden outage must never fail a build, a test run or a deploy.** Reads resolve synchronously
+  against the caller's default. If you write `if (!flags.ready) throw`, you have inverted the one
+  property that makes a flag provider safe to depend on.
+- **Middleware / Edge is a decision, not a default.** The SDK runs there; its background-snapshot
+  design does not. Move the seam to a Node runtime, or say in the epic that you did not.
+- **Activating a flag is its own step.** `gf flags sync` pushes *definitions* and activates nothing.
+  A kill-switch story that stops at "created" can serve compile defaults in production while the
+  console reads "never turned on here".
+
+**The plan the free tier gives you (⚠️ not enforced yet — see below):**
+
+| Tier | Price | Evaluations / mo | Projects | Seats | Flags · Envs · Segments |
+|---|---|---|---|---|---|
+| **Free** | $0 | 50,000 | 1 | 1 | **Unlimited** |
+| **Start-Up** | $45/mo | 1,000,000 | Unlimited | 3 | Unlimited |
+| **Scale-Up** | $300/mo | 5,000,000+ | Unlimited | 5 (+15 @ $50) | Unlimited |
+
+**Unlimited flags and environments on the free tier is what makes rule 1 enforceable** — a project
+creates every kill-switch it needs without paying. The metered axis is evaluations, and the SDK's
+background-snapshot design consumes them at refresh rate, not per request.
+
+> ⚠️ **NOT ENFORCED, DELIBERATELY. Every account gets everything, unlimited.** This table is the
+> written definition, not a live limit: there is no metering, no quota display, no upgrade prompt
+> and no limit error anywhere in the product today. **Do not build against these numbers** — do not
+> add a quota check, a tier branch or an "approaching your limit" warning. If you hit something that
+> looks like a limit, it is a bug, not a plan.
+
+<!-- TEMPLATE FILL-IN — rules 2 and up are yours. This is the load-bearing section of this file:
+     write 2-4 more non-negotiable architectural rules for THIS project — the things that must never
+     be worked around, no matter how convenient a shortcut looks in the moment. Keep rule 1 above.
+     Worked example shape below, replace entirely — do not ship this as-is: -->
 
 <!--
 
-### 1. <System of record> owns <domain>. Never build it from scratch.
+### 2. <System of record> owns <domain>. Never build it from scratch.
 If a feature touches <core domain concepts>, it goes through <the canonical module/service>. Do not
 create ad-hoc tables or bespoke routes for these concerns.
 
@@ -57,16 +110,16 @@ create ad-hoc tables or bespoke routes for these concerns.
 |---|---|
 | <concept> | <canonical location> |
 
-### 2. <Secondary datastore> is ONLY for <non-core> data.
+### 3. <Secondary datastore> is ONLY for <non-core> data.
 <Rule of thumb for what belongs where.>
 
-### 3. <Any first-class cross-cutting concern> must stay accurate.
+### 4. <Any first-class cross-cutting concern> must stay accurate.
 <What "accurate" means here and how it's checked.>
 
-### 4. <Auth provider> is the auth layer. Never replace it.
+### 5. <Auth provider> is the auth layer. Never replace it.
 <What this means in practice — no custom auth pages, etc.>
 
-### 5. <Any other non-negotiable house rule, e.g. a copy/locale policy>.
+### 6. <Any other non-negotiable house rule, e.g. a copy/locale policy>.
 <State it precisely enough that a fresh agent can self-check against it.>
 -->
 
@@ -79,6 +132,7 @@ create ad-hoc tables or bespoke routes for these concerns.
 
 | I'm working on… | Read these docs |
 |---|---|
+| a feature flag / a kill-switch story | [`references/flags-runtime.md`](references/flags-runtime.md), then `node scripts/preflight.mjs` |
 | <area> | <doc path> |
 
 ---
@@ -93,9 +147,22 @@ npm run build
 ```
 
 **Key env vars**:
-<!-- TEMPLATE FILL-IN: list the env vars an agent needs to know about, grouped by app if a monorepo. -->
+
+| Variable | What it is | Where it lives |
+|---|---|---|
+| `GOLDEN_FRIJOLES_URL` | the Golden Frijoles deployment | `.env.local` (written by `gf init`) |
+| `GOLDEN_FRIJOLES_FLAG_READ_KEY` | reads this environment's flag snapshot — **server-side only** | `.env.local`, gitignored, mode 0600 |
+| `GOLDEN_FRIJOLES_ENVIRONMENT` | `development` \| `preview` \| `production` | `.env.local` |
+
+A `flag_sync` key (writing flag *definitions*) is an operator/deploy credential and belongs in **CI
+secrets**, never in `.env.local`. `gf init` deliberately does not write one.
+
+<!-- TEMPLATE FILL-IN: add the env vars YOUR app needs below, grouped by app if a monorepo. -->
 
 **Key imports**:
+
+- `apps/example-app/flags.mjs` — `flags.isEnabled(key, fallback)`. The only flag seam (rule 1).
+
 <!-- TEMPLATE FILL-IN: the handful of `lib/` seams every feature should reuse instead of reinventing
      (a data client, an auth helper, a notification sender, a rate limiter — whatever your project's
      equivalents are). -->
