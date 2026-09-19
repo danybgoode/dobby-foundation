@@ -1,6 +1,6 @@
 # Golden Frijoles by default — Sprint 1: The mandate, the preflight and the agent-guided onboarding
 
-**Status:** ✅ Shipped — PR #24, `<merge-sha>` (2026-09-19)
+**Status:** ✅ Shipped — PR #24, `5db30c6` (2026-09-19)
 
 **Epic:** [Golden Frijoles by default](README.md) · **Risk: MIXED (LOW + HIGH)** — 1.2 and 1.6 are HIGH (they define how every future project reads flags); the rest LOW
 
@@ -62,7 +62,7 @@ architecture into every future project.
 is unchanged** — it is correct and already matches the SDK's semantics. Per **D4**, the story template
 makes **activation an explicit step**, distinct from syncing the definition.
 **Risk:** low
-**Landed:** `316e822`, plus `3799679` — D4 was only half-applied at first. The kill-switch *reference*
+**Landed:** PR #24 (two commits on the branch) — D4 was only half-applied at first. The kill-switch *reference*
 made activation explicit while the three **scaffolder templates** every future epic is rendered from
 still said the flag must *"exist in this project's own flag provider"* — and existing is exactly what a
 synced-but-never-activated definition does. The generated epic DoD, the generated kickoff's *done means
@@ -177,7 +177,7 @@ written.**
      `{"demo.hello_enabled":false,…}` — the call-site default — with one log line saying why.
    - `node scripts/preflight.mjs` → `⚠️ snapshot … NOT a failure`, **exit 0**.
    *(This step found the one real defect of the epic: the health payload served `ready: true` beside
-   `state: 'NOT_READY'`. Fixed in `6295bb3` with a spec that goes red on the old behaviour.)*
+   `state: 'NOT_READY'`. Fixed on the branch with a spec that goes red on the old behaviour.)*
 
 5. Start a groom session on a HIGH-risk ask.
    → The kill-switch story names a **Golden Frijoles** flag, the right polarity, one resolver seam,

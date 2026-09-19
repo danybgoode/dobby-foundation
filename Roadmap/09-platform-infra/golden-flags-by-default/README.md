@@ -101,12 +101,18 @@ project spawned from it.
 
 | Sprint | Story | Risk | Landed |
 |---|---|---|---|
-| 1 | 1.1 `groom` Stage 6b rewritten to the Golden Frijoles contract | low | ✅ `316e822` |
-| 1 | 1.2 `scripts/preflight.mjs` — the mandate becomes checkable | high | ✅ `0e5a170` |
-| 1 | 1.3 `check-plugin-leaks.mjs` gains a flag-mechanism rule | low | ✅ `53d89ae` |
-| 1 | 1.4 Agent-guided onboarding in the plugin's install path | low | ✅ `2ee3b72` |
-| 1 | 1.5 `template/AGENTS.md` gains the cannot-be-violated rule + the plan table | low | ✅ `4d3aeb3` |
-| 1 | 1.6 Template SDK wiring | high | ✅ `729735f`, `6295bb3` |
+| 1 | 1.1 `groom` Stage 6b rewritten to the Golden Frijoles contract | low | ✅ #24 |
+| 1 | 1.2 `scripts/preflight.mjs` — the mandate becomes checkable | high | ✅ #24 |
+| 1 | 1.3 `check-plugin-leaks.mjs` gains a flag-mechanism rule | low | ✅ #24 |
+| 1 | 1.4 Agent-guided onboarding in the plugin's install path | low | ✅ #24 |
+| 1 | 1.5 `template/AGENTS.md` gains the cannot-be-violated rule + the plan table | low | ✅ #24 |
+| 1 | 1.6 Template SDK wiring | high | ✅ #24 |
+
+
+> **The per-story SHAs below are the FEATURE BRANCH's commits.** The PR was squash-merged and the
+> branch deleted, so none of them is an ancestor of `main` — the one commit that is, and the only
+> citation `epic-dod --check` can verify, is the squash **`5db30c6`** (PR #24). They are kept
+> because the commit messages carry each story's reasoning, and they are reachable from the PR.
 
 ### What each decision actually turned out to be
 

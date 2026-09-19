@@ -8,13 +8,16 @@ One sprint, six stories, one PR (#24), built in one orchestrated session.
 
 | Story | What landed | Ref |
 |---|---|---|
-| 1.2 | `template/scripts/preflight.mjs` + `lib/golden-onboarding.mjs` — the mandate as a check, 23 tests | `0e5a170` |
-| 1.1 | `groom` Stage 6b rewritten to `gf flags create`, with **activation as a fifth named thing** | `316e822` |
-| 1.3 | `check-plugin-leaks` flag-mechanism rule + the guard's first 11 tests | `53d89ae` |
-| 1.6 | `apps/example-app/flags.mjs` seam, `references/flags-runtime.md`, 13 tests, an api spec | `729735f` |
-| 1.5 | `AGENTS.md` rule 1 + the plan table with its NOT-ENFORCED note | `4d3aeb3` |
-| 1.4 | Four onboarding surfaces welded by `check-onboarding-parity.mjs`; CI wiring | `2ee3b72` |
-| 1.6 | Two defects the smoke walkthrough found | `6295bb3` |
+| 1.2 | `template/scripts/preflight.mjs` + `lib/golden-onboarding.mjs` — the mandate as a check, 23 tests | #24 |
+| 1.1 | `groom` Stage 6b rewritten to `gf flags create`, with **activation as a fifth named thing** | #24 |
+| 1.3 | `check-plugin-leaks` flag-mechanism rule + the guard's first 11 tests | #24 |
+| 1.6 | `apps/example-app/flags.mjs` seam, `references/flags-runtime.md`, 13 tests, an api spec | #24 |
+| 1.5 | `AGENTS.md` rule 1 + the plan table with its NOT-ENFORCED note | #24 |
+| 1.4 | Four onboarding surfaces welded by `check-onboarding-parity.mjs`; CI wiring | #24 |
+| 1.6 | Two defects the smoke walkthrough found | #24 |
+
+*(All seven landed in PR #24, squash-merged as `5db30c6`; the branch's own commits carry each
+story's reasoning and are reachable from the PR.)*
 
 A project spawned from `template/` now boots with the flag provider wired, fails one command loudly
 if it has no Golden Frijoles project, and cannot quietly grow a second flag store.
