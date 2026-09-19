@@ -33,6 +33,7 @@ requires_scripts:
   - lib/report-registry.mjs
   - standup/templates/daily-story-deck.md
   - build-order.mjs
+  - lib/roadmap-status-buckets.mjs
   - roadmap-extract.mjs
   - vercel-prune-previews.mjs
 ---
@@ -64,6 +65,7 @@ config never survived to the next run anyway. Copy `reporting.config.example.jso
 | `telegram.chatId` / `telegram.chatIds.<standup\|weekly\|pmo>` | where each report posts. A surface id wins over the project id, which wins over `TELEGRAM_CHAT_ID` | the send refuses; `--dry-run` still works |
 | `smoke` | `{repo, workflow}` — the browser-smoke workflow the standup reports on | no smoke signal |
 | `stalePreviewAgeDays` | the age the standup's stale-preview count uses | no stale-preview signal |
+| `vercelProject` | the Vercel project whose previews that count reads. **Required when `stalePreviewAgeDays` is set** — the prune script has no default project, by design | the config is refused if the age is set without it |
 | `liveFlags` | `{command, cwd}` — prints the flag keys that are ON, one per line | the prose brief treats flag state as *unknown*, never "none" |
 | `artifacts.docViewerUrl` | the project's URL-hash markdown viewer, for deck/packet links | no deck links (the Telegram text stands alone) |
 | `artifacts.registry` | `{resolverBaseUrl, bucket}` — short-link registry for those decks | links stay URL-hash links |
@@ -84,7 +86,7 @@ routine (`scripts/routines/ops-nightly.prompt.md`) invokes me as its one step.
 - **`gh` CLI** — the PR/CI/workflow-run signals. Must be authenticated with read access to every repo in
   `repos`; a repo it can't reach degrades to "unavailable" in that section, it doesn't fail the whole run.
 - **`scripts/build-order.mjs --check`** — the build-order drift signal. Don't re-implement its diff logic.
-- **`scripts/vercel-prune-previews.mjs`** (dry-run, `--age <stalePreviewAgeDays>`) — the stale-preview count. Never pass
+- **`scripts/vercel-prune-previews.mjs`** (dry-run, `--project <vercelProject> --age <stalePreviewAgeDays>`) — the stale-preview count. Never pass
   `--apply` from this skill.
 - **The app's own chat-client module**, if it has one — the reference HTTP-call shape (`sendMessage`,
   `parse_mode: 'HTML'`, escape `&`/`<`/`>`) that `standup.mjs` reimplements standalone, since this script

@@ -191,7 +191,10 @@ function loadServiceAccountKey(env) {
 // OAuth access token via the standard JWT-bearer grant. Returns null on any failure (malformed key,
 // network error, non-2xx response) — never throws, so a routine with no key configured just falls
 // through to the gcloud path or the URL-hash fallback.
-export async function getAccessTokenFromServiceAccountKey(key, { fetchImpl = fetch, now = () => Date.now() } = {}) {
+export async function getAccessTokenFromServiceAccountKey(
+  key,
+  { fetchImpl = fetch, now = () => Date.now() } = {}
+) {
   if (!key?.client_email || !key?.private_key) return null;
   const iat = Math.floor(now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT' };
@@ -298,10 +301,7 @@ export function uploadViaGcloud({
   // --if-generation-match=0: same overwrite protection as the REST path's x-goog-if-generation-match
   // header — `gcloud storage cp` supports this flag directly (confirmed: `gcloud storage cp --help`).
   // Skipped when allowOverwrite is true (live/ objects — see uploadViaRest's comment).
-  const args = [
-    'storage', 'cp', '-', `gs://${bucket}/${objectPath}`,
-    `--content-type=${contentType}`,
-  ];
+  const args = ['storage', 'cp', '-', `gs://${bucket}/${objectPath}`, `--content-type=${contentType}`];
   if (!allowOverwrite) args.push('--if-generation-match=0');
   const r = spawnSyncImpl('gcloud', args, { input: markdown, encoding: 'utf8' });
   if (r.status === 0) return { ok: true };
@@ -332,7 +332,15 @@ export async function uploadReportPayload({
   if (key) {
     const token = await getAccessTokenFromServiceAccountKey(key, { fetchImpl });
     if (token) {
-      const result = await uploadViaRest({ bucket, objectPath, markdown, token, fetchImpl, contentType, allowOverwrite });
+      const result = await uploadViaRest({
+        bucket,
+        objectPath,
+        markdown,
+        token,
+        fetchImpl,
+        contentType,
+        allowOverwrite,
+      });
       if (result.ok) return result;
       // A key was configured but the upload itself failed (bad IAM binding, wrong bucket, etc.) — still
       // worth trying the gcloud path in case ADC on this machine covers it, before giving up.
@@ -368,7 +376,14 @@ export async function publishLiveArtifact({
   const objectPath = liveObjectPath(key, ext);
   if (!bucket) return { ok: false, objectPath, reason: 'registry-not-configured' };
   try {
-    const result = await uploader({ bucket, objectPath, markdown: content, env, contentType, allowOverwrite: true });
+    const result = await uploader({
+      bucket,
+      objectPath,
+      markdown: content,
+      env,
+      contentType,
+      allowOverwrite: true,
+    });
     if (result?.ok) return { ok: true, objectPath };
     return { ok: false, objectPath, reason: result?.reason || 'unknown' };
   } catch (err) {

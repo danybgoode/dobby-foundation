@@ -12,7 +12,7 @@
 
 ## 🏗️ Building now (1)
 
-- [Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded](../../09-platform-infra/plugin-audit-and-extraction/README.md) — 09 Platform-infra · 6/14 stories · risk: Low · wave-2026-09-16
+- [Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded](../../09-platform-infra/plugin-audit-and-extraction/README.md) — 09 Platform-infra · 11/14 stories · risk: Low · wave-2026-09-16
 
 ## 📋 Ready to build (scaffolded, not started) (2)
 

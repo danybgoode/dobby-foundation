@@ -18,7 +18,7 @@ export function authConfigured(): boolean {
 
 export function identityFor(flow: string): string | null {
   const envName = process.env[`LIVE_SMOKE_IDENTITY_ENV_${flow.toUpperCase()}`]
-  return envName ? process.env[envName] ?? null : null
+  return envName ? (process.env[envName] ?? null) : null
 }
 
 export async function signIn(_page: Page, _identity: string): Promise<void> {

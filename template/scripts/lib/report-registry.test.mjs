@@ -77,9 +77,12 @@ test('pmoWeeklySlug/pmoMonthlySlug/pmoSheetSlug are one stable slug per UTC day,
   assert.equal(pmoSheetSlug({ date }), 'pmo-sheet-2026-07-14');
 });
 
-test('slugForArtifact dispatches by the report scripts\' own artifact names', () => {
+test("slugForArtifact dispatches by the report scripts' own artifact names", () => {
   const date = new Date('2026-07-14T05:00:00Z');
-  assert.match(slugForArtifact({ name: 'standup', date, markdown: 'x' }), /^daily-story-2026-07-14-[0-9a-f]{6}$/);
+  assert.match(
+    slugForArtifact({ name: 'standup', date, markdown: 'x' }),
+    /^daily-story-2026-07-14-[0-9a-f]{6}$/
+  );
   assert.equal(slugForArtifact({ name: 'weekly', date, markdown: 'x' }), 'pmo-weekly-2026-07-14');
   assert.equal(slugForArtifact({ name: 'monthly', date, markdown: 'x' }), 'pmo-monthly-2026-07-14');
   assert.equal(slugForArtifact({ name: 'sheet', date, markdown: 'x' }), 'pmo-sheet-2026-07-14');
@@ -145,9 +148,15 @@ test('buildReportLink with no registry configured uploads nothing and keeps the 
   const fallbackUrl = 'https://viewer.example.test/#md=x';
   for (const partial of [{}, { bucket: BUCKET }, { baseUrl: RESOLVER_BASE_URL, bucket: null }]) {
     const result = await buildReportLink({
-      name: 'weekly', markdown: 'x', fallbackUrl, date: new Date('2026-07-14T05:00:00Z'),
+      name: 'weekly',
+      markdown: 'x',
+      fallbackUrl,
+      date: new Date('2026-07-14T05:00:00Z'),
       ...partial,
-      uploader: async () => { called = true; return { ok: true }; },
+      uploader: async () => {
+        called = true;
+        return { ok: true };
+      },
     });
     assert.equal(result.url, fallbackUrl);
     assert.equal(result.usedRegistry, false);
@@ -290,7 +299,8 @@ test('upgradeArtifactLinks upgrades a successful upload and preserves the fallba
     { name: 'sheet', markdown: '# sheet', url: 'https://example.test/#md=sheet-fallback' },
   ];
   const errors = [];
-  const uploader = async ({ slug }) => (slug.startsWith('pmo-weekly') ? { ok: true } : { ok: false, reason: 'boom' });
+  const uploader = async ({ slug }) =>
+    slug.startsWith('pmo-weekly') ? { ok: true } : { ok: false, reason: 'boom' };
   const result = await upgradeArtifactLinks(artifacts, {
     ...REGISTRY,
     date: new Date('2026-07-14T05:00:00Z'),
@@ -311,7 +321,10 @@ test('upgradeArtifactLinks upgrades a successful upload and preserves the fallba
 test('uploadViaRest sends x-goog-if-generation-match: 0 (never overwrite an existing object)', async () => {
   let seenHeaders;
   await uploadViaRest({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x', token: 'tok',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
+    token: 'tok',
     fetchImpl: async (url, opts) => {
       seenHeaders = opts.headers;
       return { ok: true, status: 200 };
@@ -322,7 +335,10 @@ test('uploadViaRest sends x-goog-if-generation-match: 0 (never overwrite an exis
 
 test('uploadViaRest treats a 412 (object already exists) as success, not a failure', async () => {
   const result = await uploadViaRest({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x', token: 'tok',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
+    token: 'tok',
     fetchImpl: async () => ({ ok: false, status: 412 }),
   });
   assert.equal(result.ok, true);
@@ -331,7 +347,10 @@ test('uploadViaRest treats a 412 (object already exists) as success, not a failu
 
 test('uploadViaRest still fails on a genuine non-412 error', async () => {
   const result = await uploadViaRest({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x', token: 'tok',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
+    token: 'tok',
     fetchImpl: async () => ({ ok: false, status: 403 }),
   });
   assert.equal(result.ok, false);
@@ -341,7 +360,9 @@ test('uploadViaRest still fails on a genuine non-412 error', async () => {
 test('uploadViaGcloud passes --if-generation-match=0 (never overwrite an existing object)', () => {
   let seenArgs;
   uploadViaGcloud({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
     spawnSyncImpl: (cmd, args) => {
       seenArgs = args;
       return { status: 0 };
@@ -352,7 +373,9 @@ test('uploadViaGcloud passes --if-generation-match=0 (never overwrite an existin
 
 test('uploadViaGcloud treats a precondition-failure stderr as success, not a failure', () => {
   const result = uploadViaGcloud({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
     spawnSyncImpl: (cmd, args) => {
       if (args[0] === '--version') return { status: 0 };
       return { status: 1, stderr: 'PreconditionException: 412 Precondition Failed' };
@@ -364,7 +387,9 @@ test('uploadViaGcloud treats a precondition-failure stderr as success, not a fai
 
 test('uploadViaGcloud still fails on a genuine non-precondition error', () => {
   const result = uploadViaGcloud({
-    bucket: 'b', objectPath: 'daily/x.md', markdown: '# x',
+    bucket: 'b',
+    objectPath: 'daily/x.md',
+    markdown: '# x',
     spawnSyncImpl: (cmd, args) => {
       if (args[0] === '--version') return { status: 0 };
       return { status: 1, stderr: 'ERROR: (gcloud.storage.cp) 403 Forbidden' };
@@ -385,7 +410,11 @@ test('liveObjectPath lives under live/, sanitizes the key, and defaults to a .js
 test('uploadViaRest with allowOverwrite:true omits the x-goog-if-generation-match header', async () => {
   let seenHeaders;
   const result = await uploadViaRest({
-    bucket: 'b', objectPath: 'live/roadmap-status.json', markdown: '{}', token: 'tok', allowOverwrite: true,
+    bucket: 'b',
+    objectPath: 'live/roadmap-status.json',
+    markdown: '{}',
+    token: 'tok',
+    allowOverwrite: true,
     fetchImpl: async (url, opts) => {
       seenHeaders = opts.headers;
       return { ok: true, status: 200 };
@@ -398,8 +427,12 @@ test('uploadViaRest with allowOverwrite:true omits the x-goog-if-generation-matc
 test('uploadViaRest respects a custom contentType', async () => {
   let seenHeaders;
   await uploadViaRest({
-    bucket: 'b', objectPath: 'live/x.json', markdown: '{}', token: 'tok',
-    contentType: 'application/json; charset=utf-8', allowOverwrite: true,
+    bucket: 'b',
+    objectPath: 'live/x.json',
+    markdown: '{}',
+    token: 'tok',
+    contentType: 'application/json; charset=utf-8',
+    allowOverwrite: true,
     fetchImpl: async (url, opts) => {
       seenHeaders = opts.headers;
       return { ok: true, status: 200 };
@@ -411,7 +444,10 @@ test('uploadViaRest respects a custom contentType', async () => {
 test('uploadViaGcloud with allowOverwrite:true omits --if-generation-match=0', () => {
   let seenArgs;
   uploadViaGcloud({
-    bucket: 'b', objectPath: 'live/x.json', markdown: '{}', allowOverwrite: true,
+    bucket: 'b',
+    objectPath: 'live/x.json',
+    markdown: '{}',
+    allowOverwrite: true,
     spawnSyncImpl: (cmd, args) => {
       seenArgs = args;
       return { status: 0 };
@@ -423,15 +459,26 @@ test('uploadViaGcloud with allowOverwrite:true omits --if-generation-match=0', (
 test('default uploadViaRest/uploadViaGcloud calls are unaffected (allowOverwrite defaults to false)', async () => {
   let seenHeaders;
   await uploadViaRest({
-    bucket: 'b', objectPath: 'packets/x.md', markdown: '# x', token: 'tok',
-    fetchImpl: async (url, opts) => { seenHeaders = opts.headers; return { ok: true, status: 200 }; },
+    bucket: 'b',
+    objectPath: 'packets/x.md',
+    markdown: '# x',
+    token: 'tok',
+    fetchImpl: async (url, opts) => {
+      seenHeaders = opts.headers;
+      return { ok: true, status: 200 };
+    },
   });
   assert.equal(seenHeaders['x-goog-if-generation-match'], '0');
 
   let seenArgs;
   uploadViaGcloud({
-    bucket: 'b', objectPath: 'packets/x.md', markdown: '# x',
-    spawnSyncImpl: (cmd, args) => { seenArgs = args; return { status: 0 }; },
+    bucket: 'b',
+    objectPath: 'packets/x.md',
+    markdown: '# x',
+    spawnSyncImpl: (cmd, args) => {
+      seenArgs = args;
+      return { status: 0 };
+    },
   });
   assert.ok(seenArgs.includes('--if-generation-match=0'));
 });

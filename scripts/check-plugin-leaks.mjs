@@ -38,7 +38,7 @@ const TEXT_EXT = new Set([
   '.md', '.json', '.mjs', '.js', '.ts', '.tsx', '.yml', '.yaml', '.sh', '.txt', '.example', '.gitkeep',
 ]);
 // Extensionless files this repo ships (git hooks).
-const TEXT_NAMES = new Set(['pre-commit', 'pre-push', 'pre-push.example']);
+const TEXT_NAMES = new Set(['pre-commit', 'pre-push', 'pre-push.example', 'post-merge', 'post-checkout']);
 
 const RULES = [
   {

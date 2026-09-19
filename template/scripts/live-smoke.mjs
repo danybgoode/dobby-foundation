@@ -70,9 +70,12 @@ export function parseDotEnv(text) {
 
 /** Pure — validate the config shape. Throws with the offending key named. */
 export function validateConfig(raw, path = CONFIG_FILENAME) {
-  const fail = (m) => { throw new Error(`${path}: ${m}`); };
+  const fail = (m) => {
+    throw new Error(`${path}: ${m}`);
+  };
   if (!raw || typeof raw !== 'object') fail('must be a JSON object');
-  if (typeof raw.appDir !== 'string' || !raw.appDir) fail('"appDir" must name the app directory (e.g. "apps/web")');
+  if (typeof raw.appDir !== 'string' || !raw.appDir)
+    fail('"appDir" must name the app directory (e.g. "apps/web")');
   // Relative and inside the repo: live-smoke reads <appDir>/.env.local, so an appDir that climbs out of the
   // repo would read some other tree's secrets. (Cross-review finding on PR #20.)
   if (isAbsolute(raw.appDir) || normalize(raw.appDir).split(/[\\/]/)[0] === '..') {
@@ -87,7 +90,8 @@ export function validateConfig(raw, path = CONFIG_FILENAME) {
   const flows = raw.flows ?? {};
   for (const [k, v] of Object.entries(flows)) {
     if (k === 'unauthed') fail('"flows.unauthed" is implicit — list only role flows');
-    if (!v || typeof v.identityEnv !== 'string') fail(`"flows.${k}.identityEnv" must name the env var holding that role's test identity`);
+    if (!v || typeof v.identityEnv !== 'string')
+      fail(`"flows.${k}.identityEnv" must name the env var holding that role's test identity`);
   }
   const auth = raw.auth ?? {};
   return {
@@ -119,18 +123,25 @@ function sameOrigin(path) {
 export function planRun({ args, config, env = {}, dotenv = {} }) {
   const flow = args.flow ?? 'unauthed';
   const flowNames = ['unauthed', ...Object.keys(config.flows)];
-  if (!flowNames.includes(flow)) return { error: `--flow must be one of ${flowNames.join('|')} (got "${flow}")` };
+  if (!flowNames.includes(flow))
+    return { error: `--flow must be one of ${flowNames.join('|')} (got "${flow}")` };
 
   // A path, not a URL: `//host/x` is protocol-relative and would silently smoke a DIFFERENT host than the
   // resolved --env, and a scheme would override it outright. (Cross-review finding on PR #20.)
   // Checked by RESOLUTION, not by prefix: `/\\host` resolves to another origin too (WHATWG treats `\\` as
   // `/`), so the rule is simply that the path must land on the base URL's own origin.
-  if (args.path != null && (typeof args.path !== 'string' || !args.path.startsWith('/') || !sameOrigin(args.path))) {
-    return { error: `--path must be a path on the target env, starting with a single "/" (got "${args.path}")` };
+  if (
+    args.path != null &&
+    (typeof args.path !== 'string' || !args.path.startsWith('/') || !sameOrigin(args.path))
+  ) {
+    return {
+      error: `--path must be a path on the target env, starting with a single "/" (got "${args.path}")`,
+    };
   }
 
   const modes = [args.path, args.spec, args.file].filter(Boolean);
-  if (modes.length === 0) return { error: 'pass --path=<url-path> (ad-hoc), --spec=<name>, or --file=<path> (a committed spec)' };
+  if (modes.length === 0)
+    return { error: 'pass --path=<url-path> (ad-hoc), --spec=<name>, or --file=<path> (a committed spec)' };
   if (modes.length > 1) return { error: 'pass exactly one of --path, --spec, --file' };
 
   const envName = args.env ?? Object.keys(config.envs)[0];
@@ -140,13 +151,17 @@ export function planRun({ args, config, env = {}, dotenv = {} }) {
     baseURL = args['preview-url'];
   } else {
     baseURL = config.envs[envName];
-    if (!baseURL) return { error: `unknown --env "${envName}" (expected ${[...Object.keys(config.envs), 'preview'].join('|')})` };
+    if (!baseURL)
+      return {
+        error: `unknown --env "${envName}" (expected ${[...Object.keys(config.envs), 'preview'].join('|')})`,
+      };
   }
 
   const childEnv = { PLAYWRIGHT_BASE_URL: baseURL };
   if (envName === 'preview' && config.previewBypassEnv) {
     const bypass = env[config.previewBypassEnv];
-    if (!bypass) return { error: `--env=preview needs ${config.previewBypassEnv} set in the shell environment` };
+    if (!bypass)
+      return { error: `--env=preview needs ${config.previewBypassEnv} set in the shell environment` };
     childEnv[config.previewBypassEnv] = bypass;
   }
 
@@ -154,18 +169,21 @@ export function planRun({ args, config, env = {}, dotenv = {} }) {
     // The env constraint FIRST — a specific refusal beats a generic "need keys" message when both apply.
     if (config.auth.unsupportedEnvs.includes(envName)) {
       return {
-        error: `--flow=${flow} against --env=${envName} is not supported — auth providers reject testing tokens ` +
+        error:
+          `--flow=${flow} against --env=${envName} is not supported — auth providers reject testing tokens ` +
           'for production keys by design. Use a dev/test environment for authed flows.',
       };
     }
     for (const key of config.auth.requiredEnv) {
       const value = env[key] ?? dotenv[key];
-      if (!value) return { error: `an authed --flow needs ${key} resolvable from the shell or <appDir>/.env.local` };
+      if (!value)
+        return { error: `an authed --flow needs ${key} resolvable from the shell or <appDir>/.env.local` };
       // Defense-in-depth beyond the env check: the same rejection happens at --env=local when .env.local
       // carries production keys. Catch it here with a clear message, not deep inside a sign-in helper.
       if (config.auth.forbidKeyPattern && value.includes(config.auth.forbidKeyPattern)) {
         return {
-          error: `${key} looks like a PRODUCTION key (contains "${config.auth.forbidKeyPattern}") — authed ` +
+          error:
+            `${key} looks like a PRODUCTION key (contains "${config.auth.forbidKeyPattern}") — authed ` +
             'live-smoke flows only work with a dev/test auth instance.',
         };
       }
@@ -223,7 +241,10 @@ function main() {
     die(e.message);
   }
   const appRoot = join(REPO_ROOT, config.appDir);
-  if (!existsSync(join(appRoot, 'playwright.config.ts')) && !existsSync(join(appRoot, 'playwright.config.js'))) {
+  if (
+    !existsSync(join(appRoot, 'playwright.config.ts')) &&
+    !existsSync(join(appRoot, 'playwright.config.js'))
+  ) {
     die(`${config.appDir} has no playwright.config — live-smoke wraps the app's own Playwright harness`);
   }
   const dotenvPath = join(appRoot, '.env.local');
@@ -253,12 +274,18 @@ function main() {
     if (existsSync(reportPath)) {
       const report = JSON.parse(readFileSync(reportPath, 'utf8'));
       console.log(`live-smoke: report at ${reportPath}`);
-      console.log(`live-smoke: screenshot at ${report.screenshot ? join(appRoot, report.screenshot) : '(none)'}`);
+      console.log(
+        `live-smoke: screenshot at ${report.screenshot ? join(appRoot, report.screenshot) : '(none)'}`
+      );
       if (report.consoleErrors?.length) {
-        console.log(`live-smoke: ${report.consoleErrors.length} browser console error(s) captured — see report.json`);
+        console.log(
+          `live-smoke: ${report.consoleErrors.length} browser console error(s) captured — see report.json`
+        );
       }
     } else {
-      console.log('live-smoke: no report.json written (the spec likely skipped or crashed before navigating)');
+      console.log(
+        'live-smoke: no report.json written (the spec likely skipped or crashed before navigating)'
+      );
     }
   }
   process.exit(result.status ?? 1);

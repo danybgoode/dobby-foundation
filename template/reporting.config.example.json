@@ -11,6 +11,7 @@
   },
   "smoke": { "repo": "your-org/your-app", "workflow": "browser-smoke.yml" },
   "stalePreviewAgeDays": 7,
+  "vercelProject": "your-vercel-project",
   "prose": {
     "extraBannedToolNames": []
   },

@@ -16,14 +16,18 @@ description: >
 # (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - prose-draft.mjs
-  - prose-draft.prompt.md
   - lib/cross-agent-cli.mjs
+  - lib/prose-writer.mjs
+  - lib/prose-guard.mjs
+  - lib/reporting-config.mjs
+  - prose/cpo-persona.md
+  - prose/internal.task.md
 ---
 
 # prose-draft — delegated first drafts for file-derived close-out prose
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/prose-draft.mjs`
-> (+ `prose-draft.prompt.md`, the house-voice SSOT), which ships in the *consuming project's*
+> (+ the shared `prose/cpo-persona.md` and `prose/internal.task.md` — the house voice's SSOT), which ships in the *consuming project's*
 > `scripts/` dir via `template/scripts/`. If the script is missing, say so and stop rather than
 > reimplementing its logic inline.
 
@@ -46,18 +50,22 @@ node scripts/prose-draft.mjs --kind poster      --epic Roadmap/<area>/<epic-dir>
 node scripts/prose-draft.mjs --kind sprint-wrap --sprint Roadmap/<area>/<epic>/sprint-N.md
 ```
 
-Model pair: `PROSE_MODEL` (default `Gemini 3.5 Flash (High)`) → `PROSE_FALLBACK_MODEL`
-(default `GPT-OSS 120B (Medium)`, separate quota pool), riding the same version-pinned,
-empty-output-is-failure agy plumbing as cross-review. If the agy pin check dies, run
-`node scripts/agy-doctor.mjs --fix` (pre-authorized) and commit the bump.
+The writer is the shared prose rail (`scripts/lib/prose-writer.mjs`) — the same one the standup and
+weekly recap use: **devin → agy → codex**, one pinned model (`PROSE_MODEL`, deliberately not a Gemini
+one), the shared persona (`prose/cpo-persona.md`) plus `prose/internal.task.md`, the project's
+`prose-lessons.md` when present, and the prose guard with a revision pass. The draft's banner names
+the writer and model that actually ran and whether the guard passed clean. If the agy pin check dies
+on the agy path, run `node scripts/agy-doctor.mjs --fix` (pre-authorized) and commit the bump.
 
 ## Gotchas
 
 - **The draft WILL fabricate specifics when sources are thin** — a retro drafted before the
   sprint docs carry commit refs produces confident placeholders and invented owed-items. Draft
   AFTER the sprint docs are ticked, and diff every factual claim against the sources.
-- agy takes the whole prompt in argv — an epic dir with very large docs can exceed the 256 KB
-  cap; the tool dies with a clear message rather than truncating. Trim or draft by hand.
+- **A FLAGGED banner is not a failure to ignore** — the guard found a banned pattern (an invented
+  ref, a stack name, a length breach) and the revision pass did not clear it. Read it before pasting.
+- devin takes the prompt in a file, so large epic dirs are fine there; if the rail falls through to
+  agy, its 256 KB argv cap applies and that writer is skipped rather than fed a truncated prompt.
 - Epic-path **commit subjects** ride along with the docs into the model payload (that's the
   `git log` section). Nothing else does — no env, no diffs — but don't point it at a directory
   whose commit messages you wouldn't paste into a third-party model.
