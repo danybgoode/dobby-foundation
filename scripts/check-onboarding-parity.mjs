@@ -25,7 +25,23 @@
 //
 // It SKIPS, loudly, when no `gf` is resolvable — "could not look" is its own outcome and never the
 // failure one (LEARNINGS), because a check that goes red when npm is having a bad day is the same
-// mistake `preflight.mjs` refuses to make.
+// mistake `preflight.mjs` refuses to make. The skip prints a `::warning::` so a skipped run cannot
+// read as a green one on the surface people actually look at.
+//
+// ⚠️ **AND IT RUNS UNAUTHENTICATED, DELIBERATELY AND BY CONSTRUCTION. Read this before touching
+// `probeCommand`.** Two of the three advertised commands are WRITE verbs:
+// `gf flags create … --all-envs` creates a definition **and activates it in production**, and
+// `gf flags kill … --env production` kills it there. The first version of this mode spawned the CLI
+// with no `env` option, so the child inherited `process.env` and `$HOME` — and the CLI resolves a
+// credential from `GOLDEN_FRIJOLES_TOKEN` or from `~/.config/golden-frijoles/credentials.json`.
+// On any machine that had run `gf login` — including, precisely, the one this epic still owes a
+// live `gf init` on — a documentation parity check would have written to the product owner's real
+// flag catalog. Caught in re-review before it ever ran that way.
+//
+// So the child gets a scrubbed environment (blank token, `XDG_CONFIG_HOME` and `HOME` pointed at an
+// empty temp dir), **and `unauthorized` is now REQUIRED rather than merely accepted**. If the
+// isolation ever fails, the probe comes back `ok` — and that FAILS, loudly, instead of passing as
+// "well, it parsed". The safe state is asserted, not assumed.
 //
 // ── The half this cannot check, stated rather than implied ─────────────────────────────────────
 // Two of the surfaces are in the Golden Frijoles product repo — its `/install` page
@@ -44,7 +60,8 @@
 // Zero deps — Node 18+.
 
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -113,14 +130,19 @@ const SURFACES = [
  * probe substitutes a syntactically valid one. What is being checked is the command's SHAPE — verb
  * path and flags — not that a particular flag exists.
  */
-function probeCommand(cliPath, command) {
+function probeCommand(cliPath, command, scrubbedEnv) {
   const argv = command
     .replace(/\s+#.*$/, '')
     .replace(/<domain>\.<feature>_enabled/g, 'preflight.parity_probe')
     .trim()
     .split(/\s+/)
     .slice(1); // drop the `gf`
-  const run = spawnSync(cliPath, [...argv, '--json'], { encoding: 'utf8', timeout: 30_000 });
+  const run = spawnSync(cliPath, [...argv, '--json'], {
+    encoding: 'utf8',
+    timeout: 30_000,
+    // The whole safety property of this mode, in one option. See the header.
+    env: scrubbedEnv,
+  });
   if (run.error) return { ok: false, why: `could not run: ${run.error.message}` };
   let body = {};
   try {
@@ -128,9 +150,20 @@ function probeCommand(cliPath, command) {
   } catch {
     return { ok: false, why: `unparseable --json output: ${(run.stdout || '').slice(0, 120)}` };
   }
-  // `invalid` is the CLI saying "this command does not exist". Anything else means it parsed.
+  // `invalid` is the CLI saying "this command does not exist" — the defect this mode exists for.
   if (body.code === 'invalid') return { ok: false, why: body.error ?? 'usage error' };
-  return { ok: true, why: body.code ?? 'ok' };
+  // Anything OTHER than `unauthorized` means the credential scrub did not hold, and two of these
+  // three commands WRITE. Refuse rather than report a pass.
+  if (body.code !== 'unauthorized') {
+    return {
+      ok: false,
+      why:
+        `expected \`unauthorized\` and got \`${body.code ?? 'ok'}\` — the credential isolation FAILED, ` +
+        'and this command may have written to a real flag catalog. Do not re-run until the env scrub ' +
+        'in probeCommand() is fixed.',
+    };
+  }
+  return { ok: true, why: 'unauthorized (parsed, then refused for want of a credential)' };
 }
 
 function execCheck() {
@@ -140,20 +173,40 @@ function execCheck() {
     return !probe.error && probe.status === 0;
   });
   if (!cliPath) {
+    // `::warning::` so a SKIP is visible in the one place people read — the checks list. Printing
+    // only to stdout made a skipped run indistinguishable from a passing one, which is the same
+    // ambiguous-green shape this whole mode exists to end.
+    console.log(
+      `::warning::check-onboarding-parity --exec was SKIPPED, not passed — no \`${CLI_BIN}\` resolvable.`
+    );
     console.log(
       `check-onboarding-parity --exec: SKIPPED — no \`${CLI_BIN}\` resolvable. ${CLI_GLOBAL_INSTALL} to run it.\n` +
         '  "Could not look" is not the failure outcome; this is a release-time check, not a gate on npm being up.'
     );
     return 0;
   }
+
+  // An empty config home, so `~/.config/golden-frijoles/credentials.json` cannot be found, and a
+  // blank token, which `resolveAuth` treats as absent (it trims, then tests for truthiness).
+  const emptyHome = mkdtempSync(join(tmpdir(), 'gf-parity-no-credentials-'));
+  const scrubbedEnv = {
+    ...process.env,
+    GOLDEN_FRIJOLES_TOKEN: '',
+    XDG_CONFIG_HOME: emptyHome,
+    HOME: emptyHome,
+  };
+
   const failures = [];
   for (const command of KILL_SWITCH_STORY) {
-    const result = probeCommand(cliPath, command);
+    const result = probeCommand(cliPath, command, scrubbedEnv);
     console.log(`  ${result.ok ? '✅' : '❌'} ${command.replace(/\s+#.*$/, '')}  →  ${result.why}`);
     if (!result.ok) failures.push({ command, why: result.why });
   }
   if (!failures.length) {
-    console.log(`check-onboarding-parity --exec: every advertised command was PARSED by ${cliPath}.`);
+    console.log(
+      `check-onboarding-parity --exec: every advertised command was PARSED by ${cliPath}, and every one of them ` +
+        'stopped at the credential check — nothing was written.'
+    );
     return 0;
   }
   console.error('\ncheck-onboarding-parity --exec: the docs advertise a command the CLI does not have.\n');

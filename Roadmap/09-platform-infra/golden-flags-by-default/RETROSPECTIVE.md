@@ -63,8 +63,9 @@ if it has no Golden Frijoles project, and cannot quietly grow a second flag stor
   transport.
 - **Definitions and activations are different verbs, and a dashboard cannot tell you which you
   did.** 39 of 42 flags reading "never turned on here" while the runtime served compile defaults is
-  the shape this failure takes. The fix was not a paragraph; it was putting
-  `gf flags ls --env production` into the story template as its own step.
+  the shape this failure takes. The fix was not a paragraph; it was putting the verification command
+  into the story template as its own step — `gf flags get <key>`, whose PRODUCTION row must not read
+  `—`. **The first version of that command did not exist**, which is its own lesson, below.
 
 ## The review round, and the lesson it bought
 
@@ -114,6 +115,23 @@ this epic produced:
 
 - **N1** — any 200 with parseable JSON could be read as a wrong-environment mismatch and *fail*: the
   one shape of weather that could still break a build. `contractVersion` is now checked first.
+
+**And then the fix to B1 had a defect of its own, which is the sharpest thing this epic taught.**
+B1's answer was *stop trusting a string, execute the command*. That is right — and it immediately
+produced a check that executes **write verbs**: `gf flags create … --all-envs` creates and activates
+a flag in production, `gf flags kill … --env production` kills it. The probe spawned the CLI
+inheriting `process.env` and `$HOME`, and the CLI reads a credential from either. The design rested
+on `unauthorized` being the outcome — which was true only because nobody was signed in. On the very
+machine this epic still owes a live `gf login` on, a **documentation parity check would have written
+to the real flag catalog.**
+
+Caught in re-review, before it ever ran that way. The fix is not "be careful": the child now gets a
+scrubbed environment, and `unauthorized` is **required** rather than accepted — so if the isolation
+ever fails, the probe returns `ok` and that FAILS, loudly. The harmless state is constructed and
+then asserted, instead of being an accident of who happened to be logged out.
+
+*Making a check real makes it capable of doing whatever the thing it checks can do.* That is the
+cost of moving from grep to execution, and it is worth paying — but it has to be paid deliberately.
 
 ## Gaps / follow-ups
 

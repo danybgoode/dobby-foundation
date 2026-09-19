@@ -120,7 +120,9 @@ project spawned from it.
   re-checked when the SDK majors instead of quietly going stale.
 - **D3** confirmed against the CLI's source: `gf init` writes three names and deliberately no
   `flag_sync`. The three-key table is in `flags-runtime.md` §3.
-- **D4** became a command in the story template (`gf flags ls --env production`), not a paragraph.
+- **D4** became a command in the story template — `gf flags get <key>`, whose PRODUCTION row must not
+  read `—` — rather than a paragraph. *It shipped as `gf flags ls --env production` first, which does
+  not exist; see the DoD line below and the retrospective.*
 
 ## Deploy order
 

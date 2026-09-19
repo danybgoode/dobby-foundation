@@ -29,9 +29,11 @@ Each of these was verified **against live code and live data**, not against the 
 - **D3 confirmed against `packages/cli/src/commands/init.ts`:** `gf init` writes exactly
   `GOLDEN_FRIJOLES_URL`, `GOLDEN_FRIJOLES_FLAG_READ_KEY`, `GOLDEN_FRIJOLES_ENVIRONMENT` — and
   deliberately no `flag_sync` and no ingest key. Those three names are the whole env-var contract.
-- **D4's cautionary tale is not restated, it is a COMMAND.** The story template now carries
-  `gf flags ls --env production` as the activation check, because `gf flags sync` pushes definitions
-  and activates nothing.
+- **D4's cautionary tale is not restated, it is a COMMAND.** The story template carries the
+  activation check as a verb, because `gf flags sync` pushes definitions and activates nothing.
+  ⚠️ *The command locked here was `gf flags ls --env production` — **which does not exist.** It
+  shipped that way, was caught in review, and is now `gf flags get <key>` (PRODUCTION must not read
+  `—`). The lock was right about the shape and wrong about the fact; see step 5 and* Review round.
 - **The flag mechanism the epic replaces was verified present before it was removed**, and the
   sweep found three more incidental matches that no ALLOW entry should ever have covered.
 
@@ -64,7 +66,8 @@ makes **activation an explicit step**, distinct from syncing the definition.
 made activation explicit while the three **scaffolder templates** every future epic is rendered from
 still said the flag must *"exist in this project's own flag provider"* — and existing is exactly what a
 synced-but-never-activated definition does. The generated epic DoD, the generated kickoff's *done means
-shipped*, and the scope-seed block now all close on `gf flags ls --env production`.
+shipped*, and the scope-seed block now all close on `gf flags get <key>` — originally on
+`gf flags ls --env production`, corrected in the same round that found it does not exist.
 
 ### ✅ Story 1.2 — `scripts/preflight.mjs` — the mandate becomes checkable
 **As the** maintainer, **I want** the mandate enforced by a check rather than a sentence,
@@ -252,6 +255,12 @@ doc's own instructions. It found five things. All five are fixed:
 | **S3** | `e2e/flags.spec.ts` hard-asserted `false`, so a project that followed this very walkthrough (`--kill-switch` = born serving `true`) turned its own shipped gate red — green only while flags were broken | Asserts the **shape**: a resolved boolean either way, the provider named, no credential material |
 | **N1** | any 200 with parseable JSON could land as `wrong-environment` → exit 1: the one shape of weather that could still fail a build | `contractVersion === 1` is required before the body is believed; anything else is `unreachable` |
 
+The reviewer also verified two things the build had not: that `gf flags get`'s PRODUCTION row is
+**always present** (`cli-flag-view.ts` maps over `FLAG_ENVIRONMENTS`, not over stored rows), so
+*"PRODUCTION must not read `—`"* cannot be defeated by a missing row; and that the hard-coded
+`contractVersion === 1` matches both `FLAG_CONTRACT_VERSION` in the SDK and what the live route
+emits, so the guard cannot silently disable the probe.
+
 **S2, reproduced side by side** — a valid production key and production snapshot, with
 `GOLDEN_FRIJOLES_ENVIRONMENT` unset:
 
@@ -260,9 +269,40 @@ AFTER  initialize: {"ready":true,...,"snapshotVersion":12}   demo.hello_enabled 
 BEFORE initialize: {"ready":false,"reason":"... (PARSE_ERROR) ..."}   demo.hello_enabled → false   environment: undefined
 ```
 
-Two nits accepted as-is: the consumer copy-in lands in this same wave rather than after (below), and
-the plan table now says in two places that it is the flag-plan model and **not the public pricing
-page**, which prices differently.
+Two nits accepted as-is: the consumer copy-ins land in this same wave (both merged **before** this
+PR — see below), and the plan table now says in two places that it is the flag-plan model and **not
+the public pricing page**, which prices differently.
+
+### Round two — the fix to B1 had a defect of its own
+
+The same reviewer re-verified all five by execution and confirmed them fixed. It then found one
+thing that did not exist before this round, and it is the more serious of the two:
+
+| | Finding | Fix |
+|---|---|---|
+| **B2** | `--exec` spawned the CLI **inheriting `process.env` and `$HOME`**, and two of the three advertised commands are WRITE verbs. On any machine that had run `gf login` — precisely the machine this epic still owes a live `gf init` on — a **documentation parity check would have created and activated a flag in the real production catalog, then killed it** | The child gets a scrubbed environment (blank token, `XDG_CONFIG_HOME` **and** `HOME` at an empty temp dir), **and `unauthorized` is now REQUIRED rather than merely accepted** — if the isolation ever fails the probe returns `ok`, which now FAILS loudly instead of passing as "well, it parsed" |
+| **SF1** | the `--exec` skip printed to stdout and exited 0, so a skipped run read green in the checks list — the same ambiguous-green shape the mode exists to end | the skip branch emits `::warning::` itself, so it is annotated wherever the install succeeded but `gf` was not on `PATH` |
+| **SF2** | four documents still asserted in the present tense that the shipped artifacts carry the command that does not exist | reconciled; every remaining mention is historical and marked as such |
+
+**The B2 isolation, proven with a negative control** — `gf doctor` reports the credential *source*
+without needing a valid token:
+
+```
+UNSCRUBBED   credentials-file → ok   "Readable at <tmp>/golden-frijoles/credentials.json."
+             credential       → ok   "Found, from the saved credentials file."
+SCRUBBED     credentials-file → warn "No file at <empty>/golden-frijoles/credentials.json."
+             credential       → fail "No credential."
+```
+
+And `--exec` was run three ways — clean, with `GOLDEN_FRIJOLES_TOKEN` set, and with a credentials
+file on disk. All three: `unauthorized` on every command, nothing written.
+
+**Why this one is worth remembering.** B1's fix was *"stop trusting a string, execute the command"* —
+correct, and it immediately created a check that executes **write verbs** against whatever
+credential happens to be lying around. Making a check real makes it capable of doing what the thing
+it checks can do. The fix is not "be careful": it is to make the harmless state a **constructed
+guarantee** (a scrubbed environment) and then **assert** it (`unauthorized` required), so that a
+future failure of the guarantee is loud instead of silent.
 
 If any step fails, note the step number + what you saw — that's the bug report.
 

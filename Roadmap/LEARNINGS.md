@@ -222,6 +222,15 @@ accumulate below them, same one-liner + why + date shape.
   a command, the check runs it.** A `--exec` mode that accepts "the parser took it, then asked for a
   credential" and rejects "unknown flag" is cheap, and it skips rather than failing when the tool is
   not installed.
+- **Making a check EXECUTE makes it capable of whatever it checks — pay for that deliberately.**
+  Replacing a grep with a real invocation is usually right, and the first version of one such check
+  ran two write verbs (create-and-activate-in-production, kill-in-production) while inheriting the
+  ambient credential: a documentation parity check, one `gf login` away from mutating a live
+  catalog. The answer is not care. **Construct the harmless state** (a scrubbed env — blank token,
+  `XDG_CONFIG_HOME` *and* `HOME` at an empty temp dir) **and then ASSERT it** — require the
+  "refused for want of a credential" outcome, so a future failure of the isolation is loud instead
+  of a silent pass. Prove it with a negative control that shows the credential IS found without the
+  scrub.
 - **A guard with no test is a guard nobody has seen fire.** `check-plugin-leaks.mjs` ran green over a
   real leak every day for months: "CI was green" cannot distinguish a working guard from a pattern that
   matches nothing. Give every guard fixtures that assert it **fires**, *and* fixtures that assert it does
