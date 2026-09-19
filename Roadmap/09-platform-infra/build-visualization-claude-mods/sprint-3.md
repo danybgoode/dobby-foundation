@@ -3,7 +3,7 @@ epic: build-visualization-claude-mods
 sprint: 3
 title: "`build-state.mjs` — one resolver"
 risk: low
-phase: Shaping
+phase: Building
 stories_total: 2
 stories:
   - id: S3.1
@@ -23,7 +23,7 @@ stories:
 ---
 # The build view — Sprint 3: `build-state.mjs` — one resolver
 
-**Status:** ⬜ not started
+**Status:** 🏗 In progress
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 
