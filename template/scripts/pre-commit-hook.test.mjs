@@ -32,6 +32,13 @@ function sealedEnv() {
 const README = `---
 status: in-progress
 slug: sample
+title: Sample
+area: 09-platform-infra
+risk: low
+type: chore
+phase: Building
+sprints_total: 0
+stories_total: 0
 ---
 
 # Epic: Sample
@@ -52,9 +59,9 @@ function fixtureRepo() {
   git('config', 'user.email', 't@t');
   git('config', 'user.name', 't');
   mkdirSync(join(dir, '.githooks'));
-  mkdirSync(join(dir, 'scripts'));
+  mkdirSync(join(dir, 'scripts', 'lib'), { recursive: true });
   copyFileSync(join(TEMPLATE, '.githooks', 'pre-commit'), join(dir, '.githooks', 'pre-commit'));
-  for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json']) {
+  for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json', 'lib/roadmap-contract.mjs']) {
     copyFileSync(join(TEMPLATE, 'scripts', f), join(dir, 'scripts', f));
   }
   mkdirSync(join(dir, 'Roadmap', '00-ideas', 'seeds'), { recursive: true });
