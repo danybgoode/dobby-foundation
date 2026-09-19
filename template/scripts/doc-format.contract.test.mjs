@@ -5,12 +5,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+// The board extractor, as this repo ships it: the template's is self-contained, while a consumer's may be a
+// thin delegate to its own roadmap-to-notion.mjs — copy that too when it is there.
+const EXTRACTOR_FILES = ['roadmap-extract.mjs', 'roadmap-to-notion.mjs'].filter((f) =>
+  existsSync(join(HERE, f))
+);
 
 const README = (fm) => `---
 status: in-progress
@@ -60,7 +65,7 @@ stories:
 function repo({ readme = README(EPIC_FM), sprint = SPRINT(SPRINT_FM) } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'doc-format-contract-'));
   mkdirSync(join(root, 'scripts', 'lib'), { recursive: true });
-  for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json'])
+  for (const f of ['doc-format.mjs', 'doc-format.enforced.json', ...EXTRACTOR_FILES])
     copyFileSync(join(HERE, f), join(root, 'scripts', f));
   copyFileSync(
     join(HERE, 'lib', 'roadmap-contract.mjs'),

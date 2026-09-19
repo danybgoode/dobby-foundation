@@ -3,7 +3,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  copyFileSync,
+  rmSync,
+  existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +23,11 @@ import {
 } from './lib/roadmap-contract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+// The board extractor, as this repo ships it: the template's is self-contained, while a consumer's may be a
+// thin delegate to its own roadmap-to-notion.mjs — copy that too when it is there.
+const EXTRACTOR_FILES = ['roadmap-extract.mjs', 'roadmap-to-notion.mjs'].filter((f) =>
+  existsSync(join(HERE, f))
+);
 
 test('readUserStory: the shapes the corpus uses', () => {
   const want = { as_a: 'a buyer', i_want: 'to pay once', so_that: 'I am not charged twice' };
@@ -124,7 +137,7 @@ test('readStories: duplicate or foreign numbering falls back to position, and sa
 function fixtureRepo() {
   const root = mkdtempSync(join(tmpdir(), 'backfill-'));
   mkdirSync(join(root, 'scripts', 'lib'), { recursive: true });
-  for (const f of ['roadmap-extract.mjs', 'roadmap-backfill.mjs'])
+  for (const f of ['roadmap-backfill.mjs', ...EXTRACTOR_FILES])
     copyFileSync(join(HERE, f), join(root, 'scripts', f));
   copyFileSync(
     join(HERE, 'lib', 'roadmap-contract.mjs'),
