@@ -1,3 +1,26 @@
+---
+epic: jev-semantic-guards
+sprint: 3
+title: Prose guard on Jev (semantic families)
+risk: low
+phase: Shaping
+stories_total: 2
+stories:
+  - id: S3.1
+    title: judgeProse() in prose-guard.mjs
+    as_a: the reporting rail
+    i_want: "the four semantic families — unsupported fix claim, invented beneficiary, flag-state claim, invented commitment — judged by one batched Jev call (one Noul per sentence per family, evidence pack as `state`)"
+    so_that: honest negations stop tripping the guard and paraphrased inventions stop slipping past it
+    risk: low
+    status: planned
+  - id: S3.2
+    title: Wire the prose callers
+    as_a: the product owner
+    i_want: prose-writer, standup and weekly-recap to use the judge
+    so_that: every report and retro draft is guarded the same way
+    risk: low
+    status: planned
+---
 # Jev semantic guards — Sprint 3: Prose guard on Jev (semantic families)
 
 **Status:** ⬜ not started

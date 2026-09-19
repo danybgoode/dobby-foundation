@@ -1,3 +1,26 @@
+---
+epic: build-visualization-claude-mods
+sprint: 3
+title: "`build-state.mjs` — one resolver"
+risk: low
+phase: Shaping
+stories_total: 2
+stories:
+  - id: S3.1
+    title: build-state.mjs --json
+    as_a: any tool
+    i_want: "one resolver that answers \"what is being built right now\""
+    so_that: nothing else ever parses markdown to find out
+    risk: low
+    status: planned
+  - id: S3.2
+    title: Story-in-flight derivation
+    as_a: the resolver
+    i_want: "an honest answer to \"which story is in flight\""
+    so_that: "the build view doesn't report confidently while being wrong"
+    risk: low
+    status: planned
+---
 # The build view — Sprint 3: `build-state.mjs` — one resolver
 
 **Status:** ⬜ not started

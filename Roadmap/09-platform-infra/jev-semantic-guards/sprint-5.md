@@ -1,3 +1,33 @@
+---
+epic: jev-semantic-guards
+sprint: 5
+title: "Promotion — Jev decides, regex becomes fallback"
+risk: high
+phase: Shaping
+stories_total: 3
+stories:
+  - id: S5.1
+    title: Agreement report + labels (scripts/jev-report.mjs)
+    as_a: the product owner
+    i_want: a report of every regex/Jev disagreement from the logs and PR markers across all three repos
+    so_that: I label only the cases that matter
+    risk: high
+    status: planned
+  - id: S5.2
+    title: Set thresholds from data
+    as_a: a builder
+    i_want: thresholds tuned against the labelled set
+    so_that: production uses measured values, not starting guesses
+    risk: high
+    status: planned
+  - id: S5.3
+    title: "Flip to jev everywhere; regex is fallback-only"
+    as_a: the product owner
+    i_want: "`mode: jev` in the template and both consumers"
+    so_that: Jev decides in production and the regexes run only when Jev cannot
+    risk: high
+    status: planned
+---
 # Jev semantic guards — Sprint 5: Promotion — Jev decides, regex becomes fallback
 
 **Status:** ⬜ not started

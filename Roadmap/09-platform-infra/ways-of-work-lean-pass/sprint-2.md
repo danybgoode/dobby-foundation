@@ -1,3 +1,75 @@
+---
+epic: ways-of-work-lean-pass
+sprint: 2
+title: One cross-family pass + one fresh reviewer
+risk: high
+phase: Shipped
+stories_total: 9
+stories:
+  - id: S2.1
+    title: The review policy, rewritten
+    as_a: a builder
+    i_want: one unambiguous review policy
+    so_that: "I don't have to hold a four-row router table, a tier branch and a capped-roster protocol in my head"
+    risk: high
+    status: done
+  - id: S2.2
+    title: cross-review.prompt.md becomes the one shared review prompt
+    as_a: a reviewer of either kind
+    i_want: one prompt
+    so_that: "the external pass and the fresh reviewer apply the same bar and can't drift apart"
+    risk: low
+    status: done
+  - id: S2.3
+    title: Port pr-reviewer.md into the plugin, unconditional
+    as_a: a consuming project
+    i_want: the fresh reviewer to ship with the policy that requires it
+    so_that: "the layer isn't a doctrine with no implementation"
+    risk: low
+    status: done
+  - id: S2.4
+    title: The empty-output guard becomes a hard fail
+    as_a: the product owner
+    i_want: a silent cross-review failure to fail the PR
+    so_that: "an uncorroborated pass can't return nothing and read as clean"
+    risk: high
+    status: done
+  - id: S2.5
+    title: Collapse the router, delete the protocol, merge the doctors
+    as_a: a maintainer
+    i_want: the plumbing that existed only to run two passes removed
+    so_that: "the policy is the thing that's maintained rather than its scaffolding"
+    risk: low
+    status: done
+  - id: S2.6
+    title: Demote the planning panel to on-demand
+    as_a: a groom session
+    i_want: to stop being obliged to offer a cross-family planning panel
+    so_that: an advisory nicety stops being a required ritual on every spike and every fork
+    risk: low
+    status: done
+  - id: S2.7
+    title: Automated security review in our own CI
+    as_a: the product owner
+    i_want: "the Step-2 security guardrail we simply don't have"
+    so_that: money/auth diffs get a dedicated security read without a plan change
+    risk: high
+    status: done
+  - id: S2.8
+    title: Delete the second cross-family pass
+    as_a: a maintainer
+    i_want: the second pass gone
+    so_that: the reduction is real and not just documented
+    risk: high
+    status: done
+  - id: S2.9
+    title: "gate — the evidence, and exactly what it proves"
+    as_a: null
+    i_want: null
+    so_that: null
+    risk: high
+    status: done
+---
 # Ways-of-work lean pass — Sprint 2: One cross-family pass + one fresh reviewer
 
 **Status:** ✅ shipped — danybgoode/dobby-foundation#12, #13, #14, #15, #16 · danybgoode/golden-beans#144, #145 · danybgoode/miyagi-product-management#176, #177, #178

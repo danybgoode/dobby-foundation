@@ -2,6 +2,13 @@
 status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: plugin-audit-and-extraction
 build_order: 4
+title: "✅ Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded"
+area: 09-platform-infra
+risk: low
+type: chore
+phase: Shipped
+sprints_total: 3
+stories_total: 14
 ---
 
 # ✅ Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded

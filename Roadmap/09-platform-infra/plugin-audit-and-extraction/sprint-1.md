@@ -1,3 +1,54 @@
+---
+epic: plugin-audit-and-extraction
+sprint: 1
+title: Pay or delete the dark-skill debt
+risk: low
+phase: Shipped
+stories_total: 6
+stories:
+  - id: S1.1
+    title: The debt decision, written down
+    as_a: the maintainer
+    i_want: an explicit, recorded pay-or-delete decision per dark skill
+    so_that: the debt stops being carried silently for another six weeks
+    risk: low
+    status: done
+  - id: S1.2
+    title: Port weekly-recap + its 7 deps behind the config seam
+    as_a: a spawned project
+    i_want: the weekly recap skill to actually run
+    so_that: "the marketplace's advert is true"
+    risk: low
+    status: done
+  - id: S1.3
+    title: Port standup-post (+11) and pmo-report (+14)
+    as_a: a spawned project
+    i_want: the remaining two reporting skills to run
+    so_that: the family is whole rather than half-ported
+    risk: low
+    status: done
+  - id: S1.4
+    title: "live-smoke — port or drop"
+    as_a: a spawned project
+    i_want: "`live-smoke` to either work or not be offered"
+    so_that: a browser-smoke skill with no script stops being advertised
+    risk: low
+    status: done
+  - id: S1.5
+    title: Housekeeping
+    as_a: a consumer of this repo
+    i_want: the noise gone
+    so_that: a fresh clone is clean
+    risk: low
+    status: done
+  - id: S1.6
+    title: The advertised skill list becomes generated
+    as_a: the maintainer
+    i_want: the skill list generated from the skills directory
+    so_that: "a dark or deleted skill can't linger in an advert"
+    risk: low
+    status: done
+---
 # Plugin audit + medusa extraction — Sprint 1: Pay or delete the dark-skill debt
 
 **Status:** ✅ Shipped — [#20](https://github.com/danybgoode/dobby-foundation/pull/20) squash `2cfd281`; same-wave origin migration danybgoode/miyagi-product-management#182 `7ac3354`

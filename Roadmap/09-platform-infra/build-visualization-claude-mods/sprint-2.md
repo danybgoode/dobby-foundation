@@ -1,6 +1,36 @@
+---
+epic: build-visualization-claude-mods
+sprint: 2
+title: Enforcement and backfill
+risk: low
+phase: Building
+stories_total: 3
+stories:
+  - id: S2.1
+    title: doc-format.mjs enforces the contract
+    as_a: the maintainer
+    i_want: the frontmatter contract checked in CI
+    so_that: it holds for hand-edited docs, not just freshly scaffolded ones
+    risk: low
+    status: planned
+  - id: S2.2
+    title: "Backfill medusa-bonsai (~54 epics)"
+    as_a: a tool reading this repo
+    i_want: existing epics to carry the new frontmatter
+    so_that: the build view works on real history rather than only on new work
+    risk: low
+    status: planned
+  - id: S2.3
+    title: "Backfill golden-beans (~28 epics)"
+    as_a: a tool reading the second consumer
+    i_want: the same
+    so_that: the contract is a workspace property, not a medusa one
+    risk: low
+    status: planned
+---
 # The build view — Sprint 2: Enforcement and backfill
 
-**Status:** ⬜ not started
+**Status:** 🏗 In progress
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 

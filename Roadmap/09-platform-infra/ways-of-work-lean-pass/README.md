@@ -2,6 +2,13 @@
 status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: ways-of-work-lean-pass
 build_order: 3
+title: "Ways-of-work lean pass — remove the training wheels, close the adoption gap"
+area: 09-platform-infra
+risk: high
+type: chore
+phase: Shipped
+sprints_total: 3
+stories_total: 19
 ---
 
 # Epic: Ways-of-work lean pass — remove the training wheels, close the adoption gap

@@ -1,3 +1,33 @@
+---
+epic: plugin-audit-and-extraction
+sprint: 3
+title: Tier-2 behind a config seam
+risk: low
+phase: Shipped
+stories_total: 3
+stories:
+  - id: S3.1
+    title: prod-smoke and smoke-triage-scope behind a config seam
+    as_a: a spawned project
+    i_want: the production watchdog and the autonomy-boundary check
+    so_that: a routine can be trusted to act without a human in the loop
+    risk: low
+    status: done
+  - id: S3.2
+    title: merge-report + its hooks, vercel-env, perf-probe
+    as_a: a spawned project
+    i_want: the remaining Tier-2 rails
+    so_that: "the lessons they encode don't have to be relearned"
+    risk: low
+    status: done
+  - id: S3.3
+    title: Migrate golden-beans onto the ported scripts
+    as_a: the maintainer
+    i_want: one implementation per rail across the workspace
+    so_that: this epic reduces duplication instead of increasing it
+    risk: low
+    status: done
+---
 # Plugin audit + medusa extraction — Sprint 3: Tier-2 behind a config seam
 
 **Status:** ✅ Shipped — [#22](https://github.com/danybgoode/dobby-foundation/pull/22) squash `8aa5e54`; same-wave migrations danybgoode/miyagi-product-management#184 `cf99bb8` and danybgoode/golden-beans#154 `965567a`

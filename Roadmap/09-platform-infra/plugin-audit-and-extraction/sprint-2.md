@@ -1,3 +1,47 @@
+---
+epic: plugin-audit-and-extraction
+sprint: 2
+title: Extract the Tier-1 rails
+risk: low
+phase: Shipped
+stories_total: 5
+stories:
+  - id: S2.1
+    title: "Port scripts/routines/ — the Step-3 rail"
+    as_a: a spawned project
+    i_want: the proven routine prompts
+    so_that: "\"routines and loops\" is a rail rather than an aspiration"
+    risk: low
+    status: done
+  - id: S2.2
+    title: Port the three-stage hook budget
+    as_a: a developer in any spawned project
+    i_want: commits to stay instant
+    so_that: the hooks survive instead of being disabled
+    risk: low
+    status: done
+  - id: S2.3
+    title: Port session-note.mjs + session-resume.mjs
+    as_a: a resuming agent
+    i_want: the derive-state/journal-intent doctrine to be executable
+    so_that: it stops being a wish
+    risk: low
+    status: done
+  - id: S2.4
+    title: Port doc-format.mjs
+    as_a: the plugin
+    i_want: to validate my own scaffolding templates
+    so_that: "the producer isn't validated by a file living in one consumer"
+    risk: low
+    status: done
+  - id: S2.5
+    title: Port owed-ledger.mjs
+    as_a: the product owner
+    i_want: the manual-QA debt counted rather than grepped from memory
+    so_that: "\"gaps stated explicitly\" is measurable"
+    risk: low
+    status: done
+---
 # Plugin audit + medusa extraction — Sprint 2: Extract the Tier-1 rails
 
 **Status:** ✅ Shipped — [#21](https://github.com/danybgoode/dobby-foundation/pull/21) squash `f8be490`; same-wave origin migration danybgoode/miyagi-product-management#183 `d8e84d6`

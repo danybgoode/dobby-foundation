@@ -1,3 +1,12 @@
+---
+epic: golden-flags-by-default
+sprint: 1
+title: The mandate, the preflight and the agent-guided onboarding
+risk: low
+phase: Shipped
+stories_total: 0
+stories: []
+---
 # Golden Frijoles by default — Sprint 1: The mandate, the preflight and the agent-guided onboarding
 
 **Status:** ✅ Shipped — PR #24, `5db30c6` (2026-09-19)
