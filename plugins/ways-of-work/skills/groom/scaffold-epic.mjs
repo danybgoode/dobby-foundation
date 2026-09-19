@@ -71,7 +71,11 @@ const slug = String(args.slug);
 const area = String(args.area);
 const macro = String(args.macro);
 const title = String(args.title);
-const risk = String(args.risk || 'high');
+const risk = String(args.risk || 'high').toLowerCase();
+if (!['low', 'high'].includes(risk)) {
+  console.error(`scaffold-epic: --risk must be low|high (got "${risk}") — the frontmatter contract's two tiers; unsure means high.`);
+  process.exit(1);
+}
 const typeRaw = String(args.type || 'feature').toLowerCase();
 const VALID_TYPES = ['feature', 'spike', 'bug', 'chore'];
 if (!VALID_TYPES.includes(typeRaw)) {
@@ -92,7 +96,16 @@ if (existsSync(epicDir)) {
 }
 
 const sub = (str, vars) => str.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : `{{${k}}}`));
-const baseVars = { SLUG: slug, TITLE: title, AREA: area, MACRO: macro, RISK: risk, TYPE: type, DATE: date };
+// Frontmatter values are written double-quoted (a JSON string is valid YAML), so a title carrying a
+// colon, a `#` or a quote can never change the parse — the machine-readable contract
+// (build-visualization-claude-mods) is only worth having if a title cannot break it.
+const yaml = (s) => JSON.stringify(s);
+const baseVars = {
+  SLUG: slug, TITLE: title, TITLE_YAML: yaml(title), AREA: area, MACRO: macro, RISK: risk, TYPE: type,
+  TYPE_KEY: typeRaw, DATE: date,
+  // Born with one placeholder story per sprint, so the totals are true on day one.
+  SPRINTS_TOTAL: String(sprints.length), STORIES_TOTAL: String(sprints.length),
+};
 
 const sprintList = sprints
   .map((st, i) => `| ${i + 1} | ${st} | ${risk} |`)
@@ -105,7 +118,7 @@ const retroTpl = readFileSync(join(TPL, 'RETROSPECTIVE.md'), 'utf8');
 const files = [];
 files.push([join(epicDir, 'README.md'), sub(epicTpl, { ...baseVars, SPRINT_LIST: sprintList })]);
 sprints.forEach((st, i) => {
-  files.push([join(epicDir, `sprint-${i + 1}.md`), sub(sprintTpl, { ...baseVars, N: String(i + 1), SPRINT_TITLE: st })]);
+  files.push([join(epicDir, `sprint-${i + 1}.md`), sub(sprintTpl, { ...baseVars, N: String(i + 1), SPRINT_TITLE: st, SPRINT_TITLE_YAML: yaml(st) })]);
 });
 files.push([join(epicDir, 'RETROSPECTIVE.md'), sub(retroTpl, baseVars)]);
 
@@ -125,6 +138,8 @@ files.forEach(([p]) => console.log('  + ' + rel(p)));
 console.log('\nNext:');
 console.log(`  1. Fill the generated files with real stories / reuse list / QA stages.`);
 console.log(`  2. The epic README frontmatter \`status:\` is the SSOT (born \`scaffolded\`; set \`shipped\` at close).`);
+console.log(`     \`phase:\` (epic + every sprint) is the build-view ladder — write it at each cadence event. Each sprint's`);
+console.log(`     \`stories:\` list is the per-story data; keep it and both \`stories_total\` fields in step with the prose.`);
 console.log(`     Set the SEED frontmatter \`epic: "${macro}/${slug}"\` so it leaves the funnel (the seed is funnel-only after this).`);
 console.log(`  3. Commit PATH-SCOPED (never git add -A):`);
 const paths = files.map(([p]) => `'${rel(p)}'`).join(' ');

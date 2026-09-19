@@ -1,6 +1,6 @@
 # The build view — Sprint 1: The frontmatter contract
 
-**Status:** ⬜ not started
+**Status:** 🏗 In progress
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 

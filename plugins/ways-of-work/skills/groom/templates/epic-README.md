@@ -1,6 +1,14 @@
 ---
 status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+phase: Shaping       # the executive ladder — Shaping | Locking architecture | Building | Verifying | In review | Shipped.
+                     # WRITTEN at each cadence event, never inferred. Shipped = merged AND deployed.
 slug: {{SLUG}}
+title: {{TITLE_YAML}}
+area: {{MACRO}}
+risk: {{RISK}}
+type: {{TYPE_KEY}}
+sprints_total: {{SPRINTS_TOTAL}}
+stories_total: {{STORIES_TOTAL}}   # the sum of every sprint's stories_total — keep it in step when a story is added
 build_order: null    # integer position in the ONE global build sequence — the SSOT once the epic
                      # exists (the seed's value is only a fallback). Fill it in at the betting
                      # table; plain integers, no "#2a" suffixes. See 00-ideas/README.md → Ordering.

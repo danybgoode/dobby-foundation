@@ -1,9 +1,32 @@
+---
+epic: {{SLUG}}
+sprint: {{N}}
+title: {{SPRINT_TITLE_YAML}}
+risk: {{RISK}}
+phase: Shaping
+stories_total: 1
+stories:
+  - id: S{{N}}.1
+    title: "<title>"
+    as_a: "<role>"
+    i_want: "<capability>"
+    so_that: "<outcome>"
+    risk: {{RISK}}
+    status: planned
+---
 # {{TITLE}} — Sprint {{N}}: {{SPRINT_TITLE}}
 
 **Status:** ⬜ not started
 
 ## Stories
 <!-- One block per story. Thinnest shippable slice first.
+     Each story ALSO has an entry in the frontmatter `stories:` list above — that entry is what tools
+     read (the build view, build-state.mjs); the prose below is what people read. Add both, and keep
+     `stories_total` (here and in the epic README) equal to the number of entries.
+     Story `status:` is planned | in-progress | done. The sprint's `phase:` is the executive ladder
+     (Shaping | Locking architecture | Building | Verifying | In review | Shipped), WRITTEN at each
+     cadence event. Name the story in each commit subject (`S{{N}}.1 …`): that is how the build view
+     knows which story is in flight.
      Keep the heading shape `### Story {{N}}.M — <title>` (this is what the status board counts).
      When a story ships, append ✅ + its commit ref to the heading, e.g.
        ### Story {{N}}.1 — <title> ✅ `abc1234`

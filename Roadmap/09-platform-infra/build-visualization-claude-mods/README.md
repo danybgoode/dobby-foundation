@@ -1,5 +1,5 @@
 ---
-status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: build-visualization-claude-mods
 build_order: 6
 ---
@@ -104,23 +104,57 @@ Currently building
 - `medusa-bonsai/scripts/merge-report.mjs` + the prod-smoke rail — the closest thing we have to a
   deploy confirmation, which `Shipped` needs.
 
-## Architecture decisions to lock before any builder starts
+## Architecture — locked 2026-09-19, verified against the live corpus and code
 
-- **D1 — where per-story data lives.** YAML in the sprint frontmatter, or a fenced block per story?
-  **Scraping `###` headings is what we are escaping**, so the decision must produce something a
-  parser owns. Locked against the real corpus, read first — 80+ epics with varying story shapes.
-- **D2 — how "which story is in flight" is derived.** Three options: the last commit's `S<n>.<m>`
-  prefix (cheap; needs a commit convention we nearly have), an explicit agent write (accurate;
-  another thing to forget), or the `session-note.mjs` journal (already doctrine: *journal intent,
-  derive the rest*). **Recommendation: derive from commits, fall back to the journal.**
-- **D3 — the mod is a thin renderer.** All logic lives in `build-state.mjs` — plain Node, testable,
-  useful on its own. The hook file only renders. **Function hooks are pre-release; if the API moves,
-  one thin file changes.** This is structural mitigation, not optimism.
-- **D4 — latency budget.** Derive on `turn.start`, cache in `$.store`, invalidate on branch change or
-  a `Roadmap/` write. **Never shell out to `gh` inside a hook.**
-- **D5 — the backfill's failure policy.** 80+ epics will surface real inconsistencies (prose status
-  disagreeing with frontmatter, sprints with no clean story boundaries). Those are **findings,
-  recorded**, not blockers — fixing them all is outside the appetite.
+The corpus was read before deciding: **medusa-bonsai 157 epics / 396 sprint files, golden-beans 29 / 86,
+dobby-foundation 5 / 16** — not the "~54 / ~28" this README was groomed with. **Zero** sprint files carry
+frontmatter. The 1,480 story headings come in six shapes (`### Story N.N` 1,062 · `## US-N` 143 ·
+`### SN.N` 129 · `### US-N` 64 · `## Story N.N` 45 · letter forms `### BN.N`/`## C.N` 14), and ~65% have an
+"As a" line within a few lines of the heading.
+
+- **D1 — per-story data lives in the sprint's frontmatter, as a `stories:` list.** Each entry is a flat map:
+  `id`, `title`, `as_a`, `i_want`, `so_that`, `risk`, `status`. One parser-owned block per file. A fenced
+  block per story was rejected: it renders the user story twice on GitHub, and six heading shapes mean the
+  block would still be *found* by scraping. The existing frontmatter reader (`roadmap-extract.mjs`
+  `parseFrontmatter`) matches `^(\w+):` per line, so indented list lines are invisible to it — **additive,
+  no parser change**, verified. `id` is always `S<sprint>.<m>`: a heading's own `N.M` when it has one,
+  else its ordinal in the sprint. Values the prose does not carry are written `null` — an explicit
+  unknown, never a guess.
+- **D2 — the story in flight is derived from commits, falling back to the journal.** The newest commit on
+  the branch (`main..HEAD`) whose subject names `S<n>.<m>` / `Story n.m` wins; else the newest
+  `claude/session-journal` entry that names one; else `unknown`. A named story that is not in the epic's
+  `stories:` lists is **`unknown`, not the nearest match**.
+- **D3 — the mod is a thin renderer.** All logic is `scripts/build-state.mjs` (plain Node, zero deps). The
+  hook module only calls it and prints its `lines`.
+- **D4 — latency.** The mod calls `build-state.mjs --offline` (git only, no `gh`) once per cache key —
+  `HEAD` sha + branch + newest `Roadmap/` mtime — and serves the cached lines otherwise.
+- **D5 — the backfill's failure policy.** Scripted (`scripts/roadmap-backfill.mjs`), idempotent, and it
+  writes a report of every doc it could not fully resolve **with a reason**. Findings are recorded, not
+  fixed.
+- **D6 — DEVIATION: the ladder field is `phase:`, not `status:`.** Story 1.4 asked for the ladder in
+  `status`. Two live facts forbid it. The epic README's `status:` is the lifecycle SSOT
+  (`scaffolded|in-progress|shipped|archived`). `roadmap-extract`, `build-order`, `epic-dod`, `doc-format`
+  and the Notion sync all read it, and an unknown value **hard-fails** the extractor. And on a sprint
+  file, a frontmatter `status:` line would be captured first by the extractor's case-insensitive
+  multiline `^Status:` regex, silently re-deriving every sprint's board status. So the ladder is a
+  **new** field, `phase:`, on the epic README and on every sprint, with the six values verbatim. The
+  lifecycle `status:` is untouched. A story's own `status` is `planned | in-progress | done`, because a
+  story is not an epic.
+- **D7 — how the displayed status resolves.** The base is the **written** `phase` of the sprint in flight
+  (else the epic's). Evidence may only *advance* it on the two rungs the cadence table marks as directly
+  observable: story commits on the branch lift anything below `Building` to `Building`, and an open PR
+  (via `gh`, skipped under `--offline`) lifts to `In review`. `Locking architecture`, `Verifying` and
+  `Shipped` are **never inferred** — `Shipped` needs the deploy confirmation only a person or a
+  prod-smoke gives. The JSON always carries `phase_written` and `status_source`, so a disagreement is
+  visible, never hidden.
+- **D8 — where the contract lives, once.** The field lists, the ladder and the validators are in
+  `template/scripts/lib/roadmap-contract.mjs`. `doc-format`, the backfill and `build-state` import it. The
+  scaffolder (a plugin, which cannot import a project's scripts) is held to it by CI: the throwaway epic
+  it renders must pass `doc-format --check`.
+
+**Model routing:** one orchestrator session builds every sprint. The contract (S1) and the resolver (S3)
+are the uphill work, and they stay on the strongest model. There is no fan-out: the sprints share
+`roadmap-contract.mjs`, and a hand-off would cost more than it saves.
 
 ## Scope — stories
 

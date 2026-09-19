@@ -207,9 +207,22 @@ export function checkEpicReadme(content, { slug, exists = existsRelative } = {})
   return offenses;
 }
 
+// Index of the first line AFTER a leading `---` frontmatter block (0 when there is none). Sprint files
+// carry frontmatter since build-visualization-claude-mods, and a sprint or story titled "Status: …" must
+// not be mistaken for the prose Status line — every Status-line search starts here, and skips headings
+// (the scaffolder puts the sprint title in the H1, so the same title reappears there).
+export function bodyStartIndex(lines) {
+  if (lines[0]?.trim() !== '---') return 0;
+  const end = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
+  return end === -1 ? 0 : end + 1;
+}
+
 export function checkSprintDoc(content) {
   const offenses = [];
-  const statusLine = content.split('\n').find((l) => l.includes('**Status:**') || l.includes('Status:'));
+  const all = content.split('\n');
+  const statusLine = all
+    .slice(bodyStartIndex(all))
+    .find((l) => !l.startsWith('#') && (l.includes('**Status:**') || l.includes('Status:')));
   if (!statusLine) {
     offenses.push({ rule: 'sprint-status-missing', detail: 'no Status line found' });
   } else {
@@ -318,7 +331,10 @@ export function fixDodHeading(content) {
  */
 export function fixSprintStatusLine(content) {
   const lines = content.split('\n');
-  const idx = lines.findIndex((l) => l.includes('**Status:**') || l.includes('Status:'));
+  const from = bodyStartIndex(lines);
+  const idx = lines.findIndex(
+    (l, i) => i >= from && !l.startsWith('#') && (l.includes('**Status:**') || l.includes('Status:'))
+  );
   if (idx === -1) return content;
 
   const extractValue = (line) => {
