@@ -14,14 +14,14 @@
 
 _None._
 
-## 📋 Ready to build (scaffolded, not started) (3)
+## 📋 Ready to build (scaffolded, not started) (2)
 
-- [Golden Frijoles by default — a spawned project already carries the flag provider](../../09-platform-infra/golden-flags-by-default/README.md) — 09 Platform-infra · 0/6 stories · risk: High · wave-2026-09-16
 - [Jev semantic guards — review-guard and prose-guard decide with Jev, not regex](../../09-platform-infra/jev-semantic-guards/README.md) — 09 Platform-infra · 0/15 stories · risk: High · wave-2026-09-19
 - [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 0/13 stories · risk: Low · wave-2026-09-16
 
-## ✅ Shipped (2)
+## ✅ Shipped (3)
 
+- [✅ Epic: Golden Frijoles by default — a spawned project already carries the flag provider](../../09-platform-infra/golden-flags-by-default/README.md) — 09 Platform-infra · 1 sprints · risk: High · wave-2026-09-16
 - [✅ Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded](../../09-platform-infra/plugin-audit-and-extraction/README.md) — 09 Platform-infra · 14/14 stories · risk: Low · wave-2026-09-16
 - [Ways-of-work lean pass — remove the training wheels, close the adoption gap](../../09-platform-infra/ways-of-work-lean-pass/README.md) — 09 Platform-infra · 19/19 stories · risk: High · wave-2026-09-16
 

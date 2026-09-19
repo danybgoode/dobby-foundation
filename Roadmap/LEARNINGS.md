@@ -208,7 +208,35 @@ accumulate below them, same one-liner + why + date shape.
 - **"Could not look" is its own exit code, never the failure one.** A watchdog's missing, unloadable or
   empty assertion file exited 1 through an unhandled rejection, which a routine reads as "production is
   broken". Load inputs in a function that returns `{ok, error}`, and `.catch` `main()` into the
-  could-not-look state.
+  could-not-look state. The same three-answer rule decides a *check's* severity: **configuration**
+  (absent, rejected — true until a person acts) fails; **weather** (unreachable, timed out, a 404 from
+  a switched-off surface) warns and exits 0; collapsing them is how a check starts failing builds for
+  someone else's outage.
+
+## Guards, and depending on someone else's service (golden-flags-by-default, 2026-09-19)
+- **A guard with no test is a guard nobody has seen fire.** `check-plugin-leaks.mjs` ran green over a
+  real leak every day for months: "CI was green" cannot distinguish a working guard from a pattern that
+  matches nothing. Give every guard fixtures that assert it **fires**, *and* fixtures that assert it does
+  **not** fire on the thing it must permit.
+- **A mechanism does not have to be named after a project to be that project's.** A portability sweep for
+  project names could never catch `lib/flags.ts` / `DEFAULT_FLAGS`. Generic filenames are how one
+  consumer's architecture ships to everyone — and when a new rule surfaces incidental matches, **rewrite
+  them rather than allowlisting them**; an ALLOW entry preserves residue behind a plausible reason.
+- **Verify a dependency's runtime claim by EXECUTING it, not by reading it.** Running a published package
+  inside a `node:vm` context carrying only the target runtime's globals answered "is this Edge-safe" in
+  two halves — the API surface is, the *lifecycle* is not — where reading the source would have given only
+  the first, which is precisely the half that gets a seam planned that cannot work. Ship the reproduction
+  beside the claim so it can be re-checked instead of going quietly stale.
+- **Refuse the flag that blurs a fail-soft promise.** A `--strict` that turns "the provider is unreachable"
+  into a failure will be in someone's CI file within the week, and the promise is then gone with nobody
+  having decided to give it up. Not adding it is the enforcement.
+- **"The package is not installed" is the most complete outage there is — import dynamically and test in
+  it.** A seam whose SDK is loaded with `await import()` has its entire fallback contract exercised in a
+  checkout with no `node_modules`: no network, no credentials, no transport to mock.
+- **Creating a thing and activating it are different verbs, and no dashboard tells you which you did.**
+  Definitions synced but never activated reads as "the flags exist" while the runtime serves compile
+  defaults. The fix is not a paragraph — it is the verification command, in the story template, as its
+  own step.
 
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
