@@ -16,7 +16,6 @@ description: >
 # (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - prose-draft.mjs
-  - prose-draft.prompt.md
   - lib/cross-agent-cli.mjs
   - lib/prose-writer.mjs
   - lib/prose-guard.mjs
@@ -28,7 +27,7 @@ requires_scripts:
 # prose-draft — delegated first drafts for file-derived close-out prose
 
 > **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/prose-draft.mjs`
-> (+ `prose-draft.prompt.md`, the house-voice SSOT), which ships in the *consuming project's*
+> (+ the shared `prose/cpo-persona.md` and `prose/internal.task.md` — the house voice's SSOT), which ships in the *consuming project's*
 > `scripts/` dir via `template/scripts/`. If the script is missing, say so and stop rather than
 > reimplementing its logic inline.
 
