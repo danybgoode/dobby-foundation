@@ -37,8 +37,12 @@ question and **write the answer in the scope seed** (the answer is mandatory; th
      **does not activate anything**; `gf flags create --all-envs` creates *and* activates. The story
      must carry the check, per environment:
      ```
-     gf flags ls --env production        # it must NOT read "never turned on here"
+     gf flags get <domain>.<feature>_enabled
      ```
+     It prints one row per environment. **PRODUCTION must not read `—`.** In the CLI's vocabulary
+     `—` is *never activated here*, `off (nothing served)` is *activated then deactivated* — both
+     mean the consumer is serving its call-site default — and anything else is the value a context
+     with no attributes actually gets. (`gf flags ls` is the all-flags view; it takes no `--env`.)
      *The cautionary tale is real: a project synced 42 flag definitions, never created the
      activations, and 39 of them read "Never turned on here" while the runtime quietly served
      compile-time defaults through the fallback chain. Every dashboard said the flags existed.*

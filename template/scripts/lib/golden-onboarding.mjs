@@ -87,8 +87,29 @@ export const CLI_GLOBAL_INSTALL = `npm i -g ${CLI_PACKAGE}`;
  */
 export const KILL_SWITCH_STORY = [
   `${CLI_BIN} flags create <domain>.<feature>_enabled --kill-switch --all-envs`,
-  `${CLI_BIN} flags ls --env production          # ← the ACTIVATION check: it must not read "never turned on"`,
+  `${CLI_BIN} flags get <domain>.<feature>_enabled    # ← the ACTIVATION check: PRODUCTION must not read "—"`,
   `${CLI_BIN} flags kill <domain>.<feature>_enabled --env production`,
+];
+
+/**
+ * How to read the activation check's answer, in the CLI's OWN vocabulary.
+ *
+ * ⚠️ **This line shipped wrong once, and the way it was wrong is worth keeping.** It said
+ * `gf flags ls --env production` and told the reader to look for the words *"never turned on"*. Two
+ * separate errors: `gf flags ls` accepts only `--project` and prints all three environments as
+ * columns, so `--env` is a hard usage error that exits 1 before it ever reaches auth; and *"never
+ * turned on here"* is the **web console's** wording, while the CLI's `describeServing` prints `—`.
+ * A reader following it literally would have run a command that cannot run, looking for a string
+ * the tool never prints.
+ *
+ * It survived because it was verified the way prose gets verified — the string was present in every
+ * surface, and `check-onboarding-parity.mjs` was about to weld it into five files. **Presence is not
+ * execution.** A command a doc tells someone to run is checked by running it.
+ */
+export const SERVING_LEGEND = [
+  '—                    never activated here. The consumer is serving its call-site default.',
+  'off (nothing served) activated, then deactivated. Also the call-site default.',
+  '<value>  v<n>        activated, and this is what a context with no attributes actually gets.',
 ];
 
 /**

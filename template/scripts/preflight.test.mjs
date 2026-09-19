@@ -11,13 +11,14 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluatePreflight, probeSnapshot, findCli, readEnvFile } from './preflight.mjs';
+import { evaluatePreflight, probeSnapshot, findCli, findSdk, readEnvFile } from './preflight.mjs';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { compareVersions, readEnvValue, ENV_KEYS, MIN_CLI_VERSION } from './lib/golden-onboarding.mjs';
 
 const CLI_OK = { found: true, version: MIN_CLI_VERSION, source: 'gf (PATH)' };
+const SDK_OK = { found: true, source: 'apps/example-app/package.json' };
 const ENV_OK = {
   exists: true,
   path: '/repo/.env.local',
@@ -32,19 +33,20 @@ const status = (result, id) => result.checks.find((c) => c.id === id)?.status;
 // ── the five init-time states the sprint names ────────────────────────────────────────────────
 
 test('all good: every check passes and the exit code is 0', () => {
-  const result = evaluatePreflight({ cli: CLI_OK, env: ENV_OK, probe: PROBE_OK });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env: ENV_OK, probe: PROBE_OK });
   assert.equal(result.ok, true);
   assert.equal(result.exitCode, 0);
   assert.equal(result.showOnboarding, false);
+  assert.equal(result.warnings, 0);
   assert.deepEqual(
     result.checks.map((c) => c.status),
-    ['ok', 'ok', 'ok', 'ok', 'ok']
+    ['ok', 'ok', 'ok', 'ok', 'ok', 'ok']
   );
 });
 
 test('no project: an absent .env.local fails hard and prints the install remedy', () => {
   const env = { exists: false, path: '/repo/.env.local', url: null, key: null, environment: null };
-  const result = evaluatePreflight({ cli: CLI_OK, env, probe: { state: 'skipped', detail: 'no key' } });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env, probe: { state: 'skipped', detail: 'no key' } });
   assert.equal(result.exitCode, 1);
   assert.equal(status(result, 'project'), 'fail');
   assert.equal(status(result, 'flag-read-key'), 'skipped', 'no file means the key check cannot run');
@@ -53,7 +55,7 @@ test('no project: an absent .env.local fails hard and prints the install remedy'
 
 test('no project: a .env.local written by something other than `gf init` also fails', () => {
   const env = { ...ENV_OK, url: null };
-  const result = evaluatePreflight({ cli: CLI_OK, env, probe: PROBE_OK });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env, probe: PROBE_OK });
   assert.equal(result.exitCode, 1);
   assert.equal(status(result, 'project'), 'fail');
   assert.match(result.checks.find((c) => c.id === 'project').detail, new RegExp(ENV_KEYS.url));
@@ -61,7 +63,7 @@ test('no project: a .env.local written by something other than `gf init` also fa
 
 test('no key: a linked project with no flag_read credential fails hard', () => {
   const env = { ...ENV_OK, key: null };
-  const result = evaluatePreflight({ cli: CLI_OK, env, probe: { state: 'skipped', detail: 'no key' } });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env, probe: { state: 'skipped', detail: 'no key' } });
   assert.equal(result.exitCode, 1);
   assert.equal(status(result, 'project'), 'ok');
   assert.equal(status(result, 'flag-read-key'), 'fail');
@@ -70,7 +72,7 @@ test('no key: a linked project with no flag_read credential fails hard', () => {
 
 test('CLI absent: fails hard, and the version check is skipped rather than guessed at', () => {
   const cli = { found: false, version: null, source: null };
-  const result = evaluatePreflight({ cli, env: ENV_OK, probe: PROBE_OK });
+  const result = evaluatePreflight({ cli, sdk: SDK_OK, env: ENV_OK, probe: PROBE_OK });
   assert.equal(result.exitCode, 1);
   assert.equal(status(result, 'cli'), 'fail');
   assert.equal(status(result, 'cli-version'), 'skipped');
@@ -80,15 +82,15 @@ test('CLI absent: fails hard, and the version check is skipped rather than guess
 
 test('CLI outdated: an older gf cannot complete a kill-switch story, so it fails', () => {
   const cli = { found: true, version: '0.0.9', source: 'gf (PATH)' };
-  const result = evaluatePreflight({ cli, env: ENV_OK, probe: PROBE_OK });
+  const result = evaluatePreflight({ cli, sdk: SDK_OK, env: ENV_OK, probe: PROBE_OK });
   assert.equal(result.exitCode, 1);
   assert.equal(status(result, 'cli-version'), 'fail');
   assert.match(result.checks.find((c) => c.id === 'cli-version').detail, /0\.0\.9/);
 });
 
 test('CLI newer than the floor passes; an unreadable version warns rather than failing', () => {
-  assert.equal(status(evaluatePreflight({ cli: { found: true, version: '9.9.9', source: 'x' }, env: ENV_OK, probe: PROBE_OK }), 'cli-version'), 'ok');
-  const odd = evaluatePreflight({ cli: { found: true, version: 'dev-build', source: 'x' }, env: ENV_OK, probe: PROBE_OK });
+  assert.equal(status(evaluatePreflight({ cli: { found: true, version: '9.9.9', source: 'x' }, sdk: SDK_OK, env: ENV_OK, probe: PROBE_OK }), 'cli-version'), 'ok');
+  const odd = evaluatePreflight({ cli: { found: true, version: 'dev-build', source: 'x' }, sdk: SDK_OK, env: ENV_OK, probe: PROBE_OK });
   assert.equal(status(odd, 'cli-version'), 'warn');
   assert.equal(odd.exitCode, 0, 'a fork or a local build is not a misconfiguration');
 });
@@ -97,7 +99,7 @@ test('CLI newer than the floor passes; an unreadable version warns rather than f
 
 test('D1: an UNREACHABLE deployment is a warning and the preflight still exits 0', () => {
   const probe = { state: 'unreachable', detail: 'Could not reach https://goldenfrijoles.com/... (fetch failed).' };
-  const result = evaluatePreflight({ cli: CLI_OK, env: ENV_OK, probe });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env: ENV_OK, probe });
   assert.equal(status(result, 'snapshot'), 'warn');
   assert.equal(result.ok, true);
   assert.equal(result.exitCode, 0, 'a Golden outage must never fail a build, a test run or a deploy');
@@ -105,14 +107,14 @@ test('D1: an UNREACHABLE deployment is a warning and the preflight still exits 0
 
 test('D1: a REJECTED credential is configuration, not weather, and does fail', () => {
   const probe = { state: 'dead', detail: '401' };
-  const result = evaluatePreflight({ cli: CLI_OK, env: ENV_OK, probe });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env: ENV_OK, probe });
   assert.equal(status(result, 'snapshot'), 'fail');
   assert.equal(result.exitCode, 1);
 });
 
 test('D1: a key for the WRONG environment fails — it is a silent production bug otherwise', () => {
   const probe = { state: 'wrong-environment', detail: 'resolves development, configured production' };
-  const result = evaluatePreflight({ cli: CLI_OK, env: ENV_OK, probe });
+  const result = evaluatePreflight({ cli: CLI_OK, sdk: SDK_OK, env: ENV_OK, probe });
   assert.equal(status(result, 'snapshot'), 'fail');
   assert.equal(result.exitCode, 1);
 });
@@ -124,7 +126,7 @@ test('probeSnapshot: a 200 naming this environment is live', async () => {
     url: 'https://example.test/',
     key: 'k',
     environment: 'development',
-    fetchImpl: async () => new Response(JSON.stringify({ environment: 'development', snapshotVersion: 7, flags: [] }), { status: 200 }),
+    fetchImpl: async () => new Response(JSON.stringify({ contractVersion: 1, environment: 'development', snapshotVersion: 7, flags: [] }), { status: 200 }),
   });
   assert.equal(probe.state, 'live');
   assert.match(probe.detail, /v7/);
@@ -135,7 +137,7 @@ test('probeSnapshot: a 200 naming a DIFFERENT environment is wrong-environment, 
     url: 'https://example.test',
     key: 'k',
     environment: 'production',
-    fetchImpl: async () => new Response(JSON.stringify({ environment: 'development', snapshotVersion: 1, flags: [] }), { status: 200 }),
+    fetchImpl: async () => new Response(JSON.stringify({ contractVersion: 1, environment: 'development', snapshotVersion: 1, flags: [] }), { status: 200 }),
   });
   assert.equal(probe.state, 'wrong-environment');
 });
@@ -171,7 +173,7 @@ test('probeSnapshot: the key is sent as its own Bearer credential, to the snapsh
     environment: null,
     fetchImpl: async (url, init) => {
       seen = { url, auth: init.headers.authorization };
-      return new Response(JSON.stringify({ environment: 'development', snapshotVersion: 1, flags: [] }), { status: 200 });
+      return new Response(JSON.stringify({ contractVersion: 1, environment: 'development', snapshotVersion: 1, flags: [] }), { status: 200 });
     },
   });
   assert.equal(seen.url, 'https://example.test/api/v1/flags/snapshot', 'the trailing slash must not double up');
@@ -235,4 +237,93 @@ test('findCli: PATH wins, and the version is the trimmed stdout', () => {
   assert.equal(cli.found, true);
   assert.equal(cli.version, '0.1.0');
   assert.match(cli.source, /PATH/);
+});
+
+// ── the SDK check: the half that READS flags (added after review) ─────────────────────────────
+
+test('SDK absent: a WARNING, never a failure — `npm install` not yet run is a fresh clone', () => {
+  const result = evaluatePreflight({
+    cli: CLI_OK,
+    sdk: { found: false, source: null },
+    env: ENV_OK,
+    probe: PROBE_OK,
+  });
+  assert.equal(status(result, 'sdk'), 'warn');
+  assert.equal(result.exitCode, 0, 'a fresh clone must not fail its first minute');
+  assert.equal(result.warnings, 1);
+  const detail = result.checks.find((c) => c.status === 'warn').detail;
+  assert.match(detail, /call-site default/, 'and it says what the consequence actually is');
+  assert.match(detail, /npm install @golden-frijoles\/sdk/);
+});
+
+test('a warning is COUNTED, so the summary cannot imply five clean ticks mean flags work', () => {
+  // The defect this exists for: the CLI green, a live snapshot green, and every flag resolving to
+  // its default forever because nothing had ever installed the SDK.
+  const result = evaluatePreflight({
+    cli: CLI_OK,
+    sdk: { found: false, source: null },
+    env: ENV_OK,
+    probe: PROBE_OK,
+  });
+  assert.equal(result.ok, true);
+  assert.ok(result.warnings > 0);
+});
+
+test('findSdk: an unresolvable package reports found:false rather than throwing', () => {
+  const sdk = findSdk({ cwd: '/nonexistent/definitely-not-here' });
+  assert.deepEqual(sdk, { found: false, source: null });
+});
+
+// ── the unasserted environment (added after review) ───────────────────────────────────────────
+
+test('environment unset: a WARNING on `project`, because nothing can detect a mismatch', () => {
+  // The CI-secrets path preflight's own header endorses: URL and key injected, environment not.
+  // It used to read a clean ✅ while the app had nothing to assert against.
+  const result = evaluatePreflight({
+    cli: CLI_OK,
+    sdk: SDK_OK,
+    env: { ...ENV_OK, environment: null },
+    probe: { state: 'live', detail: 'resolved production' },
+  });
+  assert.equal(status(result, 'project'), 'warn');
+  assert.equal(result.exitCode, 0);
+  assert.match(result.checks.find((c) => c.id === 'project').detail, /nothing asserts WHICH environment/);
+});
+
+// ── N1: a 200 that is not a snapshot is weather, not a mismatch ───────────────────────────────
+
+test('probeSnapshot: a 200 without contractVersion 1 is unreachable, never wrong-environment', () => {
+  // A captive portal or a proxy error document can be JSON with an `environment` string. Landing
+  // that as `wrong-environment` would FAIL — the one shape of weather that could still break a
+  // build, which is the one thing D1 forbids.
+  const bodies = [
+    { environment: 'production' },
+    { contractVersion: 2, environment: 'production' },
+    { contractVersion: '1', environment: 'production' },
+    {},
+  ];
+  return Promise.all(
+    bodies.map(async (body) => {
+      const probe = await probeSnapshot({
+        url: 'https://example.test',
+        key: 'k',
+        environment: 'development',
+        fetchImpl: async () => new Response(JSON.stringify(body), { status: 200 }),
+      });
+      assert.equal(probe.state, 'unreachable', JSON.stringify(body));
+    })
+  );
+});
+
+test('probeSnapshot: a real snapshot still resolves live, and a real mismatch still fails', async () => {
+  const snapshot = (environment) =>
+    async () => new Response(JSON.stringify({ contractVersion: 1, environment, snapshotVersion: 4, flags: [] }), { status: 200 });
+  assert.equal(
+    (await probeSnapshot({ url: 'https://example.test', key: 'k', environment: 'production', fetchImpl: snapshot('production') })).state,
+    'live'
+  );
+  assert.equal(
+    (await probeSnapshot({ url: 'https://example.test', key: 'k', environment: 'production', fetchImpl: snapshot('development') })).state,
+    'wrong-environment'
+  );
 });

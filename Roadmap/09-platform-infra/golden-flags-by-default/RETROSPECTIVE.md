@@ -66,6 +66,55 @@ if it has no Golden Frijoles project, and cannot quietly grow a second flag stor
   the shape this failure takes. The fix was not a paragraph; it was putting
   `gf flags ls --env production` into the story template as its own step.
 
+## The review round, and the lesson it bought
+
+One fresh reviewer found five real things; the external cross-family layer is DARK in this repo and
+could not run (see *Gaps* below). Every finding is fixed, and one of them is the most useful thing
+this epic produced:
+
+- **B1 — the epic shipped a command that does not exist.** D4's whole point was that activation
+  stops being a cautionary paragraph and becomes a runnable verb. The verb was
+  `gf flags ls --env production`, and `gf flags ls` takes no `--env`: it exits 1 with a usage error
+  before it ever reaches auth. The annotation beside it quoted the **web console's** wording while
+  the CLI prints `—`. Both halves wrong, in the line the whole decision rested on.
+
+  **It survived because it was verified the way prose gets verified.** The smoke step checked the
+  string was *present* in every surface — and it was, perfectly, in all five, because
+  `check-onboarding-parity.mjs` had just been built to guarantee exactly that. A guard that welds
+  five files to one string makes them agree; it says nothing about whether the string is true. The
+  build was one `gf flags ls --help` away from catching it and never ran it, in an epic whose entire
+  thesis is *checks, not sentences*.
+
+  The fix is not the corrected command. It is `check-onboarding-parity.mjs --exec`, which **runs**
+  each advertised command against the real CLI: `unauthorized` (the parser accepted it, then asked
+  for a credential) passes, `invalid` fails. CI installs the CLI and runs it — and skips rather than
+  fails when it cannot, because a check that goes red on someone else's outage is the same mistake
+  D1 exists to refuse.
+
+- **S1 — the epic's title claim was not true.** "A spawned project already carries the flag
+  provider": it carried the *seam*, not the *package*. `@golden-frijoles/sdk` was a dependency of
+  nothing and no document said to install it, so the reachable end state of following the spawn
+  checklist was **five green preflight checks, a live snapshot, and every flag resolving to its
+  call-site default forever** — with one log line. The dynamic import that makes the seam testable
+  with no `node_modules` is also what made the hole silent. Preflight now has an `sdk` check, and a
+  warning is counted in the summary line so five ticks can no longer imply flags work.
+
+- **S2 — a "harmless default" that silently broke production reads.** The seam defaulted
+  `environment` to `'development'` and passed it to the SDK, where that field is a *hard assertion*
+  and a mismatched snapshot is rejected. On the CI-secrets path this file's own header recommends, a
+  valid production key resolved a production snapshot, the SDK rejected it against an environment
+  nobody had chosen, and every flag served its compile default permanently — indistinguishable from
+  an outage. Reproduced both ways before and after the fix. The CLI had avoided the identical trap
+  and written down why; the template did not read its own dependency closely enough.
+
+- **S3 — an assertion pointing exactly backwards.** The shipped e2e gate asserted
+  `demo.hello_enabled === false`, so a project that followed this epic's own walkthrough
+  (`--kill-switch` means born serving `true`) turned its gate red. It was green precisely while
+  flags were not working.
+
+- **N1** — any 200 with parseable JSON could be read as a wrong-environment mismatch and *fail*: the
+  one shape of weather that could still break a build. `contractVersion` is now checked first.
+
 ## Gaps / follow-ups
 
 - **Owed to the product owner: one live `gf login` + `gf init`.** Completing `gf init` needs a CLI
@@ -82,6 +131,13 @@ if it has no Golden Frijoles project, and cannot quietly grow a second flag stor
 - **`MIN_CLI_VERSION` is a hand-maintained floor** (`0.1.0` — the version that shipped the write
   path). Nothing automatically raises it when the CLI ships a verb the story template starts naming.
   Worth a thought the next time a `gf` verb is added to a doc here.
+- **The external cross-family review layer is DARK in this repo, structurally.** There is no
+  `review-route.mjs`, `cross-review.mjs` or `review-config.json` in `dobby-foundation/scripts/` —
+  `fill-ins.yml` says the families are routed *"in a consuming project's checkout"*. So a repo whose
+  `reviewScope` is `every-pr` cannot run the layer its own process document prescribes, and never
+  could. One fresh reviewer was the only judgment layer on a HIGH-risk shared-infra diff. **B1 is
+  exactly the class of external-fact error a second family is good at.** Worth its own chore epic:
+  this is the repo that changes the process every project imports.
 - **`preflight.mjs` is not in the template's CI gate**, deliberately — `.env.local` is gitignored, so
   a checkout has no credential. It falls back to the process environment for projects that want it
   in CI from secrets, but nobody has run it that way yet.

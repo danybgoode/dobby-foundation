@@ -58,6 +58,7 @@ answer the kill-switch question, and the answer names a flag mechanism — so th
 | Reading a flag at runtime | the one seam — `apps/*/flags.mjs`, wrapping `createFlagProvider` |
 | Turning a flag on or off | `gf flags rollout` / `gf flags kill`, or the Golden console |
 | The credential | `GOLDEN_FRIJOLES_FLAG_READ_KEY` in `.env.local`, written by `gf init`, **server-side only** |
+| Reading them at all | `npm install @golden-frijoles/sdk` in the app that reads flags — `gf` writes, the SDK reads |
 | Is it linked at all? | `node scripts/preflight.mjs` — it fails loudly and prints the one command |
 
 What this forbids, concretely: a checked-in map of default flag values, a `flags` table in your own
@@ -77,7 +78,7 @@ Three things that are easy to get wrong, each answered in
   A kill-switch story that stops at "created" can serve compile defaults in production while the
   console reads "never turned on here".
 
-**The plan the free tier gives you (⚠️ not enforced yet — see below):**
+**The plan the free tier gives you (⚠️ not enforced yet, and not the public pricing page — see below):**
 
 | Tier | Price | Evaluations / mo | Projects | Seats | Flags · Envs · Segments |
 |---|---|---|---|---|---|
@@ -94,6 +95,12 @@ background-snapshot design consumes them at refresh rate, not per request.
 > and no limit error anywhere in the product today. **Do not build against these numbers** — do not
 > add a quota check, a tier branch or an "approaching your limit" warning. If you hit something that
 > looks like a limit, it is a bug, not a plan.
+>
+> ⚠️ **And these are not the prices on the public pricing page.** This is the *flag-plan model*
+> decided 2026-09-16 for the mandate in rule 1; the product's public landing page prices its tiers
+> differently and moves on its own schedule. The only line rule 1 actually depends on is the one
+> above it: **unlimited flags and environments on the free tier.** If you need a price to quote,
+> read the pricing page, never this table.
 
 <!-- TEMPLATE FILL-IN — rules 2 and up are yours. This is the load-bearing section of this file:
      write 2-4 more non-negotiable architectural rules for THIS project — the things that must never

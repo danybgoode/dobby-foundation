@@ -180,10 +180,33 @@ written.**
    → The kill-switch story names a **Golden Frijoles** flag, the right polarity, one resolver seam,
    the CLI command to create it in every env, **and activation as its own step**. It does not
    mention `DEFAULT_FLAGS`.
-   **✅ PASS.** `references/kill-switch.md` names all nine required elements — `Golden Frijoles`,
-   `gf flags create`, `--kill-switch --all-envs`, `--enablement`, *one resolver function*,
-   *Activation*, `gf flags ls --env production`, `flags-runtime.md`, `node scripts/preflight.mjs` —
-   and mentions neither `DEFAULT_FLAGS` nor `lib/flags.ts`.
+   **❌ FAILED on the first run, and the correction is the most useful thing in this document.**
+
+   What was originally recorded here as a ✅ was a check that the required strings were **present**
+   in `references/kill-switch.md`. They were. One of them was
+   `gf flags ls --env production`, **a command that does not exist** — `gf flags ls` accepts only
+   `--project`, so it exits `1` with `Unknown flag for \`gf flags ls\`: --env` *before* it ever
+   reaches auth. The annotation beside it (*"it must not read 'never turned on'"*) quoted the **web
+   console's** vocabulary; the CLI's `describeServing` prints `—`. A reader following it literally
+   would have run a command that cannot run, looking for a string the tool never prints.
+
+   Caught by the fresh reviewer, not by this step, and it had already been welded into five surfaces
+   by `check-onboarding-parity.mjs` — a guard enforcing that the wrong command stayed everywhere.
+   *Presence in every surface is not the same as the command existing.*
+
+   **✅ PASSES NOW**, and the check is no longer a grep. The command is
+   `gf flags get <domain>.<feature>_enabled` (one row per environment; **PRODUCTION must not read
+   `—`**), and `check-onboarding-parity.mjs --exec` now RUNS each advertised command against the
+   real published CLI:
+   ```
+   ✅ gf flags create <domain>.<feature>_enabled --kill-switch --all-envs  →  unauthorized
+   ✅ gf flags get <domain>.<feature>_enabled                              →  unauthorized
+   ✅ gf flags kill <domain>.<feature>_enabled --env production            →  unauthorized
+   ```
+   `unauthorized` (exit 2) is the pass: the parser accepted the command and the dispatcher then
+   asked for a credential. `invalid` (exit 1) is the failure, and re-running `--exec` against the
+   old string reproduces it exactly. CI installs the CLI and runs this, skipping — never failing —
+   if the install cannot happen.
 
 6. Add a `lib/flags.ts` with a `DEFAULT_FLAGS` export to the template and run `node scripts/check-plugin-leaks.mjs`.
    → It **fails**. *(Then revert.)*
@@ -207,6 +230,39 @@ written.**
    | login | `npx @golden-frijoles/cli login` | `CLI_NPX_LOGIN` = same |
    | global | `npm i -g @golden-frijoles/cli` | `CLI_GLOBAL_INSTALL` = same |
    | env names | `GOLDEN_FRIJOLES_{URL,FLAG_READ_KEY,ENVIRONMENT}` | `ENV_KEYS` in `init.ts` = same |
+
+## Review round — 2026-09-19
+
+One fresh reviewer (context independence). The external cross-family pass is **DARK in this repo**
+and was said out loud on the PR: `dobby-foundation/scripts/` carries no `review-route.mjs`,
+`cross-review.mjs` or `review-config.json` — `Roadmap/fill-ins.yml` states the families are routed
+*"in a consuming project's checkout"*. So the layer WAYS-OF-WORKING describes for a repo whose
+`reviewScope` is `every-pr` cannot run here at all, and never could. **That is worth its own chore
+epic** — this is the repo that changes the process every project imports. Not fixed by this PR.
+
+The reviewer confirmed D1 (no path where an outage fails a build, a test, a deploy or a boot),
+credential handling, D3, the leak-sweep population, and re-ran the D2 Edge reproduction from the
+doc's own instructions. It found five things. All five are fixed:
+
+| | Finding | Fix |
+|---|---|---|
+| **B1** | `gf flags ls --env production` does not exist — and the parity guard was about to hold it in place across five files | Corrected to `gf flags get <key>`; `check-onboarding-parity --exec` now **runs** each advertised command; CI does too |
+| **S1** | "a spawned project already carries the flag provider" — it carried the seam, not the package. Nothing anywhere said to install `@golden-frijoles/sdk`, so the reachable end state was **five green checks and every flag defaulting forever** | The SDK is a declared dependency of the example app, the spawn step installs it, and preflight gained an `sdk` check (⚠️ not ❌ — an uninstalled fresh clone is not a misconfiguration) |
+| **S2** | `flags.mjs` invented `environment: 'development'` and handed it to the SDK as a **hard assertion**. On the CI-secrets path preflight's own header endorses, a valid production key was rejected as `PARSE_ERROR` and served defaults permanently, silently | The field is **omitted** when unset, letting the first snapshot establish it; preflight warns that nothing asserts which environment this is. **Reproduced both ways** — see below |
+| **S3** | `e2e/flags.spec.ts` hard-asserted `false`, so a project that followed this very walkthrough (`--kill-switch` = born serving `true`) turned its own shipped gate red — green only while flags were broken | Asserts the **shape**: a resolved boolean either way, the provider named, no credential material |
+| **N1** | any 200 with parseable JSON could land as `wrong-environment` → exit 1: the one shape of weather that could still fail a build | `contractVersion === 1` is required before the body is believed; anything else is `unreachable` |
+
+**S2, reproduced side by side** — a valid production key and production snapshot, with
+`GOLDEN_FRIJOLES_ENVIRONMENT` unset:
+
+```
+AFTER  initialize: {"ready":true,...,"snapshotVersion":12}   demo.hello_enabled → true    environment: production
+BEFORE initialize: {"ready":false,"reason":"... (PARSE_ERROR) ..."}   demo.hello_enabled → false   environment: undefined
+```
+
+Two nits accepted as-is: the consumer copy-in lands in this same wave rather than after (below), and
+the plan table now says in two places that it is the flag-plan model and **not the public pricing
+page**, which prices differently.
 
 If any step fails, note the step number + what you saw — that's the bug report.
 

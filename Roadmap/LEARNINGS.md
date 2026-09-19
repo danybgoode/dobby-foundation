@@ -214,6 +214,14 @@ accumulate below them, same one-liner + why + date shape.
   someone else's outage.
 
 ## Guards, and depending on someone else's service (golden-flags-by-default, 2026-09-19)
+- **A guard that makes N files agree says nothing about whether they are RIGHT.** A parity check
+  welded one command into five surfaces, and the command did not exist — `gf flags ls` takes no
+  `--env`, so it exited 1 before reaching auth, and the output it told readers to look for was
+  another tool's vocabulary. Every surface agreed, perfectly, about something untrue, and the build
+  was one `--help` away from catching it. **Presence is not execution: if a doc tells someone to run
+  a command, the check runs it.** A `--exec` mode that accepts "the parser took it, then asked for a
+  credential" and rejects "unknown flag" is cheap, and it skips rather than failing when the tool is
+  not installed.
 - **A guard with no test is a guard nobody has seen fire.** `check-plugin-leaks.mjs` ran green over a
   real leak every day for months: "CI was green" cannot distinguish a working guard from a pattern that
   matches nothing. Give every guard fixtures that assert it **fires**, *and* fixtures that assert it does
@@ -230,6 +238,12 @@ accumulate below them, same one-liner + why + date shape.
 - **Refuse the flag that blurs a fail-soft promise.** A `--strict` that turns "the provider is unreachable"
   into a failure will be in someone's CI file within the week, and the promise is then gone with nobody
   having decided to give it up. Not adding it is the enforcement.
+- **A "harmless default" handed to someone else's API is not harmless — read what the callee does
+  with the field.** Defaulting an unset `environment` to `'development'` looked like courtesy; in the
+  SDK that field is a hard ASSERTION, and a snapshot that disagrees is rejected. A valid production
+  credential then served compile-time defaults permanently and silently, indistinguishable from an
+  outage. **When a value is unknown, omit it and let the source of truth establish it** — and say
+  out loud that nobody asserted it.
 - **"The package is not installed" is the most complete outage there is — import dynamically and test in
   it.** A seam whose SDK is loaded with `await import()` has its entire fallback contract exercised in a
   checkout with no `node_modules`: no network, no credentials, no transport to mock.

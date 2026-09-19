@@ -44,12 +44,32 @@ import { ENV_KEYS, SDK_PACKAGE } from '../../scripts/lib/golden-onboarding.mjs';
 export function flagConfigFromEnv(env = process.env) {
   const baseUrl = env[ENV_KEYS.url]?.trim() || '';
   const flagReadKey = env[ENV_KEYS.flagRead]?.trim() || '';
-  const environment = env[ENV_KEYS.environment]?.trim() || 'development';
+  const environment = env[ENV_KEYS.environment]?.trim() || '';
   const missing = [];
   if (!baseUrl) missing.push(ENV_KEYS.url);
   if (!flagReadKey) missing.push(ENV_KEYS.flagRead);
   if (missing.length) return { ok: false, missing };
-  return { ok: true, config: { baseUrl, flagReadKey, environment } };
+
+  // ⚠️ **An UNSET environment is omitted, never defaulted** (found in review). The SDK treats
+  // `environment` as a hard local ASSERTION — "otherwise the first accepted snapshot establishes
+  // the environment" — and a snapshot that disagrees with it is REJECTED as a PARSE_ERROR. So
+  // guessing `'development'` here was not a harmless default: on the CI path `preflight.mjs` itself
+  // endorses (inject the URL and the key from secrets), a perfectly valid production key resolved a
+  // production snapshot, the SDK rejected it against an environment nobody had chosen, and every
+  // flag served its compile-time default **permanently** — indistinguishable from an outage, and
+  // silent.
+  //
+  // Omitting the field lets the first snapshot establish the truth. `gf init` writes all three
+  // names, so this branch means a hand-edited file or a partial CI injection; `preflight.mjs` warns
+  // on exactly that, because "nobody said which environment this is" is still worth knowing.
+  //
+  // The CLI avoided the same trap and wrote down why: it inlines the environment the caller
+  // actually CHOSE as its snippet's fallback, never a guess.
+  return {
+    ok: true,
+    config: environment ? { baseUrl, flagReadKey, environment } : { baseUrl, flagReadKey },
+    asserted: Boolean(environment),
+  };
 }
 
 /**

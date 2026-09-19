@@ -45,8 +45,9 @@
 //
 // ── What it does NOT prove ─────────────────────────────────────────────────────────────────────
 // That any particular flag exists, or that it is ACTIVATED. Definitions are catalog-as-code and
-// activations are not (D4) — `gf flags ls --env production` is the verb that answers that, per
-// flag, and a kill-switch story names it as its own step.
+// activations are not (D4) — `gf flags get <key>` is the verb that answers that, per flag and per
+// environment, and a kill-switch story names it as its own step. `—` in its SERVING column means
+// never activated here.
 //
 // ── Usage ──────────────────────────────────────────────────────────────────────────────────────
 //   node scripts/preflight.mjs              # the full check, including the live snapshot probe
@@ -56,7 +57,8 @@
 // Zero deps — Node 18+.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -67,6 +69,7 @@ import {
   ENV_FILE,
   ENV_KEYS,
   MIN_CLI_VERSION,
+  SDK_PACKAGE,
   SNAPSHOT_PATH,
   compareVersions,
   onboardingLines,
@@ -79,7 +82,7 @@ const REPO = resolve(__dirname, '..');
 const PROBE_TIMEOUT_MS = 5_000;
 
 /** `ok` passes, `fail` exits 1, `warn` is reported and passes, `skipped` could not run. */
-const ORDER = ['cli', 'cli-version', 'project', 'flag-read-key', 'snapshot'];
+const ORDER = ['cli', 'cli-version', 'sdk', 'project', 'flag-read-key', 'snapshot'];
 
 /**
  * The whole decision, as a pure function of what was found.
@@ -90,10 +93,11 @@ const ORDER = ['cli', 'cli-version', 'project', 'flag-read-key', 'snapshot'];
  *
  * @param {object} input
  * @param {{ found: boolean, version: string|null, source: string|null }} input.cli
+ * @param {{ found: boolean, source: string|null }} input.sdk
  * @param {{ exists: boolean, path: string, url: string|null, key: string|null, environment: string|null }} input.env
  * @param {{ state: 'live'|'dead'|'wrong-environment'|'unreachable'|'skipped', detail: string, environment?: string|null }} input.probe
  */
-export function evaluatePreflight({ cli, env, probe }) {
+export function evaluatePreflight({ cli, sdk = { found: false, source: null }, env, probe }) {
   const checks = [];
 
   // ── 1. is the CLI there at all ────────────────────────────────────────────────────────────
@@ -131,7 +135,29 @@ export function evaluatePreflight({ cli, env, probe }) {
     }
   }
 
-  // ── 3. is a project linked ────────────────────────────────────────────────────────────────
+  // ── 3. can the APP actually read a flag — is the SDK installed ────────────────────────────
+  // ⚠️ **Added after review.** The CLI and the SDK are different halves: `gf` creates and kills
+  // flags, the SDK reads them. Without this check a project reached FIVE GREEN CHECKS, including a
+  // live snapshot, while every flag resolved to its call-site default forever — because nothing had
+  // ever installed `@golden-frijoles/sdk`. The seam imports it dynamically (deliberately: that is
+  // what lets it load in a checkout with no node_modules), so its absence is one log line rather
+  // than a crash, which is exactly why a check has to say it out loud.
+  //
+  // A WARNING, not a failure, and that is D1 applied consistently: "you have not run `npm install`
+  // yet" is the ordinary state of a fresh clone, and this check must not fail a spawn's first
+  // minute. But it is counted, and the summary line below refuses to say a plain PASS while it
+  // stands.
+  if (sdk.found) {
+    checks.push({ id: 'sdk', status: 'ok', detail: `${SDK_PACKAGE} resolves from ${sdk.source}.` });
+  } else {
+    checks.push({
+      id: 'sdk',
+      status: 'warn',
+      detail: `${SDK_PACKAGE} is not installed — the flag seam will load, and EVERY flag will resolve to its call-site default. \`npm install ${SDK_PACKAGE}\` in the app that reads flags.`,
+    });
+  }
+
+  // ── 4. is a project linked ────────────────────────────────────────────────────────────────
   if (!env.exists) {
     checks.push({
       id: 'project',
@@ -144,15 +170,27 @@ export function evaluatePreflight({ cli, env, probe }) {
       status: 'fail',
       detail: `${ENV_FILE} exists but carries no ${ENV_KEYS.url}. It was not written by \`${CLI_BIN} init\`.`,
     });
+  } else if (!env.environment) {
+    // ⚠️ **Added after review.** Without this the CI-secrets path (URL and key injected, environment
+    // not) reported a clean ✅ while the app had nothing to assert against: the probe's
+    // mismatch check is skipped when there is no configured environment to compare a snapshot to,
+    // so a production key paired with an unstated environment passed silently. The seam no longer
+    // invents `development` in that case — it lets the first snapshot establish the environment —
+    // but "nobody said which environment this is" is still a configuration gap worth naming.
+    checks.push({
+      id: 'project',
+      status: 'warn',
+      detail: `${ENV_KEYS.url}=${env.url}, but ${ENV_KEYS.environment} is unset — nothing asserts WHICH environment this project reads, so a mismatch cannot be detected. \`${CLI_BIN} init --env <environment>\` writes it.`,
+    });
   } else {
     checks.push({
       id: 'project',
       status: 'ok',
-      detail: `${ENV_KEYS.url}=${env.url}${env.environment ? ` (${ENV_KEYS.environment}=${env.environment})` : ''}.`,
+      detail: `${ENV_KEYS.url}=${env.url} (${ENV_KEYS.environment}=${env.environment}).`,
     });
   }
 
-  // ── 4. is there a read credential ─────────────────────────────────────────────────────────
+  // ── 5. is there a read credential ─────────────────────────────────────────────────────────
   if (!env.exists) {
     checks.push({ id: 'flag-read-key', status: 'skipped', detail: `No ${ENV_FILE} to read a key from.` });
   } else if (!env.key) {
@@ -166,7 +204,7 @@ export function evaluatePreflight({ cli, env, probe }) {
     checks.push({ id: 'flag-read-key', status: 'ok', detail: `${ENV_KEYS.flagRead} present (value never printed).` });
   }
 
-  // ── 5. does the credential actually resolve a snapshot — the only check that can lie ──────
+  // ── 6. does the credential actually resolve a snapshot — the only check that can lie ──────
   // D1 lives here. `dead` and `wrong-environment` are configuration; `unreachable` is weather.
   const probeStatus = {
     live: 'ok',
@@ -178,8 +216,10 @@ export function evaluatePreflight({ cli, env, probe }) {
   checks.push({ id: 'snapshot', status: probeStatus ?? 'warn', detail: probe.detail });
 
   const failed = checks.filter((c) => c.status === 'fail');
+  const warned = checks.filter((c) => c.status === 'warn');
   return {
     ok: failed.length === 0,
+    warnings: warned.length,
     exitCode: failed.length === 0 ? 0 : 1,
     // The remedy is printed whenever the project is not wired — which is exactly the set of
     // failures `gf init` fixes. A stale CLI is not one of them, so it does not drag the install
@@ -201,6 +241,38 @@ export function findCli({ cwd = REPO, spawn = spawnSync } = {}) {
     return { found: true, version: String(result.stdout ?? '').trim() || null, source: candidate.source };
   }
   return { found: false, version: null, source: null };
+}
+
+/**
+ * Is `@golden-frijoles/sdk` resolvable from anywhere this repo's apps would import it?
+ *
+ * Node resolution walks UP from the importer, so an SDK in the repo root's `node_modules` serves
+ * every app; one installed only inside `apps/<name>/node_modules` serves that app. Both are normal,
+ * so both are looked at, and the answer names WHERE it was found rather than just that it was.
+ */
+export function findSdk({ cwd = REPO } = {}) {
+  const bases = [join(cwd, 'package.json')];
+  try {
+    for (const name of readdirSync(join(cwd, 'apps'))) {
+      const manifest = join(cwd, 'apps', name, 'package.json');
+      if (existsSync(manifest)) bases.push(manifest);
+    }
+  } catch {
+    /* no apps/ directory — a single-app project resolves from the root */
+  }
+  for (const base of bases) {
+    try {
+      createRequire(base).resolve(SDK_PACKAGE);
+      return { found: true, source: relativeish(cwd, base) };
+    } catch {
+      /* not resolvable from this base; try the next */
+    }
+  }
+  return { found: false, source: null };
+}
+
+function relativeish(root, manifest) {
+  return manifest.startsWith(root) ? manifest.slice(root.length + 1) || manifest : manifest;
 }
 
 /**
@@ -280,6 +352,17 @@ export async function probeSnapshot({ url, key, environment, fetchImpl = globalT
       };
     }
     const body = await response.json();
+    // ⚠️ **`contractVersion` is checked before anything in the body is believed** (added after
+    // review). Any 200 carrying parseable JSON with an `environment` string — a captive portal, a
+    // proxy's error document, a different service on the same host — would otherwise land as
+    // `wrong-environment`, which FAILS. That is the one shape of weather that could still break a
+    // build, which is the one thing D1 forbids. An unrecognised body is `unreachable`.
+    if (body?.contractVersion !== 1) {
+      return {
+        state: 'unreachable',
+        detail: `${endpoint} answered 200 but not with a flag snapshot (contractVersion ${JSON.stringify(body?.contractVersion)}). Could not verify the key — NOT treated as a failure (D1).`,
+      };
+    }
     const served = typeof body?.environment === 'string' ? body.environment : null;
     if (environment && served && served !== environment) {
       return {
@@ -315,9 +398,13 @@ export function render(result) {
   }
   lines.push('');
   if (result.showOnboarding) lines.push(...onboardingLines(), '');
+  // A plain "PASS" over a warning is how the SDK-not-installed case stayed invisible: five ticks, a
+  // live snapshot, and no flag ever resolving. The count rides in the summary line.
   lines.push(
     result.ok
-      ? 'preflight: PASS — this project can create and read a Golden Frijoles kill-switch.'
+      ? result.warnings
+        ? `preflight: PASS with ${result.warnings} warning(s) — read them; a ⚠️ here is something that will not fail your build and may still mean no flag ever resolves.`
+        : 'preflight: PASS — this project can create and read a Golden Frijoles kill-switch.'
       : `preflight: FAIL — ${result.checks.filter((c) => c.status === 'fail').length} check(s). ${CLI_NPX_INIT}`
   );
   return lines.join('\n');
@@ -328,6 +415,7 @@ export async function main(argv = process.argv.slice(2)) {
   const asJson = argv.includes('--json');
 
   const cli = findCli();
+  const sdk = findSdk();
   const env = readEnvFile(join(REPO, ENV_FILE));
 
   let probe = { state: 'skipped', detail: 'Not probed.' };
@@ -339,7 +427,7 @@ export async function main(argv = process.argv.slice(2)) {
     probe = await probeSnapshot({ url: env.url, key: env.key, environment: env.environment });
   }
 
-  const result = evaluatePreflight({ cli, env, probe });
+  const result = evaluatePreflight({ cli, sdk, env, probe });
   console.log(asJson ? JSON.stringify(result, null, 2) : render(result));
   return result.exitCode;
 }

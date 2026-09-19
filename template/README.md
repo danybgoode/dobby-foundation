@@ -72,7 +72,14 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    `npm i -g @golden-frijoles/cli` puts `gf` on your PATH; every command takes `--json`. `gf init`
    creates the project if there isn't one, mints a `flag_read` key, writes `.env.local` at mode 0600
    (refusing if git does not actually ignore it) and prints the snippet that reads it. Re-run the
-   preflight: it passes. See `AGENTS.md` rule 1 and
+   preflight: it passes. **Then install the reader** — `gf` creates and kills flags, the SDK reads
+   them, and they are different halves:
+   ```
+   cd apps/example-app && npm install          # @golden-frijoles/sdk is already a dependency
+   ```
+   Until it is installed the seam still loads and every flag resolves to its call-site default —
+   by design, so a fresh clone builds — and `scripts/preflight.mjs` says so with a ⚠️ rather than
+   letting five green ticks imply flags are working. See `AGENTS.md` rule 1 and
    [`references/flags-runtime.md`](references/flags-runtime.md) for the runtime rules — the short
    version is that **a Golden outage never fails a build**, because every read resolves
    synchronously against a default you supply at the call site.

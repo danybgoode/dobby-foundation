@@ -105,7 +105,7 @@ variables it just wrote. The whole kill-switch story is then three commands:
 
 ```
 gf flags create <domain>.<feature>_enabled --kill-switch --all-envs
-gf flags ls --env production          # ← the ACTIVATION check: it must not read "never turned on"
+gf flags get <domain>.<feature>_enabled    # ← the ACTIVATION check: PRODUCTION must not read "—"
 gf flags kill <domain>.<feature>_enabled --env production
 ```
 
@@ -114,9 +114,11 @@ against this mechanism, and `scripts/check-plugin-leaks.mjs` fails if a template
 starts naming another one — which is exactly how this repo shipped one consumer's in-house flag
 table to every future project for months.
 
-**⚠️ The plan tiers are written down but NOT ENFORCED.** Every account gets everything, unlimited —
-there is no metering, no quota display and no upgrade prompt. The table lives in
-[`template/AGENTS.md`](template/AGENTS.md); do not build against its numbers.
+**⚠️ The plan tiers are written down but NOT ENFORCED, and are not the public pricing page.** Every
+account gets everything, unlimited — no metering, no quota display, no upgrade prompt. The table in
+[`template/AGENTS.md`](template/AGENTS.md) is the *flag-plan model* the mandate rests on; the only
+line it depends on is **unlimited flags and environments on the free tier**. Do not build against
+its numbers, and do not quote them as prices.
 
 ## Origin
 

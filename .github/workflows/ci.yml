@@ -67,6 +67,26 @@ jobs:
       - name: Golden onboarding surfaces agree
         run: node scripts/check-onboarding-parity.mjs
 
+      # ── Presence is not execution ────────────────────────────────────────────────────────────
+      # The check above proves every surface says the SAME thing. It cannot prove the thing is
+      # TRUE — and the first version of this epic welded `gf flags ls --env production` into five
+      # files, a command that exits 1 with a usage error because `gf flags ls` takes no `--env`.
+      # Every surface agreed, perfectly, about something the CLI cannot do.
+      #
+      # So this step installs the REAL published CLI and runs each advertised command, asserting
+      # the CLI parsed it (`unauthorized` is a pass — the parser accepted it and then asked for a
+      # credential; `invalid` is the failure). It is the only step here that touches the network,
+      # so it is written the way this repo's own doctrine says to: an install that cannot happen
+      # SKIPS rather than failing. A red check because npm was having a bad day is precisely the
+      # dependency `preflight.mjs` refuses to be.
+      - name: Advertised gf commands actually exist
+        run: |
+          if npm i -g @golden-frijoles/cli --no-audit --no-fund; then
+            node scripts/check-onboarding-parity.mjs --exec
+          else
+            echo "::warning::could not install @golden-frijoles/cli — the --exec check was SKIPPED, not passed."
+          fi
+
       # The repo-tooling scripts. check-plugin-leaks.test.mjs fires the guard's own rules against
       # FIXTURES: until golden-flags-by-default S1.3 this guard had no test at all, and its
       # behaviour was only ever observed as "CI was green" — the one observation that cannot tell a

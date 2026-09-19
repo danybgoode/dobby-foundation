@@ -12,6 +12,21 @@
 // So: every shipped surface that tells someone how to wire the flag provider must contain the
 // EXACT strings the module defines. A reworded command fails here.
 //
+// ── `--exec`: presence is not execution, and that distinction cost a real defect ───────────────
+// The first version of this file only checked that strings were PRESENT, and the string it was
+// welding into five surfaces was `gf flags ls --env production` — a command that does not exist.
+// `gf flags ls` accepts only `--project`, so it exits 1 with a usage error before it ever reaches
+// auth. Every surface agreed with every other surface, perfectly, about something untrue.
+//
+// `--exec` closes that: it RUNS each command the surfaces tell a reader to run and asserts the CLI
+// parsed it. `unauthorized` (exit 2) is a PASS — the parser accepted the command and the dispatcher
+// then asked for a credential, which is exactly as far as a check like this should get. `invalid`
+// (exit 1) is the failure: that is the CLI saying the command does not exist.
+//
+// It SKIPS, loudly, when no `gf` is resolvable — "could not look" is its own outcome and never the
+// failure one (LEARNINGS), because a check that goes red when npm is having a bad day is the same
+// mistake `preflight.mjs` refuses to make.
+//
 // ── The half this cannot check, stated rather than implied ─────────────────────────────────────
 // Two of the surfaces are in the Golden Frijoles product repo — its `/install` page
 // (`apps/web/lib/cli-install.ts`) and `gf init`'s printed next-steps
@@ -28,6 +43,7 @@
 //
 // Zero deps — Node 18+.
 
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,7 +95,7 @@ const SURFACES = [
     why: 'Stage 6b: the mechanism a kill-switch story is planned against',
     must: [
       `${CLI_BIN} flags create <domain>.<feature>_enabled --kill-switch --all-envs`,
-      `${CLI_BIN} flags ls --env production`,
+      `${CLI_BIN} flags get <domain>.<feature>_enabled`,
       'node scripts/preflight.mjs',
     ],
   },
@@ -89,6 +105,65 @@ const SURFACES = [
     must: [ENV_KEYS.flagRead, 'flag_sync', 'CI secrets'],
   },
 ];
+
+/**
+ * Run one command the surfaces advertise and decide whether the CLI PARSED it.
+ *
+ * `<domain>.<feature>_enabled` is a placeholder in the docs; the CLI validates flag keys, so the
+ * probe substitutes a syntactically valid one. What is being checked is the command's SHAPE — verb
+ * path and flags — not that a particular flag exists.
+ */
+function probeCommand(cliPath, command) {
+  const argv = command
+    .replace(/\s+#.*$/, '')
+    .replace(/<domain>\.<feature>_enabled/g, 'preflight.parity_probe')
+    .trim()
+    .split(/\s+/)
+    .slice(1); // drop the `gf`
+  const run = spawnSync(cliPath, [...argv, '--json'], { encoding: 'utf8', timeout: 30_000 });
+  if (run.error) return { ok: false, why: `could not run: ${run.error.message}` };
+  let body = {};
+  try {
+    body = JSON.parse(run.stdout || '{}');
+  } catch {
+    return { ok: false, why: `unparseable --json output: ${(run.stdout || '').slice(0, 120)}` };
+  }
+  // `invalid` is the CLI saying "this command does not exist". Anything else means it parsed.
+  if (body.code === 'invalid') return { ok: false, why: body.error ?? 'usage error' };
+  return { ok: true, why: body.code ?? 'ok' };
+}
+
+function execCheck() {
+  const candidates = [CLI_BIN, join(repoRoot, 'node_modules', '.bin', CLI_BIN)];
+  const cliPath = candidates.find((candidate) => {
+    const probe = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 20_000 });
+    return !probe.error && probe.status === 0;
+  });
+  if (!cliPath) {
+    console.log(
+      `check-onboarding-parity --exec: SKIPPED — no \`${CLI_BIN}\` resolvable. ${CLI_GLOBAL_INSTALL} to run it.\n` +
+        '  "Could not look" is not the failure outcome; this is a release-time check, not a gate on npm being up.'
+    );
+    return 0;
+  }
+  const failures = [];
+  for (const command of KILL_SWITCH_STORY) {
+    const result = probeCommand(cliPath, command);
+    console.log(`  ${result.ok ? '✅' : '❌'} ${command.replace(/\s+#.*$/, '')}  →  ${result.why}`);
+    if (!result.ok) failures.push({ command, why: result.why });
+  }
+  if (!failures.length) {
+    console.log(`check-onboarding-parity --exec: every advertised command was PARSED by ${cliPath}.`);
+    return 0;
+  }
+  console.error('\ncheck-onboarding-parity --exec: the docs advertise a command the CLI does not have.\n');
+  for (const failure of failures) console.error(`    ${failure.command}\n      ${failure.why}`);
+  console.error('\n  Fix it in template/scripts/lib/golden-onboarding.mjs and propagate. Presence in every');
+  console.error('  surface is not the same as the command existing — that is the defect this mode exists for.\n');
+  return 1;
+}
+
+if (process.argv.includes('--exec')) process.exit(execCheck());
 
 const problems = [];
 for (const surface of SURFACES) {

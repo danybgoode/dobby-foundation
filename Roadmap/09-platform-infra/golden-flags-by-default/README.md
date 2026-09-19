@@ -141,6 +141,11 @@ No runtime deploy — the plugin and template are the product. Merging to `main`
       completing `gf init` needs a CLI token minted from the console by a signed-in human — a
       production credential this build did not take unasked. `gf init` was run for real and refused
       correctly. **Owed to the product owner: one live `gf login` + `gf init`.** See sprint-1 step 2.
+- [x] **Every `gf` command the epic prints was RUN against the published CLI, not grepped for.**
+      `check-onboarding-parity.mjs --exec` parses each one (`unauthorized` = the parser accepted it;
+      `invalid` = it does not exist), and CI installs the CLI to run it. Added because this epic
+      shipped `gf flags ls --env production`, which does not exist, welded into five surfaces by a
+      guard that could only see that they agreed. See the retrospective.
 - [x] **A Golden outage does not break a build or a test run** — proven by a test, not asserted:
       `apps/example-app/flags.test.mjs` runs the whole contract with the SDK **not installed at
       all**, and step 4 of the walkthrough ran 794 tests, every template check and a live server

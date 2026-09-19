@@ -39,12 +39,46 @@ const quiet = () => {};
 
 // ── configuration ─────────────────────────────────────────────────────────────────────────────
 
-test('flagConfigFromEnv: names exactly what is missing, and defaults the environment', () => {
+test('flagConfigFromEnv: names exactly what is missing, and passes a configured environment through', () => {
   assert.deepEqual(flagConfigFromEnv({}).missing, [ENV_KEYS.url, ENV_KEYS.flagRead]);
   const ok = flagConfigFromEnv(CONFIGURED);
   assert.equal(ok.ok, true);
   assert.equal(ok.config.environment, 'development');
-  assert.equal(flagConfigFromEnv({ ...CONFIGURED, [ENV_KEYS.environment]: '' }).config.environment, 'development');
+  assert.equal(ok.asserted, true);
+});
+
+test('flagConfigFromEnv: an UNSET environment is OMITTED, never guessed', () => {
+  // Found in review. The SDK treats `environment` as a hard assertion and REJECTS a snapshot that
+  // disagrees — so guessing `development` on the CI path (URL + key from secrets, environment not)
+  // made a valid production key serve compile defaults permanently and silently.
+  for (const value of ['', '   ', undefined]) {
+    const result = flagConfigFromEnv({ ...CONFIGURED, [ENV_KEYS.environment]: value });
+    assert.equal(result.ok, true);
+    assert.ok(!('environment' in result.config), `environment must be absent, not guessed (got ${JSON.stringify(result.config.environment)})`);
+    assert.equal(result.asserted, false);
+  }
+});
+
+test('the provider is constructed with exactly the config flagConfigFromEnv produced', async () => {
+  let seen = null;
+  const flags = createFlags({
+    env: { ...CONFIGURED, [ENV_KEYS.environment]: '' },
+    loadSdk: async () => ({
+      createFlagProvider: (config) => {
+        seen = config;
+        return {
+          initialize: async () => ({ ok: true, snapshotVersion: 1 }),
+          resolveBooleanEvaluation: (k, f) => ({ value: f }),
+          getStatus: () => ({ state: 'READY' }),
+          shutdown: () => {},
+        };
+      },
+    }),
+    log: quiet,
+  });
+  await flags.initialize();
+  assert.ok(!('environment' in seen), 'no invented assertion reaches the SDK');
+  assert.equal(seen.baseUrl, CONFIGURED[ENV_KEYS.url]);
 });
 
 test('flagConfigFromEnv: a blank credential is absent, not an empty credential', () => {
