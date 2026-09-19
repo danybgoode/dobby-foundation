@@ -3,9 +3,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { resolveBuildState, renderLines, parseBranch, storyIdsIn } from './build-state.mjs';
 import { PHASES } from './lib/roadmap-contract.mjs';
 
@@ -164,7 +165,7 @@ test('a commit naming a story this epic does not list → unknown, with the reas
     f.commit('S9.9 — something from another epic');
     const s = resolveBuildState({ root: f.root, offline: true, gh: noGh });
     assert.equal(s.story, null);
-    assert.match(s.story_note, /names S9\.9, which no sprint of this epic lists/);
+    assert.match(s.story_note, /commits here name S9\.9 — none of them this epic's/);
   } finally {
     f.done();
   }
@@ -176,8 +177,9 @@ test('the journal fallback resolves the story when commits do not', () => {
     f.git('switch', '-q', '--orphan', 'claude/session-journal');
     writeFileSync(
       join(f.root, 'session-journal.jsonl'),
-      `${JSON.stringify({ ts: 't1', kind: 'doing', text: 'starting S1.1', refs: [] })}\n` +
-        `${JSON.stringify({ ts: 't2', kind: 'doing', text: 'on the seller toggle', refs: ['S2.2'] })}\n`
+      `${JSON.stringify({ ts: '2020-01-01T00:00:00Z', kind: 'doing', text: 'starting S1.1', refs: [] })}\n` +
+        `${JSON.stringify({ ts: '2020-01-02T00:00:00Z', kind: 'doing', text: 'arranged-only: on the seller toggle', refs: ['S2.2'] })}\n` +
+        `${JSON.stringify({ ts: '2020-01-03T00:00:00Z', kind: 'doing', text: 'golden-flags-by-default S1.1 wiring', refs: [] })}\n`
     );
     f.git('add', 'session-journal.jsonl');
     f.git('commit', '-qm', 'journal');
@@ -264,4 +266,89 @@ test('renderLines is a pure function of the state: the exact five lines, no box'
     '  Progress Story 4 of 7 · Sprint 2 of 2',
     '  Status   Building',
   ]);
+});
+
+test("#27 review: a stacked sprint branch never inherits the previous sprint's commits as its story", () => {
+  const f = fixture();
+  try {
+    f.git('switch', '-qc', 'feat/arranged-only');
+    f.commit('S1.1 — the contract');
+    f.git('switch', '-qc', 'feat/arranged-only-s2');
+    const s = resolveBuildState({ root: f.root, offline: true, gh: noGh });
+    assert.equal(s.story, null, 'S1.1 is sprint 1 — this branch is sprint 2');
+    assert.equal(s.evidence.story_commits, 0, 'and it does not lift the status either');
+    assert.match(s.story_note, /name S1\.1 — none of them sprint 2 of this epic's/);
+    assert.equal(s.sprint.n, 2, 'the sprint still comes from the branch');
+    f.commit('S2.1 — first of sprint 2');
+    assert.equal(resolveBuildState({ root: f.root, offline: true, gh: noGh }).story.id, 'S2.1');
+  } finally {
+    f.done();
+  }
+});
+
+test('#27 review: an old journal entry about ANOTHER epic is never read as this one', () => {
+  const f = fixture();
+  try {
+    f.git('switch', '-q', '--orphan', 'claude/session-journal');
+    writeFileSync(
+      join(f.root, 'session-journal.jsonl'),
+      `${JSON.stringify({ ts: '2020-01-01T00:00:00Z', kind: 'doing', text: 'golden-flags-by-default S1.1 wiring', refs: [] })}\n`
+    );
+    f.git('add', 'session-journal.jsonl');
+    f.git('commit', '-qm', 'journal');
+    f.git('switch', '-q', 'main');
+    f.git('switch', '-qc', 'feat/arranged-only');
+    const s = resolveBuildState({ root: f.root, offline: true, gh: noGh });
+    assert.equal(s.story, null);
+    assert.equal(s.story_source, 'unknown');
+  } finally {
+    f.done();
+  }
+});
+
+test('#27 review: it never throws, and the CLI works through a symlinked path', () => {
+  const f = fixture();
+  try {
+    f.git('switch', '-qc', 'feat/arranged-only');
+    rmSync(join(f.root, 'Roadmap'), { recursive: true, force: true });
+    writeFileSync(join(f.root, 'Roadmap'), 'a file, not a directory');
+    const s = resolveBuildState({ root: f.root, offline: true, gh: noGh });
+    assert.equal(s.in_flight, false);
+    const outside = mkdtempSync(join(tmpdir(), 'not-a-repo-'));
+    assert.match(
+      resolveBuildState({ root: outside, offline: true, gh: noGh }).reason,
+      /not inside a git checkout/
+    );
+    rmSync(outside, { recursive: true, force: true });
+
+    const link = join(mkdtempSync(join(tmpdir(), 'link-')), 'scripts');
+    symlinkSync(dirname(fileURLToPath(import.meta.url)), link);
+    const out = execFileSync('node', [join(link, 'build-state.mjs'), '--repo-root', f.root, '--offline'], {
+      encoding: 'utf8',
+    });
+    assert.match(out, /^No epic in flight — /, 'a symlinked invocation still prints the view');
+  } finally {
+    f.done();
+  }
+});
+
+test('#27 review: an epic slug that itself ends in -s<N> still resolves', () => {
+  const f = fixture();
+  try {
+    const dir = join(f.root, 'Roadmap', '09-platform-infra', 'aws-s3');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'README.md'), EPIC_README().replace(/arranged-only/g, 'aws-s3'));
+    writeFileSync(
+      join(dir, 'sprint-1.md'),
+      SPRINT(1, 'Building', [['S1.1', 'Bucket']]).replace(/arranged-only/g, 'aws-s3')
+    );
+    f.git('add', '-A');
+    f.git('commit', '-qm', 'aws');
+    f.git('switch', '-qc', 'feat/aws-s3');
+    const s = resolveBuildState({ root: f.root, offline: true, gh: noGh });
+    assert.equal(s.in_flight, true);
+    assert.equal(s.epic.slug, 'aws-s3');
+  } finally {
+    f.done();
+  }
 });

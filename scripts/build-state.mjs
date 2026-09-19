@@ -26,7 +26,7 @@
 //          always in the JSON, so a disagreement is visible rather than smoothed over.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { PHASES, parseDocFrontmatter } from './lib/roadmap-contract.mjs';
@@ -138,17 +138,42 @@ function ghOpenPr(root, branch) {
 
 const notInFlight = (reason, extra = {}) => ({ in_flight: false, reason, ...extra });
 
+/** The commit time (ISO) of the point this branch left its base — the journal's lower bound. */
+function forkTime(git, base) {
+  const mb = base && tryGit(git, ['merge-base', base, 'HEAD']);
+  return mb ? tryGit(git, ['log', '-1', '--format=%cI', mb]) : null;
+}
+
 /**
  * Resolve the build state. Every external read is injectable so the tests drive real fixture repos with
- * a fake `gh`: { root, offline, git, gh }.
+ * a fake `gh`: { root, offline, git, gh }. It NEVER throws — it runs once per turn inside a CLI hook, and
+ * an exception there is a blank view: any failure is reported as "not in flight", with the reason.
  */
-export function resolveBuildState({ root, offline = false, git = makeGit(root), gh = ghOpenPr } = {}) {
+export function resolveBuildState(opts = {}) {
+  try {
+    return resolve_(opts);
+  } catch (err) {
+    return notInFlight(
+      `the resolver could not read this checkout (${err && err.message ? err.message : err})`
+    );
+  }
+}
+
+function resolve_({ root, offline = false, git = makeGit(root), gh = ghOpenPr } = {}) {
+  if (tryGit(git, ['rev-parse', '--is-inside-work-tree']) !== 'true')
+    return notInFlight('not inside a git checkout (or git is not installed)');
   const branch = tryGit(git, ['symbolic-ref', '-q', '--short', 'HEAD']);
   if (!branch) return notInFlight('detached HEAD — no branch, so no epic in flight');
-  const parsed = parseBranch(branch);
+  let parsed = parseBranch(branch);
   if (!parsed)
     return notInFlight(`on ${branch} — not an epic branch (feat/<slug>…), so no epic in flight`, { branch });
-  const epic = readEpic(root, parsed.slug);
+  let epic = readEpic(root, parsed.slug);
+  // A slug that itself ends in -s<N> (`aws-s3`) was cut as a sprint suffix; try it whole before giving up.
+  if (!epic && parsed.sprint !== null) {
+    const whole = branch.slice(branch.indexOf('/') + 1);
+    epic = readEpic(root, whole);
+    if (epic) parsed = { slug: whole, sprint: null };
+  }
   if (!epic)
     return notInFlight(`${branch} names no epic under Roadmap/ (looked for */${parsed.slug}/README.md)`, {
       branch,
@@ -161,6 +186,11 @@ export function resolveBuildState({ root, offline = false, git = makeGit(root), 
   // All stories of the epic, in build order — the ordinal is "Story X of Y".
   const allStories = epic.sprints.flatMap((s) => s.stories.map((st) => ({ ...st, sprint: s.n })));
   const byId = new Map(allStories.map((st, i) => [st.id, { ...st, ordinal: i + 1 }]));
+  // A story counts only if THIS epic lists it — and, on a stacked sprint branch (`-s4`), only if it is that
+  // sprint's: base..HEAD on a stacked branch still carries the previous sprint's commits, and reporting
+  // them would be a confident wrong answer (found by the fresh reviewer on #27).
+  const accepts = (id) => byId.has(id) && (parsed.sprint === null || byId.get(id).sprint === parsed.sprint);
+  const scope = parsed.sprint === null ? 'this epic' : `sprint ${parsed.sprint} of this epic`;
 
   // D2 — commits first, then the journal, then unknown.
   const base = baseRef(git);
@@ -168,37 +198,42 @@ export function resolveBuildState({ root, offline = false, git = makeGit(root), 
   const subjects = range
     ? (tryGit(git, ['log', '--format=%s', range]) || '').split('\n').filter(Boolean)
     : [];
-  const storyCommits = subjects.filter((s) => storyIdsIn(s).length).length;
+  const storyCommits = subjects.filter((s) => storyIdsIn(s).some(accepts)).length;
+  const foreign = [...new Set(subjects.flatMap(storyIdsIn).filter((id) => !accepts(id)))];
   let story = null;
   let storySource = 'unknown';
-  let storyNote = null;
   for (const subject of subjects) {
-    const ids = storyIdsIn(subject);
-    if (!ids.length) continue;
-    const id = ids.at(-1);
-    if (byId.has(id)) {
-      story = byId.get(id);
+    const ids = storyIdsIn(subject).filter(accepts);
+    if (ids.length) {
+      story = byId.get(ids.at(-1));
       storySource = 'commit';
-    } else storyNote = `the newest story commit names ${id}, which no sprint of this epic lists`;
-    break;
+      break;
+    }
   }
+  // The journal: only an entry that names this epic's slug, or was written after this branch forked —
+  // every epic has an S1.1, so an id alone says nothing about WHICH epic an old entry meant.
   let journalRef = null;
-  if (!story && !storyNote) {
+  if (!story) {
     const journal = readJournalLocal(git);
     journalRef = journal.ref;
+    const since = forkTime(git, base);
     for (const entry of [...journal.entries].reverse()) {
-      const ids = [...storyIdsIn(entry.text), ...(entry.refs || []).flatMap(storyIdsIn)].filter((id) =>
-        byId.has(id)
-      );
+      const text = [entry.text, ...(entry.refs || [])].join(' ');
+      const aboutThisEpic =
+        text.includes(epic.slug) || (since && entry.ts && Date.parse(entry.ts) >= Date.parse(since));
+      const ids = aboutThisEpic ? storyIdsIn(text).filter(accepts) : [];
       if (ids.length) {
         story = byId.get(ids.at(-1));
         storySource = 'journal';
         break;
       }
     }
-    if (!story)
-      storyNote = 'no commit on this branch names a story, and the session journal names none of this epic’s';
   }
+  const storyNote = story
+    ? null
+    : foreign.length
+      ? `commits here name ${foreign.join(', ')} — none of them ${scope}'s; no journal entry names one either`
+      : `no commit on this branch names a story of ${scope}, and the session journal names none either`;
 
   // The sprint: the story's, else the branch's -s<N>, else none — never "the first unshipped one".
   const sprintN = story ? story.sprint : parsed.sprint;
@@ -296,10 +331,24 @@ export function renderLines(state) {
   return lines;
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// realpath on both sides: a plugin or checkout reached through a symlink (macOS /tmp → /private/tmp) would
+// otherwise never equal the module URL, and the CLI would print nothing and exit 0 — a blank build view.
+const isMain = (() => {
+  try {
+    return (
+      !!process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+})();
 if (isMain) {
   const argv = process.argv.slice(2);
   const i = argv.indexOf('--repo-root');
+  if (i !== -1 && (!argv[i + 1] || argv[i + 1].startsWith('--'))) {
+    process.stderr.write('build-state: --repo-root needs a directory\n');
+    process.exit(2);
+  }
   const root = resolve(i === -1 ? join(__dirname, '..') : argv[i + 1]);
   const state = resolveBuildState({ root, offline: argv.includes('--offline') });
   if (argv.includes('--json'))
