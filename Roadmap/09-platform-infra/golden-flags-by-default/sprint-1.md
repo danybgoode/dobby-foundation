@@ -60,6 +60,11 @@ architecture into every future project.
 is unchanged** — it is correct and already matches the SDK's semantics. Per **D4**, the story template
 makes **activation an explicit step**, distinct from syncing the definition.
 **Risk:** low
+**Landed:** `316e822`, plus `3799679` — D4 was only half-applied at first. The kill-switch *reference*
+made activation explicit while the three **scaffolder templates** every future epic is rendered from
+still said the flag must *"exist in this project's own flag provider"* — and existing is exactly what a
+synced-but-never-activated definition does. The generated epic DoD, the generated kickoff's *done means
+shipped*, and the scope-seed block now all close on `gf flags ls --env production`.
 
 ### ✅ Story 1.2 — `scripts/preflight.mjs` — the mandate becomes checkable
 **As the** maintainer, **I want** the mandate enforced by a check rather than a sentence,
