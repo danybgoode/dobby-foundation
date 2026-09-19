@@ -701,7 +701,19 @@ export function checkOneDoc(relPath) {
   }
   if (/^sprint-\d+\.md$/.test(base)) {
     const n = Number(base.match(/\d+/)[0]);
-    return [...checkSprintDoc(content), ...(ctx ? checkContract('sprint', content, { ...ctx, n }) : [])];
+    // A sprint edit can make its epic's declared totals wrong (a story added to `stories:`), and the README
+    // is not in the staged set — so its totals are re-checked here, named as the README's, or the commit
+    // passes locally and only the full CI walk notices.
+    const totals = ctx
+      ? checkContract('epic-README', readRelative(readme), ctx)
+          .filter((o) => o.rule === 'contract-total-mismatch')
+          .map((o) => ({ ...o, detail: `${readme}: ${o.detail}` }))
+      : [];
+    return [
+      ...checkSprintDoc(content),
+      ...(ctx ? checkContract('sprint', content, { ...ctx, n }) : []),
+      ...totals,
+    ];
   }
   if (base === 'RETROSPECTIVE.md') return checkRetrospective(content);
   return null; // not an epic doc type this checker covers (e.g. a seed, the poster)

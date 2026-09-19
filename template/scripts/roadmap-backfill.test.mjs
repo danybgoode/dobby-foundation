@@ -211,3 +211,17 @@ test('end to end: the written docs pass the contract, the prose is untouched, a 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('review fixes (#26): so_that stops before a list and after a quoted sentence end', () => {
+  assert.deepEqual(
+    readUserStory(
+      '**As a** buyer, **I want** to report a payment, **so that** it shows "pending."\n- New backend `POST /x` persists it'
+    ),
+    { as_a: 'a buyer', i_want: 'to report a payment', so_that: 'it shows "pending"' }
+  );
+  assert.equal(
+    readUserStory('**As a** buyer, **I want** a thing, **so that** it works\n1. step one\n2. step two')
+      .so_that,
+    'it works'
+  );
+});

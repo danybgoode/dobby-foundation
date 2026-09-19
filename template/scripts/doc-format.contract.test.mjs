@@ -136,3 +136,16 @@ test('the single-file path (--files, the pre-commit hook) enforces the contract 
   assert.equal(code, 1, out);
   assert.match(out, /\[contract-sprint-frontmatter-missing\]/);
 });
+
+test('the single-file path re-checks the epic totals when a sprint edit changes them', () => {
+  const twoStories = SPRINT_FM.replace('stories_total: 1', 'stories_total: 2')
+    .replace('---\n', '---\n')
+    .replace(
+      '    status: in-progress\n---',
+      '    status: in-progress\n  - id: S1.2\n    title: Second\n    as_a: null\n    i_want: null\n    so_that: null\n    risk: low\n    status: planned\n---'
+    );
+  const root = repo({ sprint: SPRINT(twoStories) });
+  const { code, out } = check(root, ['--files', 'Roadmap/09-platform-infra/fixture-epic/sprint-1.md']);
+  assert.equal(code, 1, out);
+  assert.match(out, /fixture-epic\/README\.md: stories_total: 1, but its sprints declare 2 stories/);
+});

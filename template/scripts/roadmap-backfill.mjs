@@ -92,7 +92,7 @@ export function readRisk(text) {
 // "As a buyer, I want …, so that …" — and the forms the corpus also uses: "As the product owner, I want", "As
 // admin, I need", "As any tool, I want", bolded fragments, and the whole thing inside a `>` quote.
 const USER_STORY_RE =
-  /\bAs\s+(.+?),?\s+I (?:want|need|can)\s+(.+?),?\s+so (?:that\s+)?(.+?)(?=\.(?:\s|$)|$)/i;
+  /\bAs\s+(.+?),?\s+I (?:want|need|can)\s+(.+?),?\s+so (?:that\s+)?(.+?)(?=\.["'”’)]?(?:\s|$)|$)/i;
 
 /** The "As a … I want … so that …" of one story block, or null when the prose has none. */
 export function readUserStory(block) {
@@ -104,7 +104,9 @@ export function readUserStory(block) {
       const t = lines[i].trim();
       if (
         i > start &&
-        (t === '' || /^(\*\*)?(Acceptance|Risk|Why|Notes?|Scope|Build|Verification)\b/i.test(t))
+        (t === '' ||
+          /^([-*+]|\d+[.)])\s/.test(t) || // a list starts: implementation bullets, never the user story
+          /^(\*\*)?(Acceptance|Risk|Why|Notes?|Scope|Build|Verification)\b/i.test(t))
       )
         break;
       para.push(t);
@@ -112,7 +114,9 @@ export function readUserStory(block) {
     const m = clean(para.join(' ').replace(/^[-*]\s+/, '')).match(USER_STORY_RE);
     if (!m) continue;
     const tidy = (s) => s.replace(/[.\s]+$/, '').trim();
-    return { as_a: tidy(m[1]), i_want: tidy(m[2]), so_that: tidy(m[3]) };
+    // A sentence that ends inside a quote (`… "pending."`) stops before the period; give the quote back.
+    const closeQuote = (s) => ((s.match(/"/g) || []).length % 2 ? `${s}"` : s);
+    return { as_a: tidy(m[1]), i_want: tidy(m[2]), so_that: closeQuote(tidy(m[3])) };
   }
   return null;
 }
@@ -316,9 +320,20 @@ export function planBackfill(root, rows = projection(root)) {
           `the board has no status for this sprint ("${sprintRow.status}") — phase written Shaping`
         );
       sprintPhases.push(phase);
-      const head = text.split('\n').slice(0, 15).join('\n');
+      // The sprint's own risk lives in its header — the lines before the first story, never a story's.
+      const allLines = text.split('\n');
+      const firstStory = allLines.findIndex((l) => STORY_HEADING_RE.test(l));
+      const head = allLines.slice(0, firstStory === -1 ? 15 : Math.min(firstStory, 15)).join('\n');
+      let risk = readRisk(head) || epicRisk;
+      if (!RISKS.includes(risk)) {
+        note(
+          rel(f),
+          `sprint risk "${risk}" is not low|high — written high (WAYS-OF-WORKING: unsure means HIGH)`
+        );
+        risk = 'high';
+      }
       const { stories, findings: storyFindings } = readStories(text, n, {
-        sprintRisk: readRisk(head) || epicRisk,
+        sprintRisk: risk,
         sprintShipped: phase === 'Shipped',
       });
       for (const r of storyFindings) note(rel(f), r);
@@ -327,8 +342,6 @@ export function planBackfill(root, rows = projection(root)) {
         title = `Sprint ${n}`;
         note(rel(f), `no "# … Sprint ${n}: <title>" H1 — title written "Sprint ${n}"`);
       }
-      let risk = readRisk(head) || epicRisk;
-      if (!RISKS.includes(risk)) risk = 'high';
       stats.stories += stories.length;
       stats.userStories += stories.filter((s) => s.as_a).length;
       storyTotal += stories.length;
