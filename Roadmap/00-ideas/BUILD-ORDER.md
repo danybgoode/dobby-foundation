@@ -14,9 +14,10 @@
 
 _None._
 
-## 📋 Ready to build (scaffolded, not started) (2)
+## 📋 Ready to build (scaffolded, not started) (3)
 
 - [Golden Frijoles by default — a spawned project already carries the flag provider](../../09-platform-infra/golden-flags-by-default/README.md) — 09 Platform-infra · 0/6 stories · risk: High · wave-2026-09-16
+- [Jev semantic guards — review-guard and prose-guard decide with Jev, not regex](../../09-platform-infra/jev-semantic-guards/README.md) — 09 Platform-infra · 0/15 stories · risk: High · wave-2026-09-19
 - [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 0/13 stories · risk: Low · wave-2026-09-16
 
 ## ✅ Shipped (2)
@@ -29,4 +30,4 @@ _None._
 - [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
 
 ---
-_Epics: 4 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 5 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
