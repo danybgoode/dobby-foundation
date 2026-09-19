@@ -23,7 +23,7 @@ stories:
 ---
 # The build view — Sprint 3: `build-state.mjs` — one resolver
 
-**Status:** ✅ Shipped — foundation [#27](https://github.com/danybgoode/dobby-foundation/pull/27) (`52b93f0`) · copy-ins medusa-bonsai [#188](https://github.com/danybgoode/miyagi-product-management/pull/188) · golden-beans [#158](https://github.com/danybgoode/golden-beans/pull/158)
+**Status:** ✅ Shipped — foundation [#27](https://github.com/danybgoode/dobby-foundation/pull/27) (`52b93f0`) + review rounds [#28](https://github.com/danybgoode/dobby-foundation/pull/28) (`4550687`), [#29](https://github.com/danybgoode/dobby-foundation/pull/29) (`7e00e89`), [#30](https://github.com/danybgoode/dobby-foundation/pull/30) (`992308d`) · copy-ins medusa-bonsai [#188](https://github.com/danybgoode/miyagi-product-management/pull/188) (`2e93a41`) · golden-beans [#158](https://github.com/danybgoode/golden-beans/pull/158)
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 
@@ -98,6 +98,18 @@ Env: local · `medusa-bonsai`, on a real feature branch mid-epic
 6. ✅ No story convention and no journal entry → `Story unknown`, **not a wrong story**. After the fresh review on #27, the same holds on a stacked `-sN` branch that carries the previous sprint's commits, and for an old journal entry about another epic.
 7. ✅ A journal entry naming the story (and this epic, or written after the fork) resolves it (`story_source: journal`).
 8. ✅ **0.06–0.08s** offline (the mod's path), about 0.5s with the one `gh` call. That is cheap enough to run once per turn from a cache.
+
+### What review changed here (four rounds, 20 tests)
+The resolver's whole job is to avoid a confident wrong answer, and that is exactly where every finding
+landed. A fresh reviewer found that a stacked `-sN` branch reported the **previous sprint's** story, and
+that the journal was not scoped to the epic. Three codex rounds on the consumer copy-ins then found: an
+exact epic slug losing to a `-s<N>` suffix (`feat/aws-s3` → sprint 3 of `aws`); an unlisted newest id being
+bypassed by an older commit, a mixed subject, or the journal; a stale `origin/main` pulling main's own
+commits into `base..HEAD`; a malformed journal line turning a good branch into "not in flight"; and an
+unreadable sprint borrowing the epic's phase. **Not one of these was caught by the original tests** — each
+now has a regression test, and each fix was mutation-checked. The one that is worth remembering: fixing the
+stale-base bug by comparing commit DATES passed the new test while still being wrong, because both
+merge-bases shared a timestamp to the second. The mutation check is what exposed it; ancestry is the fix.
 
 If any step fails, note the step number + what you saw — that's the bug report.
 
