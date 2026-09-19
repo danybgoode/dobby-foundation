@@ -47,9 +47,10 @@ build_order: null    # integer position in the ONE global build sequence — the
 - [ ] Product poster (`Roadmap/README.md`) updated
 - [ ] Team memory + `MEMORY.md` index updated
 - [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
-- [ ] **Kill-switch (only if one was planned at grooming — Stage 6b):** the flag slice shipped + the flag
-      exists **in this project's own flag provider, in every env**, with the stated polarity (this
-      project's AGENTS.md / WAYS-OF-WORKING names the mechanism — a flag is invisible until it's
-      created there). *Verify-only — not a new gate; whether a high-risk epic needs one is decided at
-      grooming, not here.*
+- [ ] **Kill-switch (only if one was planned at grooming — Stage 6b):** the flag slice shipped, the flag
+      exists **in Golden Frijoles, in every env**, with the stated polarity, **and is ACTIVATED there** —
+      `gf flags get <key>` must not print `—` in its PRODUCTION row. Creating a definition is not
+      turning it on, and a flag that is synced but never activated serves compile-time defaults while
+      every dashboard says it exists. *Verify-only — not a new gate; whether a high-risk epic needs one
+      is decided at grooming, not here.*
 - [ ] Feature branch deleted; **this README's frontmatter `status: shipped`** (the SSOT — the board & Notion derive from it; run `node scripts/build-order.mjs`)

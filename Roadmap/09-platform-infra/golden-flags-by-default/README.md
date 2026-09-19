@@ -1,18 +1,19 @@
 ---
-status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: golden-flags-by-default
 build_order: 5
 ---
 
-# Epic: Golden Frijoles by default — a spawned project already carries the flag provider
+# ✅ Epic: Golden Frijoles by default — a spawned project already carries the flag provider
 
 > **Area:** 09-platform-infra · **Risk:** high · **Class:** Feature · **Scope seed:** [`00-ideas/seeds/golden-flags-by-default.md`](../../00-ideas/seeds/golden-flags-by-default.md)
 > **Appetite:** M (one wave — architect session + builder fan-out + one review round) · **Bet:** [`bets/wave-2026-09-16.md`](../../bets/wave-2026-09-16.md)
 
-> ⛔ **Blocked on** [`golden-beans` → `golden-frijoles-cli`](https://github.com/danybgoode/golden-beans/tree/main/Roadmap/02-commercial/golden-frijoles-cli)
-> **reaching Sprint 2.** Everything here prints or checks a `gf` command. **Gate the merge on the
-> CLI's Sprint 2, not its Sprint 1** — a mandate that prints a command which doesn't exist is worse
-> than no mandate.
+> ✅ **Unblocked and shipped.** The [`golden-beans` → `golden-frijoles-cli`](https://github.com/danybgoode/golden-beans/tree/main/Roadmap/02-commercial/golden-frijoles-cli)
+> epic closed on 2026-09-18 with all three sprints merged, and `@golden-frijoles/cli@0.1.0` +
+> `@golden-frijoles/sdk@0.5.0` are **published on npm** — verified with `npm view`, and the real
+> binary was installed and exercised in this epic's smoke walkthrough. Every `gf` command this epic
+> prints exists.
 
 > **Renamed.** This was `flag-provider-mandate`, which bundled two different jobs: making the
 > distributable template carry Golden (this epic), and finishing Miyagi's own cutover (now
@@ -98,14 +99,30 @@ project spawned from it.
 
 ## Scope — stories
 
-| Sprint | Story | Risk |
-|---|---|---|
-| 1 | 1.1 `groom` Stage 6b rewritten to the Golden Frijoles contract | low |
-| 1 | 1.2 `scripts/preflight.mjs` — the mandate becomes checkable | high |
-| 1 | 1.3 `check-plugin-leaks.mjs` gains a flag-mechanism rule | low |
-| 1 | 1.4 Agent-guided onboarding in the plugin's install path | low |
-| 1 | 1.5 `template/AGENTS.md` gains the cannot-be-violated rule + the plan table | low |
-| 1 | 1.6 Template SDK wiring | high |
+| Sprint | Story | Risk | Landed |
+|---|---|---|---|
+| 1 | 1.1 `groom` Stage 6b rewritten to the Golden Frijoles contract | low | ✅ `316e822` |
+| 1 | 1.2 `scripts/preflight.mjs` — the mandate becomes checkable | high | ✅ `0e5a170` |
+| 1 | 1.3 `check-plugin-leaks.mjs` gains a flag-mechanism rule | low | ✅ `53d89ae` |
+| 1 | 1.4 Agent-guided onboarding in the plugin's install path | low | ✅ `2ee3b72` |
+| 1 | 1.5 `template/AGENTS.md` gains the cannot-be-violated rule + the plan table | low | ✅ `4d3aeb3` |
+| 1 | 1.6 Template SDK wiring | high | ✅ `729735f`, `6295bb3` |
+
+### What each decision actually turned out to be
+
+- **D1** landed as one status map in `evaluatePreflight` plus one try/catch in the seam, and it is
+  proven by test rather than asserted: 794 tests, the template's checks and a running app all pass
+  with Golden pointed at a dead host. **There is deliberately no `--strict` flag.**
+- **D2** was verified by *executing* the published SDK under Edge-only globals, not by reading its
+  docs. The answer has two halves and only ever hearing the first is how a middleware seam gets
+  planned that cannot work: **the API surface is Edge-safe; the lifecycle is not.**
+  `template/references/flags-runtime.md` §2 carries the answer *and its reproduction*, so it can be
+  re-checked when the SDK majors instead of quietly going stale.
+- **D3** confirmed against the CLI's source: `gf init` writes three names and deliberately no
+  `flag_sync`. The three-key table is in `flags-runtime.md` §3.
+- **D4** became a command in the story template — `gf flags get <key>`, whose PRODUCTION row must not
+  read `—` — rather than a paragraph. *It shipped as `gf flags ls --env production` first, which does
+  not exist; see the DoD line below and the retrospective.*
 
 ## Deploy order
 
@@ -113,14 +130,29 @@ No runtime deploy — the plugin and template are the product. Merging to `main`
 **Nothing merges until the CLI's Sprint 2 has shipped**, because 1.2 and 1.4 print `gf` commands.
 
 ## Definition of Done (epic)
-- [ ] All stories merged to `main` + smoke-tested (gaps stated)
-- [ ] `sprint-1.md` has its smoke walkthrough
-- [ ] This README marked ✅; sprint status ticked with commit refs
-- [ ] `RETROSPECTIVE.md` written
-- [ ] Poster (`Roadmap/README.md`) updated
-- [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
-- [ ] **Kill-switch: carve-out.** Config, docs and one check script; git is the rollback.
-- [ ] **Proven on a real spawn:** a project spawned from `template/` with no credentials fails
-      preflight with the exact install command, and passes after `gf init`.
-- [ ] **A Golden outage does not break a build or a test run** — proven by a test, not asserted.
-- [ ] Branch deleted; frontmatter `status: shipped` (run `node scripts/build-order.mjs`)
+- [x] All stories merged to `main` + smoke-tested (gaps stated) — PR #24
+- [x] `sprint-1.md` has its smoke walkthrough, **with its 2026-09-19 results recorded per step**
+- [x] This README marked ✅; sprint status ticked with commit refs
+- [x] `RETROSPECTIVE.md` written
+- [x] Poster (`Roadmap/README.md`) updated
+- [x] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
+- [x] **Kill-switch: carve-out.** Config, docs and one check script; git is the rollback.
+- [x] **Proven on a real spawn** — *with one stated gap.* A project spawned from `template/` with no
+      credentials fails preflight and prints `npx @golden-frijoles/cli init` verbatim (step 1, real).
+      The **pass** side was proven against a local stub of the real snapshot route, because
+      completing `gf init` needs a CLI token minted from the console by a signed-in human — a
+      production credential this build did not take unasked. `gf init` was run for real and refused
+      correctly. **Owed to the product owner: one live `gf login` + `gf init`.** See sprint-1 step 2.
+- [x] **Every `gf` command the epic prints was RUN against the published CLI, not grepped for.**
+      `check-onboarding-parity.mjs --exec` parses each one (`unauthorized` = the parser accepted it;
+      `invalid` = it does not exist), and CI installs the CLI to run it. Added because this epic
+      shipped `gf flags ls --env production`, which does not exist, welded into five surfaces by a
+      guard that could only see that they agreed. See the retrospective.
+- [x] **A Golden outage does not break a build or a test run** — proven by a test, not asserted:
+      `apps/example-app/flags.test.mjs` runs the whole contract with the SDK **not installed at
+      all**, and step 4 of the walkthrough ran 794 tests, every template check and a live server
+      against a dead host. All green.
+- [x] Branch deleted; frontmatter `status: shipped` (run `node scripts/build-order.mjs`)
+- [x] **Consuming projects carry the new rail** — `golden-beans` and `medusa-bonsai` receive
+      `scripts/preflight.mjs` + `scripts/lib/golden-onboarding.mjs`, byte-identical to the
+      template's, so `check-skill-scripts --repo-root` stays 10/10 there.

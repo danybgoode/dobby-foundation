@@ -1,7 +1,7 @@
 ---
 title: "Golden Frijoles by default — a spawned project already carries the flag provider"
 slug: golden-flags-by-default
-status: scaffolded
+status: shipped
 area: "09"
 type: feature
 priority: wave-2026-09-16
@@ -10,7 +10,7 @@ underwritten_by: wave-2026-09-16
 risk: high
 epic: "09-platform-infra/golden-flags-by-default"
 build_order: 5
-updated: 2026-09-17
+updated: 2026-09-19
 ---
 
 # Pitch — Golden Frijoles by default

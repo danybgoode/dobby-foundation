@@ -23,6 +23,8 @@ on:
       - 'Roadmap/**'
       - 'scripts/**'
       - '.claude/**'
+      - 'apps/*/flags.mjs'
+      - 'apps/*/flags.test.mjs'
       # TEMPLATE FILL-IN: add your own infra/**, .github/workflows/** etc. paths as those guards
       # get added (see build-order-guard.yml's original per-path shape in the origin project for
       # more examples: infra-guard, yaml-guard).
@@ -50,6 +52,7 @@ jobs:
           echo "roadmap=$(echo "$changed" | grep -qE '^(Roadmap/|scripts/(build-order|roadmap-extract)\.mjs)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "scripts=$(echo "$changed" | grep -qE '^scripts/' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "claude=$(echo "$changed" | grep -qE '^(\.claude/|scripts/permissions-smoke)' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "flags=$(echo "$changed" | grep -qE '^apps/[^/]+/flags(\.test)?\.mjs' && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       # WAYS-OF-WORKING.md is GENERATED from WAYS-OF-WORKING.template.md + fill-ins.yml. A hand edit to
       # the generated file is how a fork of the process doc comes back.
@@ -71,6 +74,22 @@ jobs:
             echo "No scripts/**/*.test.mjs files yet — nothing to run."
             exit 0
           fi
+          node --test "${files[@]}"
+
+      # The flag seam's fail-soft contract. Zero deps, no credentials, no node_modules — which is the
+      # point: a Golden Frijoles outage must never fail a build or a test run, and this proves it in
+      # the most complete outage there is (the SDK not installed at all). See AGENTS.md rule 1.
+      #
+      # `scripts/preflight.mjs` is deliberately NOT run here: `.env.local` is gitignored, so a CI
+      # checkout has no credential and the check would fail for a reason that is not a defect. It is
+      # a session-start and post-`gf init` check. To run it here anyway, inject the same three
+      # variables from CI secrets.
+      - name: flags — the seam falls back rather than failing
+        if: steps.areas.outputs.flags == 'true'
+        run: |
+          shopt -s nullglob
+          files=(apps/*/flags.test.mjs)
+          test "${#files[@]}" -gt 0 || { echo "no flag seam tests found" >&2; exit 1; }
           node --test "${files[@]}"
 
       # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,

@@ -42,12 +42,19 @@ Roadmap/
 - ✅ **Spawn template** — `Roadmap/`, `AGENTS.md`, CI guards, git hooks and scripts a new project copies once.
 - ✅ **Portability guards** — `check-plugin-leaks.mjs` (origin-project residue) and `check-skill-scripts.mjs` (every skill's scripts exist).
 - ✅ **Plugin audit + extraction** — every advertised skill runs (`KNOWN_ABSENT` empty; `check-skill-scripts` walks import closures, also against consumers), the advertised list is generated, and the origin's stranded rails are in the template behind committed config seams: the reporting family, routines, the hook budget, session notes, doc-format, owed-ledger, a prod-smoke engine, a fail-closed merge gate, merge-report, vercel-env and perf-probe. One implementation per rail it touched, across all three repos (each consumer's documented forks, notably the review rail, excepted). [`plugin-audit-and-extraction`](09-platform-infra/plugin-audit-and-extraction/README.md)
+- ✅ **Golden Frijoles by default** — a spawned project carries the flag provider already wired: one seam (`apps/*/flags.mjs`, fallback per call, SDK imported dynamically so it loads with no `node_modules`), `scripts/preflight.mjs` as the mandate-as-a-check (fails loudly on absent config, **warns** on an unreachable deployment), `AGENTS.md` rule 1 *"never build a parallel flag store"*, the leak guard's flag-mechanism rule, and `groom` Stage 6b planning against `gf flags create` with **activation as its own step**. The Edge answer is verified by executing the published SDK, not by reading its docs. [`golden-flags-by-default`](09-platform-infra/golden-flags-by-default/README.md)
 - ✅ **Ways-of-work lean pass** — committed permissions with a cited deny/ask ledger (three spellings, deny **and** ask), one external general pass + one lean security lens + one fresh reviewer, a generated `WAYS-OF-WORKING`, and `epic-dod --check` for the mechanical half of the epic DoD. [`ways-of-work-lean-pass`](09-platform-infra/ways-of-work-lean-pass/README.md)
 
 ---
 
 ## Recent highlights
 
+- **2026-09-19** — Golden Frijoles by default shipped. Feature flags in every spawned project are one
+  provider, checked rather than described: a fresh spawn fails `scripts/preflight.mjs` with the exact
+  install command and passes once a project is linked, while a Golden outage is a **warning**, never a
+  failed build — proven by running 794 tests, every template check and a live server against a dead
+  host. The leak that caused the epic (`lib/flags.ts` `DEFAULT_FLAGS` in the planning skill) is now a
+  guard rule with its own fixtures.
 - **2026-09-18** — plugin audit + extraction shipped. No skill ships dark, the skill list is generated
   rather than hand-kept in four places, and the template, the origin project and golden-beans run the same
   bytes for every rail this epic touched. The review rail is still forked, and has a seed.

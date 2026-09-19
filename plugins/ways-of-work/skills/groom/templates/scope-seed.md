@@ -60,7 +60,9 @@ updated: {{DATE}}
 ## Kill-switch / runtime gate (risk:high only — Stage 6b)
 <!-- Delete this block if risk:low. Default: NO flag unless the product owner asks for one. If one is
      asked for, record the decision per the groom skill's references/kill-switch.md — the ONE home of the
-     flag/polarity/seam/mechanism rule (never restate it here) — OR a one-line carve-out reason. -->
+     flag/polarity/seam/activation/placement rule (never restate it here) — OR a one-line carve-out
+     reason. The mechanism is Golden Frijoles; `node scripts/preflight.mjs` says whether this project can
+     create one at all. -->
 
 ## Acceptance criteria
 <!-- Plain-language checks per story. -->

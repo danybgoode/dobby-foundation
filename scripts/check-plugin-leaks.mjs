@@ -21,7 +21,7 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, relative, extname, basename } from 'node:path';
+import { dirname, join, relative, extname, basename, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -40,7 +40,7 @@ const TEXT_EXT = new Set([
 // Extensionless files this repo ships (git hooks).
 const TEXT_NAMES = new Set(['pre-commit', 'pre-push', 'pre-push.example', 'post-merge', 'post-checkout']);
 
-const RULES = [
+export const RULES = [
   {
     name: 'origin-project residue',
     pattern: /miyagi|medusa|despacho|honest-eel|smalldocs/i,
@@ -59,14 +59,33 @@ const RULES = [
     pattern: /flagsmith|edge config/i,
     why: 'Both are decommissioned. A template that names dead tooling is worse than one that names '
        + 'none: it sends a fresh agent to build against something that no longer exists. Point at '
-       + '"this project\'s own flag provider" and let its AGENTS.md name the mechanism.',
+       + 'Golden Frijoles \u2014 the flag provider this template ships wired \u2014 and at '
+       + 'references/flags-runtime.md for how it is placed.',
+  },
+  {
+    // golden-flags-by-default S1.3. The leak that produced that epic lived in this very repo for
+    // months and NO rule here caught it: the groom skill told every consuming project to extend
+    // `lib/flags.ts` `DEFAULT_FLAGS` \u2014 one consumer's in-house table, hardcoded into the
+    // supposedly project-agnostic planning skill. The filename is generic, so the origin-project
+    // rule above could never have seen it. A mechanism does not have to be named after a project
+    // to be that project's.
+    //
+    // `flagsmith` is deliberately NOT repeated here: the decommissioned-tooling rule above already
+    // fails on it, and listing it twice would report one line as two leaks.
+    name: 'project-specific flag mechanism',
+    pattern: /\blib\/flags\.(ts|tsx|js|mjs|cjs)\b|DEFAULT_FLAGS|platform_flags/,
+    why: 'Names a flag store that is not the one this template ships. Feature flags are Golden '
+       + 'Frijoles for every project spawned from here (template/AGENTS.md rule 1): flags are '
+       + 'created with `gf flags create`, read through the seam in apps/*/flags.mjs, and a read\'s '
+       + 'fallback argument is NOT a parallel store. If you need to name a flag, name its KEY '
+       + '(`<domain>.<feature>_enabled`), never a file or a table that holds defaults.',
   },
 ];
 
 // Deliberate matches. Each entry is matched on the file plus the EXACT trimmed line text, so a line
 // moving is fine and a line being reworded is not — that is on purpose. If you rewrite one of these,
 // update the entry; if you delete one, delete the entry (a stale entry fails too, below).
-const ALLOW = [
+export const ALLOW = [
   {
     file: 'README.md',
     line: 'Portable ways-of-work for the `~/dobby/` sibling-repo workspace (`medusa-bonsai`, `golden-beans`, and',
@@ -115,68 +134,91 @@ function walk(dir, out = []) {
   return out;
 }
 
-const targets = [
-  ...SCAN_ROOTS.flatMap((r) => walk(join(repoRoot, r))),
-  ...SCAN_FILES.map((f) => join(repoRoot, f)),
-];
+/**
+ * The whole decision, as a pure function of the files' text.
+ *
+ * Extracted so the guard's own rules can be exercised against fixtures (golden-flags-by-default
+ * S1.3) instead of only against whatever happens to be in the tree today. A guard whose behaviour
+ * is only ever observed as "CI was green" is a guard nobody has seen fire.
+ *
+ * @param {Array<{rel: string, text: string}>} files
+ * @param {{rules?: typeof RULES, allow?: typeof ALLOW}} [options]
+ * @returns {{violations: Array, stale: Array}}
+ */
+export function scan(files, { rules = RULES, allow = ALLOW } = {}) {
+  const violations = [];
+  const usedAllow = new Set();
 
-const violations = [];
-const usedAllow = new Set();
-
-for (const abs of targets) {
-  const rel = relative(repoRoot, abs);
-  let text;
-  try {
-    text = readFileSync(abs, 'utf8');
-  } catch {
-    continue;
-  }
-
-  text.split('\n').forEach((raw, i) => {
-    const line = raw.trim();
-    if (!line) return;
-    for (const rule of RULES) {
-      if (!rule.pattern.test(line)) continue;
-      const allowIdx = ALLOW.findIndex((a) => a.file === rel && a.line === line);
-      if (allowIdx !== -1) {
-        usedAllow.add(allowIdx);
-        continue;
+  for (const { rel, text } of files) {
+    text.split('\n').forEach((raw, i) => {
+      const line = raw.trim();
+      if (!line) return;
+      for (const rule of rules) {
+        if (!rule.pattern.test(line)) continue;
+        const allowIdx = allow.findIndex((a) => a.file === rel && a.line === line);
+        if (allowIdx !== -1) {
+          usedAllow.add(allowIdx);
+          continue;
+        }
+        violations.push({ rel, lineNo: i + 1, line, rule });
       }
-      violations.push({ rel, lineNo: i + 1, line, rule });
+    });
+  }
+
+  return {
+    violations,
+    stale: allow.map((a, i) => ({ ...a, i })).filter((a) => !usedAllow.has(a.i)),
+  };
+}
+
+// ── The CLI half ─────────────────────────────────────────────────────────────────────────────
+// Guarded, so the test above can import `scan` without the module walking the tree and calling
+// process.exit() out from under the test runner.
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  const targets = [
+    ...SCAN_ROOTS.flatMap((r) => walk(join(repoRoot, r))),
+    ...SCAN_FILES.map((f) => join(repoRoot, f)),
+  ];
+
+  const { violations, stale } = scan(
+    targets.flatMap((abs) => {
+      try {
+        return [{ rel: relative(repoRoot, abs), text: readFileSync(abs, 'utf8') }];
+      } catch {
+        return [];
+      }
+    })
+  );
+
+  if (!violations.length && !stale.length) {
+    console.log(`check-plugin-leaks: clean (${targets.length} files scanned, ${ALLOW.length} deliberate matches allowed).`);
+    process.exit(0);
+  }
+
+  if (violations.length) {
+    console.error(`\ncheck-plugin-leaks: ${violations.length} leak(s) found.\n`);
+    const byRule = new Map();
+    for (const v of violations) {
+      if (!byRule.has(v.rule.name)) byRule.set(v.rule.name, []);
+      byRule.get(v.rule.name).push(v);
     }
-  });
-}
-
-const stale = ALLOW.map((a, i) => ({ ...a, i })).filter((a) => !usedAllow.has(a.i));
-
-if (!violations.length && !stale.length) {
-  console.log(`check-plugin-leaks: clean (${targets.length} files scanned, ${ALLOW.length} deliberate matches allowed).`);
-  process.exit(0);
-}
-
-if (violations.length) {
-  console.error(`\ncheck-plugin-leaks: ${violations.length} leak(s) found.\n`);
-  const byRule = new Map();
-  for (const v of violations) {
-    if (!byRule.has(v.rule.name)) byRule.set(v.rule.name, []);
-    byRule.get(v.rule.name).push(v);
+    for (const [name, vs] of byRule) {
+      console.error(`  ${name}`);
+      console.error(`  ${'-'.repeat(name.length)}`);
+      console.error(`  ${vs[0].rule.why}\n`);
+      for (const v of vs) console.error(`    ${v.rel}:${v.lineNo}\n      ${v.line}`);
+      console.error('');
+    }
+    console.error('  If a match is genuinely deliberate (provenance, an author field), add it to ALLOW');
+    console.error('  in scripts/check-plugin-leaks.mjs WITH a reason. A reason nobody can defend is a leak.\n');
   }
-  for (const [name, vs] of byRule) {
-    console.error(`  ${name}`);
-    console.error(`  ${'-'.repeat(name.length)}`);
-    console.error(`  ${vs[0].rule.why}\n`);
-    for (const v of vs) console.error(`    ${v.rel}:${v.lineNo}\n      ${v.line}`);
-    console.error('');
+
+  if (stale.length) {
+    console.error(`check-plugin-leaks: ${stale.length} stale ALLOW entr(y/ies) — no longer matching anything:\n`);
+    for (const s of stale) console.error(`    ${s.file}\n      ${s.line}`);
+    console.error('\n  The line was removed or reworded. Update or delete the ALLOW entry so the');
+    console.error('  allowlist keeps describing the repo as it actually is.\n');
   }
-  console.error('  If a match is genuinely deliberate (provenance, an author field), add it to ALLOW');
-  console.error('  in scripts/check-plugin-leaks.mjs WITH a reason. A reason nobody can defend is a leak.\n');
-}
 
-if (stale.length) {
-  console.error(`check-plugin-leaks: ${stale.length} stale ALLOW entr(y/ies) — no longer matching anything:\n`);
-  for (const s of stale) console.error(`    ${s.file}\n      ${s.line}`);
-  console.error('\n  The line was removed or reworded. Update or delete the ALLOW entry so the');
-  console.error('  allowlist keeps describing the repo as it actually is.\n');
+  process.exit(1);
 }
-
-process.exit(1);

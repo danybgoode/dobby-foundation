@@ -16,6 +16,8 @@ requires_scripts:
   - build-order.mjs
   - lib/roadmap-status-buckets.mjs
   - roadmap-extract.mjs
+  - preflight.mjs
+  - lib/golden-onboarding.mjs
 ---
 
 # Groom — the planning front door (Cowork)
@@ -102,8 +104,7 @@ the review scope (WAYS-OF-WORKING → *Review & merge*). The builder's escalate 
 WAYS-OF-WORKING → *Escalate, don't guess* — reference it, never restate it here.
 
 ### Stage 6b — Flag decision for a `risk: high` epic
-Answer one question in the scope seed: **does the product owner want a flag here? Default no.** If yes,
-follow `references/kill-switch.md` (flag · polarity · seam · mechanism); if no, write the one-line reason.
+**Does the product owner want a flag? Default no.** Record the answer in the seed; if yes, follow `references/kill-switch.md` — the mechanism is **Golden Frijoles** (`gf flags create`), with polarity · seam · **activation** · runtime placement. If the project has no provider linked, `node scripts/preflight.mjs` prints the two commands that fix it.
 
 ## Locate the generators — do this once, before Stage 7
 
@@ -215,6 +216,5 @@ cheap.
 - v1 in/out boundary written; research cited where relevant.
 - Reuse list produced (platform-first reframe done).
 - Each story risk-tiered; QA stage named; smoke-walkthrough owner identified.
-- **For a `risk: high` epic: the kill-switch decision is recorded** (Stage 6b) — either a recommended
-  flag story (flag · polarity · seam · mechanism) or a one-line carve-out reason.
+- **For a `risk: high` epic: the kill-switch decision is recorded** (Stage 6b) — either a recommended Golden Frijoles flag story (polarity · seam · **activation** · placement) or a one-line carve-out reason.
 - the product owner approved the scope doc.

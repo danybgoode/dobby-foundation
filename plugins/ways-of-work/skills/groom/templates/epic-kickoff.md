@@ -71,7 +71,8 @@ It does **not** extend to a new category of production mutation — TLS/IAM/secr
 writes, a new external dependency or production secret. Name those in one focused question.
 
 **Done means shipped.** A merged PR that hasn't deployed, a migration written but not applied, a flag
-that exists in code but not in the flag provider — none of those are done. Apply migrations BEFORE
+that exists in code but not in Golden Frijoles, and a flag created there but never ACTIVATED (`gf flags get
+<key>` still printing `—` for production) — none of those are done. Apply migrations BEFORE
 merging (merging deploys, and code reading a new column against an unmigrated table breaks a live path),
 verify live, then merge, then confirm the deploy actually succeeded.
 
