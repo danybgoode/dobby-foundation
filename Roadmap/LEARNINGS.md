@@ -193,6 +193,23 @@ accumulate below them, same one-liner + why + date shape.
   `timeout`, `sudo`) and `/bin/rm` are out of scope by design. Write that boundary into the file, or the next
   reviewer re-finds it as a bug.
 
+## Shared rails across repos (plugin-audit-and-extraction, 2026-09-18)
+- **"Byte-identical" is a claim until a byte-compare runs.** Compare every template script against every
+  consumer (`cmp` in a loop) before claiming one implementation per rail, and put every surviving
+  difference in the consumer's own docs with a reason. The epic's walkthrough claimed it and was wrong on
+  eight rails. The review finding that prompted the compare was itself a live bug: a callee's newly
+  required flag that a caller never passed.
+- **Replacing a file with the shared copy? Run the consumer's OLD tests against the NEW code.** The shared
+  copy can be weaker than the local one it replaces. A consumer's stricter prose guard was silently undone
+  that way, and the tests that pinned it were deleted as "superseded". `git show origin/main:<test>` into a
+  temp file, run it, and read every failure.
+- **A review that skips "copies" cannot see a regression against the file the copy replaced.** Review the
+  consumer's adoption against the consumer's previous version too, not only against the template.
+- **"Could not look" is its own exit code, never the failure one.** A watchdog's missing, unloadable or
+  empty assertion file exited 1 through an unhandled rejection, which a routine reads as "production is
+  broken". Load inputs in a function that returns `{ok, error}`, and `.catch` `main()` into the
+  could-not-look state.
+
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
   state (the plan file, sprint docs, team memory) makes re-entry cheap by design — compact at each

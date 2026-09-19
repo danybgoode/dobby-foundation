@@ -41,12 +41,16 @@ Roadmap/
 - ✅ **Plugin marketplace** — `ways-of-work` skills installed via `.claude/settings.json`; Cowork `.skill` archives built reproducibly by `scripts/pack-skills.mjs`.
 - ✅ **Spawn template** — `Roadmap/`, `AGENTS.md`, CI guards, git hooks and scripts a new project copies once.
 - ✅ **Portability guards** — `check-plugin-leaks.mjs` (origin-project residue) and `check-skill-scripts.mjs` (every skill's scripts exist).
+- ✅ **Plugin audit + extraction** — every advertised skill runs (`KNOWN_ABSENT` empty; `check-skill-scripts` walks import closures, also against consumers), the advertised list is generated, and the origin's stranded rails are in the template behind committed config seams: the reporting family, routines, the hook budget, session notes, doc-format, owed-ledger, a prod-smoke engine, a fail-closed merge gate, merge-report, vercel-env and perf-probe. One implementation per rail it touched, across all three repos (each consumer's documented forks, notably the review rail, excepted). [`plugin-audit-and-extraction`](09-platform-infra/plugin-audit-and-extraction/README.md)
 - ✅ **Ways-of-work lean pass** — committed permissions with a cited deny/ask ledger (three spellings, deny **and** ask), one external general pass + one lean security lens + one fresh reviewer, a generated `WAYS-OF-WORKING`, and `epic-dod --check` for the mechanical half of the epic DoD. [`ways-of-work-lean-pass`](09-platform-infra/ways-of-work-lean-pass/README.md)
 
 ---
 
 ## Recent highlights
 
+- **2026-09-18** — plugin audit + extraction shipped. No skill ships dark, the skill list is generated
+  rather than hand-kept in four places, and the template, the origin project and golden-beans run the same
+  bytes for every rail this epic touched. The review rail is still forked, and has a seed.
 - **2026-09-16** — the foundation gets its own `Roadmap/`, spawned from its own template.
 
 ## License
