@@ -1,3 +1,33 @@
+---
+epic: jev-semantic-guards
+sprint: 4
+title: Rollout to both consumers
+risk: high
+phase: Shaping
+stories_total: 3
+stories:
+  - id: S4.1
+    title: Adopt in medusa-bonsai
+    as_a: the product owner
+    i_want: "the Jev files and the patched call sites in medusa-bonsai with `mode: shadow`"
+    so_that: it produces live shadow traffic
+    risk: high
+    status: planned
+  - id: S4.2
+    title: Adopt in golden-beans
+    as_a: the product owner
+    i_want: the same in golden-beans
+    so_that: both consumers feed the log
+    risk: high
+    status: planned
+  - id: S4.3
+    title: Routine key + shadow on
+    as_a: the product owner
+    i_want: routines that post reviews or reports to have the key
+    so_that: cloud runs are measured too
+    risk: high
+    status: planned
+---
 # Jev semantic guards — Sprint 4: Rollout to both consumers
 
 **Status:** ⬜ not started

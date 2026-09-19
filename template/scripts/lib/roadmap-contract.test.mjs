@@ -172,7 +172,7 @@ const EPIC = {
 
 test('epic README: compliant passes; each missing field, bad enum and wrong total is named', () => {
   assert.deepEqual(validateEpicFrontmatter(epicDoc(EPIC), { sprintCount: 2, storyCount: 5 }), []);
-  const { title, ...noTitle } = EPIC;
+  const { title: _title, ...noTitle } = EPIC;
   assert.deepEqual(validateEpicFrontmatter(epicDoc(noTitle)), [
     { rule: 'contract-epic-field-missing', detail: 'no `title:`' },
   ]);
@@ -208,4 +208,17 @@ test('a trailing comment is allowed after a quoted value too', () => {
   assert.equal(error, null);
   assert.equal(data.title, 'x # y');
   assert.equal(data.risk, 'low');
+});
+
+test('a bare `stories:` (null) or a scalar is not a list, and fails (golden-beans#156, codex)', () => {
+  for (const v of ['', 'null', 'none']) {
+    const parsed = parseDocFrontmatter(
+      sprintDoc(`epic: e\nsprint: 1\ntitle: t\nrisk: low\nphase: Building\nstories_total: 0\nstories: ${v}`)
+    );
+    assert.deepEqual(
+      validateSprintFrontmatter(parsed, { n: 1 }).map((o) => o.rule),
+      ['contract-stories-invalid'],
+      JSON.stringify(v)
+    );
+  }
 });

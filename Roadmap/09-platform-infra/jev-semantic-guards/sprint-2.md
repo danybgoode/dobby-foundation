@@ -1,3 +1,33 @@
+---
+epic: jev-semantic-guards
+sprint: 2
+title: Review guard on Jev (shadow, marker, backtest)
+risk: high
+phase: Shaping
+stories_total: 3
+stories:
+  - id: S2.1
+    title: judgeReviewOutput() in review-guard.mjs
+    as_a: the review rail
+    i_want: "an async judge that asks Jev `is_real_review` (Noul) and `severity` (Choice: blocking / should_fix / nit / clean) and decides by mode"
+    so_that: a real prose review passes and a banner that merely looks structured fails
+    risk: high
+    status: planned
+  - id: S2.2
+    title: Wire cross-review.mjs + the PR marker
+    as_a: the product owner
+    i_want: "each posted cross-review comment to carry a hidden `<!-- jev:{…} -->` marker"
+    so_that: "shadow verdicts from cloud routines survive and can be harvested with `gh api`"
+    risk: high
+    status: planned
+  - id: S2.3
+    title: Backtest (scripts/jev-backtest.mjs)
+    as_a: the product owner
+    i_want: Jev replayed over historical cross-review comments across the three repos
+    so_that: there is evidence before live traffic accrues
+    risk: high
+    status: planned
+---
 # Jev semantic guards — Sprint 2: Review guard on Jev (shadow, marker, backtest)
 
 **Status:** ⬜ not started

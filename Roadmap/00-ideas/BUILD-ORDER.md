@@ -12,7 +12,7 @@
 
 ## 🏗️ Building now (1)
 
-- [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 0/13 stories · risk: Low · wave-2026-09-16
+- [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 5/13 stories · risk: Low · wave-2026-09-16
 
 ## 📋 Ready to build (scaffolded, not started) (1)
 

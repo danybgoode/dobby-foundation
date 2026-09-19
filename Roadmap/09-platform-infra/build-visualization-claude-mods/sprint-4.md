@@ -1,3 +1,33 @@
+---
+epic: build-visualization-claude-mods
+sprint: 4
+title: The Claude Mod
+risk: low
+phase: Shaping
+stories_total: 3
+stories:
+  - id: S4.1
+    title: hooks/hooks.json + the renderer
+    as_a: the product owner watching an agent work
+    i_want: the current epic, story and status in the CLI
+    so_that: "I can see what's happening without asking"
+    risk: low
+    status: planned
+  - id: S4.2
+    title: claude plugin validate in CI
+    as_a: the maintainer
+    i_want: the mod validated offline on every PR
+    so_that: a broken hook registration is caught before anyone installs it
+    risk: low
+    status: planned
+  - id: S4.3
+    title: The latency budget, measured
+    as_a: a builder session
+    i_want: the mod to cost nothing perceptible
+    so_that: a status line never slows the work it describes
+    risk: low
+    status: planned
+---
 # The build view — Sprint 4: The Claude Mod
 
 **Status:** ⬜ not started

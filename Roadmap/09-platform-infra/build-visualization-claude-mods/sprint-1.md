@@ -1,3 +1,47 @@
+---
+epic: build-visualization-claude-mods
+sprint: 1
+title: The frontmatter contract
+risk: low
+phase: Building
+stories_total: 5
+stories:
+  - id: S1.1
+    title: Epic README frontmatter schema
+    as_a: a tool reading the roadmap
+    i_want: "the epic's identity in frontmatter"
+    so_that: title, area and risk stop being parsed out of a bold prose line
+    risk: low
+    status: done
+  - id: S1.2
+    title: sprint-N.md frontmatter
+    as_a: a tool
+    i_want: sprint files to declare themselves
+    so_that: the epic/sprint/risk/status a sprint belongs to is data rather than a paragraph
+    risk: low
+    status: done
+  - id: S1.3
+    title: The per-story block
+    as_a: a tool
+    i_want: "each story's identity and user story as data"
+    so_that: "the build view can show the actual \"As a / I want / so that\" instead of a heading"
+    risk: low
+    status: done
+  - id: S1.4
+    title: The six-value status ladder
+    as_a: the product owner
+    i_want: an executive status on every epic and sprint
+    so_that: "\"what is happening right now\" is one word rather than a paragraph"
+    risk: low
+    status: done
+  - id: S1.5
+    title: groom scaffolder templates emit the new shape
+    as_a: a groom session
+    i_want: new epics born compliant
+    so_that: the contract holds going forward without anyone remembering it
+    risk: low
+    status: done
+---
 # The build view — Sprint 1: The frontmatter contract
 
 **Status:** 🏗 In progress
@@ -13,7 +57,7 @@ template alone is how the backfill discovers it was wrong.
 
 ## Stories
 
-### Story 1.1 — Epic README frontmatter schema
+### Story 1.1 — Epic README frontmatter schema ✅ `1ecd016`
 **As a** tool reading the roadmap, **I want** the epic's identity in frontmatter,
 **so that** title, area and risk stop being parsed out of a bold prose line.
 **Acceptance:** the epic README frontmatter gains `title`, `area`, `risk`, `type`, `sprints_total`,
@@ -21,14 +65,14 @@ template alone is how the backfill discovers it was wrong.
 `slug`**. `build-order.mjs` reads the new fields without changes to its parser.
 **Risk:** low
 
-### Story 1.2 — `sprint-N.md` frontmatter
+### Story 1.2 — `sprint-N.md` frontmatter ✅ `1ecd016`
 **As a** tool, **I want** sprint files to declare themselves,
 **so that** the epic/sprint/risk/status a sprint belongs to is data rather than a paragraph.
 **Acceptance:** every `sprint-N.md` carries `epic`, `sprint`, `title`, `risk`, `status`,
 `stories_total`. **This is the biggest single gap** — sprint files have no frontmatter at all today.
 **Risk:** low
 
-### Story 1.3 — The per-story block
+### Story 1.3 — The per-story block ✅ `1ecd016`
 **As a** tool, **I want** each story's identity and user story as data,
 **so that** the build view can show the actual "As a / I want / so that" instead of a heading.
 **Acceptance:** per **D1**, each story carries `id`, `as_a`, `i_want`, `so_that`, `risk`, `status` in
@@ -36,7 +80,7 @@ a parser-owned shape. **Scraping `### Story N.M —` headings is explicitly what
 human-readable prose stays — this is additive, and a sprint file must still read well to a person.
 **Risk:** low
 
-### Story 1.4 — The six-value status ladder
+### Story 1.4 — The six-value status ladder ✅ `1ecd016`
 **As the** product owner, **I want** an executive status on every epic and sprint,
 **so that** "what is happening right now" is one word rather than a paragraph.
 **Acceptance:** `status` accepts `Shaping · Locking architecture · Building · Verifying · In review ·
@@ -45,7 +89,7 @@ Shipped`. Each maps to a cadence event the docs already mandate (see the epic RE
 deployed** — not merged — per the doctrine's own *"done means shipped"*.
 **Risk:** low
 
-### Story 1.5 — `groom` scaffolder templates emit the new shape
+### Story 1.5 — `groom` scaffolder templates emit the new shape ✅ `1ecd016`
 **As a** groom session, **I want** new epics born compliant,
 **so that** the contract holds going forward without anyone remembering it.
 **Acceptance:** `scaffold-epic.mjs` and `templates/{epic-README,sprint-N}.md` emit the full schema.

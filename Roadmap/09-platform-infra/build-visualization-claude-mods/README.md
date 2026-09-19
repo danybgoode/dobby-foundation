@@ -2,6 +2,13 @@
 status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: build-visualization-claude-mods
 build_order: 6
+title: "The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod"
+area: 09-platform-infra
+risk: low
+type: feature
+phase: Building
+sprints_total: 4
+stories_total: 13
 ---
 
 # Epic: The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod

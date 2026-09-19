@@ -1,3 +1,47 @@
+---
+epic: ways-of-work-lean-pass
+sprint: 3
+title: The ceremony diet and the derivable DoD
+risk: low
+phase: Shipped
+stories_total: 5
+stories:
+  - id: S3.1
+    title: "WAYS-OF-WORKING.md diet to ≤160 lines"
+    as_a: a builder session
+    i_want: orientation to cost a fraction of what it costs now
+    so_that: the token budget goes to the work
+    risk: low
+    status: done
+  - id: S3.2
+    title: "groom/SKILL.md progressive disclosure to ≤220 lines"
+    as_a: a groom session
+    i_want: the stages up front and the reference material lazily loaded
+    so_that: planning costs less and the stages are actually legible
+    risk: low
+    status: done
+  - id: S3.3
+    title: "epic-dod.mjs --check — script the derivable five"
+    as_a: a closing agent
+    i_want: the mechanical half of the epic DoD checked rather than recited
+    so_that: the checklist is three lines of judgement instead of nine lines of recitation
+    risk: low
+    status: done
+  - id: S3.4
+    title: De-duplicate the escalate triggers
+    as_a: a reader of any of these docs
+    i_want: "the escalate-don't-guess trigger list in exactly one place"
+    so_that: "the four copies can't drift into four different policies"
+    risk: low
+    status: done
+  - id: S3.5
+    title: Regenerate both consuming WAYS-OF-WORKING.md from the template
+    as_a: the maintainer
+    i_want: the consuming copies rendered from the template rather than forked
+    so_that: dieting the template actually reaches the projects instead of widening the fork
+    risk: high
+    status: done
+---
 # Ways-of-work lean pass — Sprint 3: The ceremony diet and the derivable DoD
 
 **Status:** ✅ shipped — danybgoode/dobby-foundation#17 · danybgoode/golden-beans#146 · danybgoode/miyagi-product-management#179

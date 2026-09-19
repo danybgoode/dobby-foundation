@@ -2,6 +2,13 @@
 status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: jev-semantic-guards
 build_order: 7
+title: "Jev semantic guards — review-guard and prose-guard decide with Jev, not regex"
+area: 09-platform-infra
+risk: high
+type: feature
+phase: Shaping
+sprints_total: 5
+stories_total: 15
 ---
 
 # Epic: Jev semantic guards — review-guard and prose-guard decide with Jev, not regex

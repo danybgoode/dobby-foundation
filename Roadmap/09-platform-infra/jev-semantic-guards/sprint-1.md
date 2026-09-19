@@ -1,3 +1,40 @@
+---
+epic: jev-semantic-guards
+sprint: 1
+title: Client, config, decision log and eval harness
+risk: low
+phase: Shaping
+stories_total: 4
+stories:
+  - id: S1.1
+    title: Jev client (template/scripts/lib/jev.mjs)
+    as_a: a rail author
+    i_want: "one zero-dep function that asks Jev typed questions and returns `{ok, answers, usage}` or `{ok:false, state:\"could-not-look\", error}`"
+    so_that: "no rail ever mistakes \"Jev was unreachable\" for a verdict"
+    risk: low
+    status: planned
+  - id: S1.2
+    title: Config + kill-switch (jev.config.json)
+    as_a: the product owner
+    i_want: "one committed file with per-rail `mode: off | shadow | jev`, thresholds, `model`, `shadowExpires` and `egress`"
+    so_that: turning Jev off, on or into shadow is a one-line reviewed diff
+    risk: low
+    status: planned
+  - id: S1.3
+    title: Decision log (.jev/decisions.jsonl)
+    as_a: the product owner
+    i_want: every guard decision recorded with who decided
+    so_that: "a corpus of real disagreements exists — today rejected replies and drafts only reach stderr"
+    risk: low
+    status: planned
+  - id: S1.4
+    title: Eval harness + shadow expiry (scripts/jev-eval.mjs)
+    as_a: a builder bumping the model or thresholds
+    i_want: a labelled fixture set replayed against recorded responses
+    so_that: a bump is proven before it lands and shadow cannot rot
+    risk: low
+    status: planned
+---
 # Jev semantic guards — Sprint 1: Client, config, decision log and eval harness
 
 **Status:** ⬜ not started

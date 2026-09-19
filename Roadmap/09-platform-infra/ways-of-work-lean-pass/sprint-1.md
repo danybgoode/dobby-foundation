@@ -1,3 +1,47 @@
+---
+epic: ways-of-work-lean-pass
+sprint: 1
+title: Permissions, the deny list, and auto mode
+risk: high
+phase: Shipped
+stories_total: 5
+stories:
+  - id: S1.1
+    title: dobby-foundation gets its own Roadmap/
+    as_a: a maintainer of the foundation
+    i_want: the foundation repo to plan its own work in its own funnel
+    so_that: "the anti-fork-drift repo isn't itself planned inside one of its consumers"
+    risk: low
+    status: done
+  - id: S1.2
+    title: A committed permissions.allow in the template
+    as_a: a builder agent
+    i_want: the verbs that are always safe here pre-approved in a tracked file
+    so_that: "a session doesn't stop to ask whether it may read sixty lines of a file"
+    risk: low
+    status: done
+  - id: S1.3
+    title: A permissions.deny that is the real guardrail
+    as_a: the product owner
+    i_want: the genuinely dangerous commands enumerated and refused
+    so_that: "\"auto mode\" means \"the dangerous set is named and everything else flows\" rather than \"approve everything\""
+    risk: high
+    status: done
+  - id: S1.4
+    title: Auto mode on, deny list as the floor
+    as_a: a product owner running several agents
+    i_want: auto mode on
+    so_that: the operation is asynchronous instead of a person watching one agent work
+    risk: high
+    status: done
+  - id: S1.5
+    title: Retire the settings.local.json accretion
+    as_a: a maintainer
+    i_want: the untracked per-machine allow logs emptied and kept empty
+    so_that: the accretion actually stops rather than continuing alongside the new list
+    risk: low
+    status: done
+---
 # Ways-of-work lean pass — Sprint 1: Permissions, the deny list, and auto mode
 
 **Status:** ✅ shipped — danybgoode/dobby-foundation#10 · danybgoode/golden-beans#143 · danybgoode/miyagi-product-management#175
