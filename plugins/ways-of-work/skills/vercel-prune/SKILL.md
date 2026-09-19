@@ -35,7 +35,7 @@ say which and stop.
 
 | Value | What it is |
 |---|---|
-| `<VERCEL_PROJECT>` | the Vercel project whose previews this run targets. **Always pass it explicitly as `--project <VERCEL_PROJECT>`** — the underlying script carries a baked-in default from whichever project it was written for, and inheriting someone else's default silently prunes the wrong account. |
+| `<VERCEL_PROJECT>` | the Vercel project whose previews this run targets. **Required: `--project <VERCEL_PROJECT>`** — the underlying script has no default and exits with a usage error without it, because a defaulted name once meant pruning whichever account the default happened to name. The standup reads the same value from `reporting.config.json` → `vercelProject`. |
 | `<PR_REPO>` | the GitHub repo whose open PRs protect a branch from pruning — the repo that actually deploys to `<VERCEL_PROJECT>` |
 
 > One Vercel project per invocation. A project with several deployed frontends runs this once per
@@ -92,9 +92,8 @@ branches from Stage 1 are excluded from that list. **This step never passes `--a
   destructive-op story. Even after the first live apply is confirmed, treat every subsequent `--apply`
   as its own explicit ask, not a standing permission — the routine structurally never runs Stage 3, so
   there's no "it's already automated, skip the check" shortcut to reach for.
-- **The underlying script's `--project` default is inherited, not neutral.** It was written for one
-  specific Vercel project and still defaults to it, so an invocation that omits `--project` may scan
-  and flag previews in an account that has nothing to do with this project. **Always pass
-  `--project <VERCEL_PROJECT>` explicitly** — do not rely on the default being right, and do not
-  "fix" it by editing the script from this skill. Each additional Vercel project is its own explicit
+- **`--project` has no default, on purpose.** The script was written for one specific Vercel project
+  and used to default to it, which let an invocation that omitted `--project` scan and flag previews in
+  an account unrelated to this project. It now refuses to run without one — do not "fix" that by
+  adding a default back. Each additional Vercel project is its own explicit
   invocation, not an extra flag on this one.
