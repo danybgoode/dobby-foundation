@@ -61,13 +61,21 @@ test('the parser keeps the existing epic README frontmatter readable: inline and
   ].join('\n');
   const { data, error } = parseDocFrontmatter(md);
   assert.equal(error, null);
-  assert.deepEqual(data, { status: 'shipped', slug: 'foo', build_order: null, phase: 'Locking architecture' });
+  assert.deepEqual(data, {
+    status: 'shipped',
+    slug: 'foo',
+    build_order: null,
+    phase: 'Locking architecture',
+  });
 });
 
 test('a line outside the YAML subset is a reported parse error, not a silent skip', () => {
   const parsed = parseDocFrontmatter(sprintDoc('title: ok\n  stray: indented with no list'));
   assert.match(parsed.error, /not in the contract's YAML subset/);
-  assert.deepEqual(validateSprintFrontmatter(parsed, { n: 1 }).map((o) => o.rule), ['contract-parse']);
+  assert.deepEqual(
+    validateSprintFrontmatter(parsed, { n: 1 }).map((o) => o.rule),
+    ['contract-parse']
+  );
 });
 
 test('a doc with no frontmatter parses to hasFrontmatter:false and an untouched body', () => {
@@ -93,7 +101,9 @@ test('the ladder: every one of the six phases is accepted, and nothing else is',
 });
 
 test('a sprint file with no frontmatter fails the contract', () => {
-  const rules = validateSprintFrontmatter(parseDocFrontmatter('# E — Sprint 1: One\n'), { n: 1 }).map((o) => o.rule);
+  const rules = validateSprintFrontmatter(parseDocFrontmatter('# E — Sprint 1: One\n'), { n: 1 }).map(
+    (o) => o.rule
+  );
   assert.deepEqual(rules, ['contract-sprint-frontmatter-missing']);
 });
 
@@ -109,10 +119,13 @@ test('sprint cross-checks: totals, epic slug, sprint number, story ids, statuses
       { id: 'S9.1', title: 'x' },
     ],
   };
-  const rules = validateSprintFrontmatter(parseDocFrontmatter(sprintDoc(serializeFields(bad, SPRINT_FIELDS))), {
-    n: 1,
-    slug: SPRINT.epic,
-  }).map((o) => o.rule);
+  const rules = validateSprintFrontmatter(
+    parseDocFrontmatter(sprintDoc(serializeFields(bad, SPRINT_FIELDS))),
+    {
+      n: 1,
+      slug: SPRINT.epic,
+    }
+  ).map((o) => o.rule);
   for (const r of [
     'contract-sprint-epic-mismatch',
     'contract-sprint-number-mismatch',
@@ -126,9 +139,9 @@ test('sprint cross-checks: totals, epic slug, sprint number, story ids, statuses
   }
   const short = { ...SPRINT, stories_total: 2 };
   assert.deepEqual(
-    validateSprintFrontmatter(parseDocFrontmatter(sprintDoc(serializeFields(short, SPRINT_FIELDS))), { n: 1 }).map(
-      (o) => o.rule
-    ),
+    validateSprintFrontmatter(parseDocFrontmatter(sprintDoc(serializeFields(short, SPRINT_FIELDS))), {
+      n: 1,
+    }).map((o) => o.rule),
     ['contract-total-mismatch']
   );
 });
@@ -140,7 +153,11 @@ test('a user-story value may be an explicit null (unknown), but the key must be 
 });
 
 const epicDoc = (fm) =>
-  parseDocFrontmatter(`---\n${Object.entries(fm).map(([k, v]) => `${k}: ${formatScalar(v)}`).join('\n')}\n---\n`);
+  parseDocFrontmatter(
+    `---\n${Object.entries(fm)
+      .map(([k, v]) => `${k}: ${formatScalar(v)}`)
+      .join('\n')}\n---\n`
+  );
 const EPIC = {
   status: 'in-progress',
   slug: 'foo',
@@ -159,10 +176,13 @@ test('epic README: compliant passes; each missing field, bad enum and wrong tota
   assert.deepEqual(validateEpicFrontmatter(epicDoc(noTitle)), [
     { rule: 'contract-epic-field-missing', detail: 'no `title:`' },
   ]);
-  const rules = validateEpicFrontmatter(epicDoc({ ...EPIC, phase: 'Nonsense', type: 'Feature', risk: 'medium' }), {
-    sprintCount: 3,
-    storyCount: 4,
-  }).map((o) => o.rule);
+  const rules = validateEpicFrontmatter(
+    epicDoc({ ...EPIC, phase: 'Nonsense', type: 'Feature', risk: 'medium' }),
+    {
+      sprintCount: 3,
+      storyCount: 4,
+    }
+  ).map((o) => o.rule);
   assert.deepEqual(rules, [
     'contract-phase-invalid',
     'contract-risk-invalid',

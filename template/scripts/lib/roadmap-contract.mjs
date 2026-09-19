@@ -73,7 +73,8 @@ export function parseDocFrontmatter(md) {
   const lines = md.split('\n');
   if (lines[0].trim() !== '---') return { hasFrontmatter: false, data: {}, body: md, raw: null, error: null };
   const end = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
-  if (end === -1) return { hasFrontmatter: false, data: {}, body: md, raw: null, error: 'unterminated frontmatter' };
+  if (end === -1)
+    return { hasFrontmatter: false, data: {}, body: md, raw: null, error: 'unterminated frontmatter' };
   const block = lines.slice(1, end);
   const data = {};
   let error = null;
@@ -87,7 +88,10 @@ export function parseDocFrontmatter(md) {
       const top = line.match(/^(\w+):(?:\s+(.*))?$/);
       if (top) {
         const [, key, rest = ''] = top;
-        if (rest.trim() === '' && /^\s+-\s/.test(block.slice(i + 1).find((l) => l.trim() && !/^\s*#/.test(l)) || '')) {
+        if (
+          rest.trim() === '' &&
+          /^\s+-\s/.test(block.slice(i + 1).find((l) => l.trim() && !/^\s*#/.test(l)) || '')
+        ) {
           list = data[key] = [];
           item = null;
         } else {
@@ -139,7 +143,9 @@ export function serializeFields(data, keys) {
     if (Array.isArray(v)) {
       out.push(`${key}:`);
       for (const entry of v) {
-        Object.keys(entry).forEach((k, i) => out.push(`${i === 0 ? '  - ' : '    '}${k}: ${formatScalar(entry[k])}`));
+        Object.keys(entry).forEach((k, i) =>
+          out.push(`${i === 0 ? '  - ' : '    '}${k}: ${formatScalar(entry[k])}`)
+        );
       }
     } else {
       out.push(`${key}: ${formatScalar(v)}`);
@@ -165,14 +171,24 @@ export function validateEpicFrontmatter(parsed, ctx = {}) {
   const fm = parsed.data;
   if (fm.status === 'archived') return offenses;
   for (const key of EPIC_FIELDS) {
-    if (!(key in fm) || fm[key] === null) offenses.push({ rule: 'contract-epic-field-missing', detail: `no \`${key}:\`` });
+    if (!(key in fm) || fm[key] === null)
+      offenses.push({ rule: 'contract-epic-field-missing', detail: `no \`${key}:\`` });
   }
   if (fm.phase != null && !oneOf(fm.phase, PHASES))
-    offenses.push({ rule: 'contract-phase-invalid', detail: `phase: "${fm.phase}" is not one of ${PHASES.join(' | ')}` });
+    offenses.push({
+      rule: 'contract-phase-invalid',
+      detail: `phase: "${fm.phase}" is not one of ${PHASES.join(' | ')}`,
+    });
   if (fm.risk != null && !oneOf(fm.risk, RISKS))
-    offenses.push({ rule: 'contract-risk-invalid', detail: `risk: "${fm.risk}" is not one of ${RISKS.join(' | ')}` });
+    offenses.push({
+      rule: 'contract-risk-invalid',
+      detail: `risk: "${fm.risk}" is not one of ${RISKS.join(' | ')}`,
+    });
   if (fm.type != null && !oneOf(fm.type, TYPES))
-    offenses.push({ rule: 'contract-type-invalid', detail: `type: "${fm.type}" is not one of ${TYPES.join(' | ')}` });
+    offenses.push({
+      rule: 'contract-type-invalid',
+      detail: `type: "${fm.type}" is not one of ${TYPES.join(' | ')}`,
+    });
   for (const key of ['sprints_total', 'stories_total']) {
     if (fm[key] != null && !isInt(fm[key]))
       offenses.push({ rule: 'contract-total-invalid', detail: `${key}: "${fm[key]}" is not a whole number` });
@@ -193,7 +209,12 @@ export function validateEpicFrontmatter(parsed, ctx = {}) {
 /** A sprint-N.md's frontmatter. `ctx.n` is the file's sprint number, `ctx.slug` its epic's slug. */
 export function validateSprintFrontmatter(parsed, ctx = {}) {
   if (!parsed.hasFrontmatter)
-    return [{ rule: 'contract-sprint-frontmatter-missing', detail: 'no --- frontmatter block at the top of the sprint file' }];
+    return [
+      {
+        rule: 'contract-sprint-frontmatter-missing',
+        detail: 'no --- frontmatter block at the top of the sprint file',
+      },
+    ];
   if (parsed.error) return [{ rule: 'contract-parse', detail: parsed.error }];
   const offenses = [];
   const fm = parsed.data;
@@ -202,13 +223,25 @@ export function validateSprintFrontmatter(parsed, ctx = {}) {
       offenses.push({ rule: 'contract-sprint-field-missing', detail: `no \`${key}:\`` });
   }
   if (ctx.slug && fm.epic != null && fm.epic !== ctx.slug)
-    offenses.push({ rule: 'contract-sprint-epic-mismatch', detail: `epic: "${fm.epic}", but the file is in "${ctx.slug}"` });
+    offenses.push({
+      rule: 'contract-sprint-epic-mismatch',
+      detail: `epic: "${fm.epic}", but the file is in "${ctx.slug}"`,
+    });
   if (isInt(ctx.n) && fm.sprint != null && fm.sprint !== ctx.n)
-    offenses.push({ rule: 'contract-sprint-number-mismatch', detail: `sprint: ${fm.sprint}, but the file is sprint-${ctx.n}.md` });
+    offenses.push({
+      rule: 'contract-sprint-number-mismatch',
+      detail: `sprint: ${fm.sprint}, but the file is sprint-${ctx.n}.md`,
+    });
   if (fm.phase != null && !oneOf(fm.phase, PHASES))
-    offenses.push({ rule: 'contract-phase-invalid', detail: `phase: "${fm.phase}" is not one of ${PHASES.join(' | ')}` });
+    offenses.push({
+      rule: 'contract-phase-invalid',
+      detail: `phase: "${fm.phase}" is not one of ${PHASES.join(' | ')}`,
+    });
   if (fm.risk != null && !oneOf(fm.risk, RISKS))
-    offenses.push({ rule: 'contract-risk-invalid', detail: `risk: "${fm.risk}" is not one of ${RISKS.join(' | ')}` });
+    offenses.push({
+      rule: 'contract-risk-invalid',
+      detail: `risk: "${fm.risk}" is not one of ${RISKS.join(' | ')}`,
+    });
 
   const stories = fm.stories == null ? [] : fm.stories;
   if (fm.stories != null && !Array.isArray(fm.stories)) {
@@ -224,16 +257,28 @@ export function validateSprintFrontmatter(parsed, ctx = {}) {
   stories.forEach((s, i) => {
     const label = s.id ? `story ${s.id}` : `story #${i + 1}`;
     for (const key of STORY_FIELDS) {
-      if (!(key in s)) offenses.push({ rule: 'contract-story-field-missing', detail: `${label}: no \`${key}:\`` });
+      if (!(key in s))
+        offenses.push({ rule: 'contract-story-field-missing', detail: `${label}: no \`${key}:\`` });
     }
     const m = typeof s.id === 'string' ? s.id.match(STORY_ID_RE) : null;
-    if (!m) offenses.push({ rule: 'contract-story-id-invalid', detail: `${label}: id must look like S<sprint>.<n>` });
+    if (!m)
+      offenses.push({
+        rule: 'contract-story-id-invalid',
+        detail: `${label}: id must look like S<sprint>.<n>`,
+      });
     else if (isInt(ctx.n) && Number(m[1]) !== ctx.n)
-      offenses.push({ rule: 'contract-story-id-invalid', detail: `${label}: id names sprint ${m[1]}, but the file is sprint-${ctx.n}.md` });
-    if (s.id && seen.has(s.id)) offenses.push({ rule: 'contract-story-id-duplicate', detail: `${label} appears twice` });
+      offenses.push({
+        rule: 'contract-story-id-invalid',
+        detail: `${label}: id names sprint ${m[1]}, but the file is sprint-${ctx.n}.md`,
+      });
+    if (s.id && seen.has(s.id))
+      offenses.push({ rule: 'contract-story-id-duplicate', detail: `${label} appears twice` });
     seen.add(s.id);
     if ('risk' in s && !oneOf(s.risk, RISKS))
-      offenses.push({ rule: 'contract-risk-invalid', detail: `${label}: risk "${s.risk}" is not one of ${RISKS.join(' | ')}` });
+      offenses.push({
+        rule: 'contract-risk-invalid',
+        detail: `${label}: risk "${s.risk}" is not one of ${RISKS.join(' | ')}`,
+      });
     if ('status' in s && !oneOf(s.status, STORY_STATUSES))
       offenses.push({
         rule: 'contract-story-status-invalid',
