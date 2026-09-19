@@ -120,3 +120,28 @@ test('package.json: `prepare` wires core.hooksPath, so a fresh clone gets the ho
   assert.equal(git('config', 'core.hooksPath'), '.githooks');
   rmSync(dir, { recursive: true, force: true });
 });
+
+// "Green on today's known state, red on anything new" (build-visualization-claude-mods S2): a doc that was
+// already committed with drift can be touched without sweeping it — only what the commit INTRODUCES blocks.
+test('pre-commit: a touched legacy doc passes on its pre-existing drift, and blocks on new drift', () => {
+  const { dir, git } = fixtureRepo();
+  const path = join(dir, 'Roadmap', '09-platform-infra', 'sample', 'README.md');
+  const legacy = README.replace('## Definition of Done (epic)', '## Epic Definition of Done');
+  writeFileSync(path, legacy);
+  git('add', '-A');
+  git('commit', '-qm', 'legacy doc, committed before the hook existed');
+
+  writeFileSync(path, legacy.replace('Reason.', 'Reason, now with more words.'));
+  git('add', '-A');
+  const touched = runHook(dir);
+  assert.equal(touched.code, 0, `pre-existing drift blocked an unrelated edit:\n${touched.out}`);
+  assert.match(touched.out, /1 pre-existing finding\(s\) in the staged docs were already committed/);
+
+  writeFileSync(path, legacy.replace('**Class:** Chore', '**Class:** Something else'));
+  git('add', '-A');
+  const drifted = runHook(dir);
+  assert.equal(drifted.code, 1, `new drift in a legacy doc was not blocked:\n${drifted.out}`);
+  assert.match(drifted.out, /header-class-invalid/);
+  assert.doesNotMatch(drifted.out, /\[dod-heading-legacy\]/, 'the pre-existing finding is not re-blamed on this commit');
+  rmSync(dir, { recursive: true, force: true });
+});
