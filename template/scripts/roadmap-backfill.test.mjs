@@ -17,16 +17,16 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test('readUserStory: the shapes the corpus uses', () => {
-  const want = { as_a: 'buyer', i_want: 'to pay once', so_that: 'I am not charged twice' };
+  const want = { as_a: 'a buyer', i_want: 'to pay once', so_that: 'I am not charged twice' };
   assert.deepEqual(
     readUserStory('**As a** buyer, **I want** to pay once, **so that** I am not charged twice.'),
     want
   );
   assert.deepEqual(
     readUserStory(
-      '> **As** Daniel, **I want** the nav to name real pages, **so that** I can find\n> the string.'
+      '> **As** the product owner, **I want** the nav to name real pages, **so that** I can find\n> the string.'
     ),
-    { as_a: 'Daniel', i_want: 'the nav to name real pages', so_that: 'I can find the string' }
+    { as_a: 'the product owner', i_want: 'the nav to name real pages', so_that: 'I can find the string' }
   );
   assert.deepEqual(
     readUserStory('**As** admin, **I want** a % per SKU, **so that** I can tune it. One % per SKU (x).'),
@@ -77,7 +77,7 @@ test('readStories: ids from the headings, titles cleaned, ✅ is done, risk per 
     {
       id: 'S2.1',
       title: 'First',
-      as_a: 'seller',
+      as_a: 'a seller',
       i_want: 'a thing',
       so_that: 'it works',
       risk: 'high',

@@ -8,7 +8,7 @@ stories_total: 1
 stories:
   - id: S{{N}}.1
     title: "<title>"
-    as_a: "<role>"
+    as_a: "a <role>"
     i_want: "<capability>"
     so_that: "<outcome>"
     risk: {{RISK}}

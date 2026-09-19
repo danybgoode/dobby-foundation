@@ -177,6 +177,15 @@ jobs:
           cmp scripts/lib/roadmap-status-buckets.mjs template/scripts/lib/roadmap-status-buckets.mjs
           node scripts/build-order.mjs --check
 
+      # This repo's own epic docs carry the machine-readable frontmatter contract
+      # (build-visualization-claude-mods) and are held to it by the template's checker — the same bytes
+      # every consumer runs. A contract that isn't checked drifts, and this is the repo that defines it.
+      - name: foundation docs hold the frontmatter contract
+        run: |
+          cmp scripts/doc-format.mjs template/scripts/doc-format.mjs
+          cmp scripts/lib/roadmap-contract.mjs template/scripts/lib/roadmap-contract.mjs
+          node scripts/doc-format.mjs --check
+
       # The scaffolder renders three templates into every new epic in every consuming project. A
       # broken placeholder here is invisible until someone scaffolds an epic, so render one and
       # assert nothing was left unsubstituted.
@@ -231,9 +240,10 @@ jobs:
           # The producer validates its own templates (plugin-audit-and-extraction S2.4): the docs the
           # scaffolder just wrote must pass the template's doc-format checker, run the way a spawned
           # project runs it. The real flow writes the seed first, so the smoke does too.
-          mkdir -p "$work/scripts" "$work/Roadmap/00-ideas/seeds"
+          mkdir -p "$work/scripts/lib" "$work/Roadmap/00-ideas/seeds"
           printf -- '---\nstatus: ready\nepic: 09-platform-infra/ci-smoke\n---\n# CI smoke\n' > "$work/Roadmap/00-ideas/seeds/ci-smoke.md"
           cp template/scripts/doc-format.mjs template/scripts/roadmap-extract.mjs template/scripts/doc-format.enforced.json "$work/scripts/"
+          cp template/scripts/lib/roadmap-contract.mjs "$work/scripts/lib/"
           ( cd "$work" && node scripts/doc-format.mjs --check )
           echo "doc-format: the scaffolder's own output is clean."
           rm -rf "$work"

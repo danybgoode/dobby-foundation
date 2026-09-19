@@ -89,10 +89,10 @@ export function readRisk(text) {
   return null;
 }
 
-// "As a buyer, I want …, so that …" — and the forms the corpus also uses: "As Daniel, I want", "As
+// "As a buyer, I want …, so that …" — and the forms the corpus also uses: "As the product owner, I want", "As
 // admin, I need", "As any tool, I want", bolded fragments, and the whole thing inside a `>` quote.
 const USER_STORY_RE =
-  /\bAs\s+(?:an?\s+|the\s+)?(.+?),?\s+I (?:want|need|can)\s+(.+?),?\s+so (?:that\s+)?(.+?)(?=\.(?:\s|$)|$)/i;
+  /\bAs\s+(.+?),?\s+I (?:want|need|can)\s+(.+?),?\s+so (?:that\s+)?(.+?)(?=\.(?:\s|$)|$)/i;
 
 /** The "As a … I want … so that …" of one story block, or null when the prose has none. */
 export function readUserStory(block) {
@@ -122,7 +122,7 @@ function headingTitle(rest) {
     rest
       .replace(/✅.*$/, '')
       .replace(/^\s*(?:\([^)]*\))?\s*[—–:\-|·]\s*/, '')
-      .replace(/`[^`]*`/g, '')
+      .replace(/`([^`]*)`/g, '$1')
   )
     .replace(/\s*[—–·(-]\s*(?:risk:?\s*)?(?:low|high|med|medium)\)?$/i, '') // a trailing risk tag is not the title
     .replace(/[\s—–:\-]+$/, '');
