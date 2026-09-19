@@ -188,6 +188,8 @@ Branches stack: `feat/plugin-audit-and-extraction` → `-s2` → `-s3`, cut from
       clean while being absent. *(Empty. `check-skill-scripts --repo-root` is 10/10 against both
       consumers, and the adverts are generated, with CI failing on a stale one.)*
 - [x] **No third copy exists** — golden-beans runs the ported scripts, not its own forks (D5). *(Checked
-      by a byte-compare of every template script against both consumers. What still differs has a
-      written reason in each consumer's `scripts/README.md`.)*
+      by a byte-compare of every template script against both consumers: each shared rail is ONE set of
+      bytes in all three repos. Where a consumer keeps its own rail instead, such as golden-beans'
+      merge-report rail, that is a second, documented sibling and never a third copy, and its reason is in
+      that consumer's `scripts/README.md`.)*
 - [x] Feature branches deleted; **this README's frontmatter `status: shipped`** (run `node scripts/build-order.mjs`)
