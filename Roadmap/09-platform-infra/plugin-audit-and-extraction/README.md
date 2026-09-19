@@ -1,10 +1,10 @@
 ---
-status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: plugin-audit-and-extraction
 build_order: 4
 ---
 
-# Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded
+# ✅ Epic: Plugin audit + medusa extraction — pay the dark-skill debt, port what's stranded
 
 > **Area:** 09-platform-infra · **Risk:** low · **Class:** Chore · **Archetype:** Sweeper · **Scope seed:** [`00-ideas/seeds/plugin-audit-and-extraction.md`](../../00-ideas/seeds/plugin-audit-and-extraction.md)
 > **Appetite:** L (multi-wave — one wave per sprint, re-bet at each boundary) · **Bet:** [`bets/wave-2026-09-16.md`](../../bets/wave-2026-09-16.md)
@@ -175,16 +175,19 @@ honest, but it would also have left the advertised capability absent.
 Branches stack: `feat/plugin-audit-and-extraction` → `-s2` → `-s3`, cut from the lean pass's final branch.
 
 ## Definition of Done (epic)
-- [ ] All sprints merged to `main` + smoke-tested (gaps stated)
-- [ ] Each `sprint-N.md` has its smoke walkthrough
-- [ ] This README marked ✅; every sprint status ticked with commit refs
-- [ ] `RETROSPECTIVE.md` written
-- [ ] Product poster (`Roadmap/README.md`) updated
-- [ ] Team memory + `MEMORY.md` index updated
-- [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
-- [ ] **Kill-switch: carve-out (risk: low).** Plugin/template content; git is the rollback.
-- [ ] **`KNOWN_ABSENT` is empty**, or the skills it named are no longer advertised. **No skill ships
+- [x] All sprints merged to `main` + smoke-tested (gaps stated): #20 `2cfd281`, #21 `f8be490`, #22 `8aa5e54`
+- [x] Each `sprint-N.md` has its smoke walkthrough (S3's carries a correction after review)
+- [x] This README marked ✅; every sprint status ticked with commit refs
+- [x] `RETROSPECTIVE.md` written
+- [x] Product poster (`Roadmap/README.md`) updated
+- [x] Team memory + `MEMORY.md` index updated
+- [x] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
+- [x] **Kill-switch: carve-out (risk: low).** Plugin/template content; git is the rollback.
+- [x] **`KNOWN_ABSENT` is empty**, or the skills it named are no longer advertised. **No skill ships
       dark** — an advertised skill that cannot run is the same failure as a review layer that reads
-      clean while being absent.
-- [ ] **No third copy exists** — golden-beans runs the ported scripts, not its own forks (D5).
-- [ ] Feature branches deleted; **this README's frontmatter `status: shipped`** (run `node scripts/build-order.mjs`)
+      clean while being absent. *(Empty. `check-skill-scripts --repo-root` is 10/10 against both
+      consumers, and the adverts are generated, with CI failing on a stale one.)*
+- [x] **No third copy exists** — golden-beans runs the ported scripts, not its own forks (D5). *(Checked
+      by a byte-compare of every template script against both consumers. What still differs has a
+      written reason in each consumer's `scripts/README.md`.)*
+- [x] Feature branches deleted; **this README's frontmatter `status: shipped`** (run `node scripts/build-order.mjs`)

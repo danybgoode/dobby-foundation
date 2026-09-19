@@ -1,6 +1,6 @@
 # Plugin audit + medusa extraction — Sprint 3: Tier-2 behind a config seam
 
-**Status:** 🟦 In review
+**Status:** ✅ Shipped — [#22](https://github.com/danybgoode/dobby-foundation/pull/22) squash `8aa5e54`; same-wave migrations danybgoode/miyagi-product-management#184 `cf99bb8` and danybgoode/golden-beans#154 `965567a`
 
 **Epic:** [Plugin audit + medusa extraction](README.md) · **Risk: LOW**
 
