@@ -3,7 +3,7 @@ epic: build-visualization-claude-mods
 sprint: 3
 title: "`build-state.mjs` — one resolver"
 risk: low
-phase: Building
+phase: Shipped
 stories_total: 2
 stories:
   - id: S3.1
@@ -12,18 +12,18 @@ stories:
     i_want: "one resolver that answers \"what is being built right now\""
     so_that: nothing else ever parses markdown to find out
     risk: low
-    status: planned
+    status: done
   - id: S3.2
     title: Story-in-flight derivation
     as_a: the resolver
     i_want: "an honest answer to \"which story is in flight\""
     so_that: "the build view doesn't report confidently while being wrong"
     risk: low
-    status: planned
+    status: done
 ---
 # The build view — Sprint 3: `build-state.mjs` — one resolver
 
-**Status:** 🏗 In progress
+**Status:** ✅ Shipped — foundation [#27](https://github.com/danybgoode/dobby-foundation/pull/27) (`52b93f0`) · copy-ins medusa-bonsai [#188](https://github.com/danybgoode/miyagi-product-management/pull/188) · golden-beans [#158](https://github.com/danybgoode/golden-beans/pull/158)
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 
@@ -33,7 +33,7 @@ so the epic's value does not depend on a pre-release hook API (**D3**).
 
 ## Stories
 
-### Story 3.1 — `build-state.mjs --json`
+### Story 3.1 — `build-state.mjs --json` ✅ `52b93f0`
 **As** any tool, **I want** one resolver that answers "what is being built right now",
 **so that** nothing else ever parses markdown to find out.
 **Acceptance:** `node scripts/build-state.mjs --json` on a checked-out feature branch returns the
@@ -43,7 +43,7 @@ epic (title, area, risk), the story (`id`, `as_a`, `i_want`, `so_that`), `Story 
 branch, it says so cleanly rather than guessing.
 **Risk:** low
 
-### Story 3.2 — Story-in-flight derivation
+### Story 3.2 — Story-in-flight derivation ✅ `52b93f0`
 **As** the resolver, **I want** an honest answer to "which story is in flight",
 **so that** the build view doesn't report confidently while being wrong.
 **Acceptance:** per **D2**, derived from the last commit's `S<n>.<m>` prefix, **falling back to the
@@ -79,6 +79,25 @@ Env: local · `medusa-bonsai`, on a real feature branch mid-epic
    → The fallback resolves it.
 8. Time the command.
    → Fast enough to be called once per turn from a cache.
+
+### Smoke results — run 2026-09-19
+1. ✅ On a real medusa branch mid-epic (`feat/reporthub-as-notion`, with current `main` merged in):
+   ```
+   Currently building
+     Epic     ReportHub as the Notion replacement    09-platform-infra · risk HIGH
+     Story    S1.3 — Report scripts emit short links
+              As Daniel reading Telegram, I want standup/weekly/PMO messages to carry real short URLs, so that links stop being HTML labels hiding URL-hash monsters.
+     Progress Story 3 of 7 · Sprint 1 of 3
+     Status   Shipped
+   ```
+   Before that branch had `main` merged in, it answered honestly instead: `… README.md predates the frontmatter contract — run scripts/roadmap-backfill.mjs`.
+2. ✅ Every field agrees with `sprint-1.md`'s frontmatter. Status `Shipped` is the sprint's **written** phase; nothing was invented.
+3. ✅ Committing the next story advances `Story X of Y` by one (`build-state.test.mjs`, real fixture repos).
+4. ✅ An open PR advances the status to `In review`. This was proven with gh injected in `build-state.test.mjs`. Live, the `gh` path was only observed with **no** PR open (`evidence.gh: ok`, `pr: null` on this epic's S3 branch before its PR existed), so the live open-PR case is a stated gap, not a claim.
+5. ✅ On `main` it prints `No epic in flight — on main — not an epic branch …`.
+6. ✅ No story convention and no journal entry → `Story unknown`, **not a wrong story**. After the fresh review on #27, the same holds on a stacked `-sN` branch that carries the previous sprint's commits, and for an old journal entry about another epic.
+7. ✅ A journal entry naming the story (and this epic, or written after the fork) resolves it (`story_source: journal`).
+8. ✅ **0.06–0.08s** offline (the mod's path), about 0.5s with the one `gh` call. That is cheap enough to run once per turn from a cache.
 
 If any step fails, note the step number + what you saw — that's the bug report.
 
