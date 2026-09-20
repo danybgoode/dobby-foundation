@@ -5,13 +5,18 @@
 // `node --test` can reach it. The mod itself is then: read the key, ask this module whether to refresh,
 // run `scripts/build-state.mjs`, hand the text to `$.ui.status`. No markdown parsing, no logic of its own.
 
-/** The cache key: the branch and HEAD this view was derived from. `git rev-parse HEAD --abbrev-ref HEAD`. */
-export function cacheKeyFrom(stdout) {
-  const [sha = '', branch = ''] = String(stdout || '')
+/**
+ * What `git rev-parse HEAD --abbrev-ref HEAD --show-toplevel` says: the cache key (branch@sha) and the
+ * repository ROOT. The root matters — a session started in a subdirectory would otherwise run
+ * `scripts/build-state.mjs` relative to that subdirectory and never find it.
+ */
+export function repoFactsFrom(stdout, exitCode = 0) {
+  if (exitCode !== 0) return { key: null, root: null };
+  const [sha = '', branch = '', root = ''] = String(stdout || '')
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  return sha && branch ? `${branch}@${sha}` : null;
+  return { key: sha && branch ? `${branch}@${sha}` : null, root: root || null };
 }
 
 // A Roadmap/ write changes no git ref, so a key alone would serve a stale view until the next commit.
@@ -20,10 +25,20 @@ export function cacheKeyFrom(stdout) {
 // shows up within 15s; a branch change or a commit shows up immediately.
 export const MAX_AGE_MS = 15_000;
 
-/** Refresh when there is no usable cache, the branch/HEAD moved, or the view has gone stale. */
+/**
+ * Refresh when there is no usable entry, the branch/HEAD moved, or the view aged out.
+ *
+ * A FAILED resolve is a usable entry: `text: null` is cached like any other answer, so a project that
+ * has the plugin but not `scripts/build-state.mjs` re-tries once every MAX_AGE_MS instead of spawning a
+ * doomed `node` on every single turn (the fresh reviewer's finding on #32). `key: null` — no git, or a
+ * `git rev-parse` that failed — is the one case with nothing to key on, and it refreshes every turn by
+ * design: there is no way to know that anything is still true.
+ */
 export function shouldRefresh(cached, key, now = Date.now()) {
   if (!key) return true;
-  if (!cached || cached.key !== key || typeof cached.text !== 'string') return true;
+  if (!cached || cached.key !== key) return true;
+  const resolved = typeof cached.text === 'string' || cached.text === null;
+  if (!resolved || !('text' in cached)) return true;
   return !(Number.isFinite(cached.at) && now - cached.at < MAX_AGE_MS);
 }
 

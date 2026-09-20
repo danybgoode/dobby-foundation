@@ -59,7 +59,9 @@ runs the resolver on `turn.start`, caches the view in `$.store` against branch +
 - **It needs `scripts/build-state.mjs` in the project** — a project spawned from `template/` has it.
 - **Function hooks are pre-release**: the mod only runs with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
   Without it, `hooks/hooks.json` is inert and nothing else changes.
-- **The kill-switch is deleting `plugins/ways-of-work/hooks/hooks.json`** — no deploy, no code change.
+- **The kill-switch is deleting `plugins/ways-of-work/hooks/hooks.json`.** No runtime deploy — though for
+  consuming projects it is still a commit that has to reach this repo's `main`, which is how they get the
+  plugin at all.
   The plugin still validates, the mod disappears, and the contract, the checks and the resolver are
   untouched. (Emptying `modules` does *not* work: `hooks.json` must declare `hooks` or `modules`.)
 - `claude plugin validate plugins/ways-of-work` checks the registration offline, and runs in CI.
