@@ -38,6 +38,34 @@ list anywhere in this repo.
 Every skill here **runs** in a project spawned from `template/`. The scripts it wraps ship in
 `template/scripts/`, and CI proves it (see *the skill/script contract* below).
 
+## The build view — a Claude Mod
+
+While an agent builds, the CLI can show what it is working on at an executive level:
+
+```
+Currently building
+  Epic     Arranged-only delivery            04-shipping · risk HIGH
+  Story    S2.1 — Agent surface parity
+           As a buyer's agent, I want checkout options to reflect arranged-only listings, so that I'm never offered a carrier rail the seller can't fulfil.
+  Progress Story 4 of 7 · Sprint 2 of 2
+  Status   Building
+```
+
+Every line comes from `scripts/build-state.mjs`, which reads the epic docs' **frontmatter contract**, git,
+and (outside the hook) one `gh` call. `plugins/ways-of-work/hooks/` is a thin renderer on top of it: it
+runs the resolver on `turn.start`, caches the view in `$.store` against branch + HEAD, and prints it with
+`$.ui.status`. It never calls `gh`, and it never parses a doc itself.
+
+- **It needs `scripts/build-state.mjs` in the project** — a project spawned from `template/` has it.
+- **Function hooks are pre-release**: the mod only runs with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
+  Without it, `hooks/hooks.json` is inert and nothing else changes.
+- **The kill-switch is deleting `plugins/ways-of-work/hooks/hooks.json`.** No runtime deploy — though for
+  consuming projects it is still a commit that has to reach this repo's `main`, which is how they get the
+  plugin at all.
+  The plugin still validates, the mod disappears, and the contract, the checks and the resolver are
+  untouched. (Emptying `modules` does *not* work: `hooks.json` must declare `hooks` or `modules`.)
+- `claude plugin validate plugins/ways-of-work` checks the registration offline, and runs in CI.
+
 ## Consume the marketplace
 
 ```
