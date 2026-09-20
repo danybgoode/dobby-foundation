@@ -3,7 +3,7 @@ epic: build-visualization-claude-mods
 sprint: 1
 title: The frontmatter contract
 risk: low
-phase: Building
+phase: Shipped
 stories_total: 5
 stories:
   - id: S1.1
@@ -44,7 +44,7 @@ stories:
 ---
 # The build view — Sprint 1: The frontmatter contract
 
-**Status:** 🏗 In progress
+**Status:** ✅ Shipped — merged to `main` in [#25](https://github.com/danybgoode/dobby-foundation/pull/25) (`1ecd016`)
 
 **Epic:** [The build view](README.md) · **Risk: LOW**
 
@@ -121,5 +121,13 @@ Env: local · `dobby-foundation`
    → It reads the new fields and the board renders. No parser changes were needed.
 6. Run the groom generator tests.
    → Green. The throwaway epic renders and substitutes.
+
+### Smoke results — run 2026-09-19 (local, `dobby-foundation`)
+1. ✅ The scaffolded README carries all nine fields. The CI scaffolder smoke and `scaffold-epic.test.mjs` assert each one.
+2. ✅ Every generated `sprint-N.md` has frontmatter (`epic sprint title risk phase stories_total stories`).
+3. ✅ The per-story block is parser-owned (`stories:` in the frontmatter) and round-trips (`roadmap-contract.test.mjs`). The prose `### Story N.M —` block is still there.
+4. ✅ `phase: Locking architecture` is accepted and `phase: Nonsense` is rejected (the ladder test). **Deviation (D6):** the ladder lives in `phase:`, not `status:`.
+5. ✅ `build-order.mjs` over a corpus holding the throwaway epic renders `… · 0/2 stories`, with no parser change.
+6. ✅ Generator tests green (`ℹ pass 35 ℹ fail 0` at merge).
 
 If any step fails, note the step number + what you saw — that's the bug report.
