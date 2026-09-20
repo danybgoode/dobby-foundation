@@ -62,6 +62,25 @@ jobs:
             plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs \
             plugins/ways-of-work/skills/groom/scaffold-epic.test.mjs
 
+      # ── The build view mod (build-visualization-claude-mods S4) ─────────────────────────────
+      # Its pure half: the cache decision and the status text. The hook file itself is four calls on `$`
+      # and is covered by `claude plugin validate` below, which reads the module statically.
+      - name: build view mod — the pure half
+        run: node --test plugins/ways-of-work/hooks/build-view.test.mjs
+
+      # `claude plugin validate` needs NO API key, and it is the only thing that checks the hook module
+      # against the real function-hooks contract: a malformed hooks.json, an unknown event name, or a `$`
+      # used any way other than `$.noun.event(...)` all fail it. Written the way this repo's doctrine
+      # says to treat a network install (see the gf step below): an install that cannot happen SKIPS
+      # loudly rather than redding the run, because a broken npm is not a broken plugin.
+      - name: Claude plugin validate — the mod's hooks registration
+        run: |
+          if npm i -g @anthropic-ai/claude-code --no-audit --no-fund; then
+            CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin validate plugins/ways-of-work
+          else
+            echo "::warning::could not install @anthropic-ai/claude-code — plugin validate was SKIPPED, not passed."
+          fi
+
       # The Golden Frijoles onboarding text is ONE surface across four shipped files plus the
       # canonical module they all come from. Prose drifts silently; three copies of
       # `npx @golden-frijoles/cli init` agree right up until one of them is edited.
