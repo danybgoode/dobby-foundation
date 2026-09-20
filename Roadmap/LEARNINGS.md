@@ -261,6 +261,43 @@ accumulate below them, same one-liner + why + date shape.
   defaults. The fix is not a paragraph — it is the verification command, in the story template, as its
   own step.
 
+## Deriving state from docs (build-visualization-claude-mods, 2026-09-19)
+*If a tool answers "what is being built right now" — a status line, a board, a report.*
+
+- **A resolver that names the work in flight attracts exactly one class of bug: the plausible wrong
+  answer.** Every one of the nine review findings on `build-state.mjs` was one — a stacked `-s4` branch
+  inheriting the previous sprint's commits, a shared session journal holding another epic's entries,
+  `feat/aws-s3` parsed as sprint 3 of `aws`, a stale `origin/main` putting main's commits inside
+  `base..HEAD`. **Scope every input explicitly (this epic, this sprint) and return `unknown`**; an
+  unknown is a correct answer, a confident wrong one destroys the tool's only asset. *(2026-09-19)*
+- **Mutation-check the TEST, not only the code.** A fix for the stale-base bug passed its brand-new test
+  while still being wrong — both merge-bases shared a commit timestamp, so the date comparison never
+  fired. Flipping the code and watching the test *fail* is what exposed it; ancestry replaced the clock.
+  A test that passes for the wrong reason is worse than no test. *(2026-09-19)*
+- **Make the machine-readable field a NEW key rather than overloading a live one.** The executive ladder
+  went into `phase:`, not `status:`: the epic `status:` is the board's SSOT and an unknown value hard-
+  fails the extractor, and on a sprint file a frontmatter `status:` would have been captured by the
+  extractor's own `^Status:` regex — silently re-deriving every sprint on the board. *(2026-09-19)*
+- **A mechanical migration must not be gated on unrelated pre-existing findings.** A doc checker that
+  blocks on *every* finding in a touched file turns "add frontmatter to 539 legacy docs" into "sweep 251
+  unrelated findings, or bypass the hook". Gate on what the commit **introduces** (compare against
+  `HEAD`), which is the same "green on today's known state, red on anything new" rule those checkers are
+  always written with. *(2026-09-19)*
+- **Backfill and rail-sync belong in ONE PR per consumer.** Landing the checker first makes every later
+  doc commit fail its pre-commit hook until the backfill arrives. *(2026-09-19)*
+
+## Probing an undocumented, pre-release API (build-visualization-claude-mods, 2026-09-19)
+
+- **The loop is: a validator for the shape, a real session plus the debug log for the runtime.**
+  `claude plugin validate` gives the manifest schema and lists a module's hooks and `$` calls, but it
+  accepts calls that do not exist; only a live run (`claude -p --plugin-dir <dir> --debug`, then
+  `~/.claude/debug/latest`) tells you the truth. Four probe rounds taught: `{"modules": ["./index.ts"]}`,
+  `register(on)`, hooks are `($, e, next)` and must call **`next(e)`**, `$` may only ever appear as
+  `$.noun.event(...)` at a call site, and a module may import only its own relative files. *(2026-09-19)*
+- **Pin the CLI version in the check that validates against it.** The first unpinned CI install failed on
+  a schema the probed version does not have (`hooks: Invalid input: expected record`). Same discipline as
+  the cross-review families' pinned CLIs — bump deliberately, after re-probing. *(2026-09-19)*
+
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
   state (the plan file, sprint docs, team memory) makes re-entry cheap by design — compact at each

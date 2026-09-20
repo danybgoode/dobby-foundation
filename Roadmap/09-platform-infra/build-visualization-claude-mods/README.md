@@ -1,12 +1,12 @@
 ---
-status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: build-visualization-claude-mods
 build_order: 6
 title: "The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod"
 area: 09-platform-infra
 risk: low
 type: feature
-phase: Building
+phase: Shipped
 sprints_total: 4
 stories_total: 13
 ---
@@ -195,17 +195,20 @@ are the uphill work, and they stay on the strongest model. There is no fan-out: 
 Branches stack: `feat/build-visualization-claude-mods` → `-s2` → `-s3` → `-s4`, cut from the previous
 epic's final branch.
 
-## Definition of Done (epic)
-- [ ] All sprints merged to `main` + smoke-tested (gaps stated)
-- [ ] Each `sprint-N.md` has its smoke walkthrough
-- [ ] This README marked ✅; every sprint status ticked with commit refs
-- [ ] `RETROSPECTIVE.md` written
-- [ ] Product poster (`Roadmap/README.md`) updated
-- [ ] Team memory + `MEMORY.md` index updated
-- [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
-- [ ] **Kill-switch: carve-out (risk: low).** The mod's own gate is its `hooks.json` registration —
-      removing the entry disables it with no deploy. Everything else is docs and checks; git is the rollback.
-- [ ] **Uninstalling the mod changes nothing about how the docs work.** The contract stands alone.
-- [ ] **The mod never shows a status the docs don't.** One source of truth, or it becomes a dashboard
+## Definition of Done (epic) — ✅ closed 2026-09-19
+- [x] All sprints merged to `main` + smoke-tested (gaps stated)
+- [x] Each `sprint-N.md` has its smoke walkthrough
+- [x] This README marked ✅; every sprint status ticked with commit refs
+- [x] `RETROSPECTIVE.md` written
+- [x] Product poster (`Roadmap/README.md`) updated
+- [x] Team memory + `MEMORY.md` index updated
+- [x] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
+- [x] **Kill-switch: carve-out (risk: low).** The mod's own gate is its `hooks.json` registration.
+      **Corrected while shipping S4:** *deleting* `plugins/ways-of-work/hooks/hooks.json` is the switch —
+      emptying `modules` fails validation, because the file must declare `hooks` or `modules`. Verified:
+      with the file gone the plugin still validates, the mod produces no hook at all, and `doc-format`,
+      `build-order` and `build-state` are untouched. Everything else is docs and checks; git is the rollback.
+- [x] **Uninstalling the mod changes nothing about how the docs work.** The contract stands alone.
+- [x] **The mod never shows a status the docs don't.** One source of truth, or it becomes a dashboard
       people stop trusting.
-- [ ] Feature branches deleted; **this README's frontmatter `status: shipped`** (run `node scripts/build-order.mjs`)
+- [x] Feature branches deleted; **this README's frontmatter `status: shipped`** (run `node scripts/build-order.mjs`)
