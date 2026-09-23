@@ -79,7 +79,10 @@ test('askJev: no key is could-not-look and makes no call', async () => {
 test('askJev: 429 then 200 retries with backoff and succeeds', async () => {
   const { fetch, calls } = seq(status(429), ok());
   const waits = [];
-  const r = await askJev({ state: 's', questions: Q }, { fetch, key: 'k', sleep: async (ms) => waits.push(ms) });
+  const r = await askJev(
+    { state: 's', questions: Q },
+    { fetch, key: 'k', sleep: async (ms) => waits.push(ms) }
+  );
   assert.equal(r.ok, true);
   assert.equal(calls.length, 2);
   assert.equal(waits.length, 1);
@@ -89,7 +92,10 @@ for (const s of [429, 529]) {
   test(`askJev: ${s} retries at most twice, then could-not-look`, async () => {
     const { fetch, calls } = seq(status(s));
     const waits = [];
-    const r = await askJev({ state: 's', questions: Q }, { fetch, key: 'k', sleep: async (ms) => waits.push(ms) });
+    const r = await askJev(
+      { state: 's', questions: Q },
+      { fetch, key: 'k', sleep: async (ms) => waits.push(ms) }
+    );
     assert.equal(r.state, 'could-not-look');
     assert.match(r.error, new RegExp(`HTTP ${s}`));
     assert.equal(calls.length, 3, 'one call + two retries');
@@ -100,7 +106,9 @@ for (const s of [429, 529]) {
 test('askJev: a timeout is could-not-look', async () => {
   const fetch = (url, init) =>
     new Promise((_, reject) =>
-      init.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))
+      init.signal.addEventListener('abort', () =>
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+      )
     );
   const r = await askJev({ state: 's', questions: Q }, { fetch, key: 'k', timeoutMs: 5 });
   assert.equal(r.state, 'could-not-look');
@@ -122,7 +130,10 @@ test('askJev: a state over the 32k budget is could-not-look and never sent', asy
 
 test('askJev: an unparseable body or a missing answer is could-not-look', async () => {
   const bad = { ...ok(), json: async () => JSON.parse('{nope') };
-  assert.match((await askJev({ state: 's', questions: Q }, { fetch: seq(bad).fetch, key: 'k' })).error, /unparseable/);
+  assert.match(
+    (await askJev({ state: 's', questions: Q }, { fetch: seq(bad).fetch, key: 'k' })).error,
+    /unparseable/
+  );
   const partial = ok({});
   assert.match(
     (await askJev({ state: 's', questions: Q }, { fetch: seq(partial).fetch, key: 'k' })).error,
@@ -148,7 +159,10 @@ for (const [name, json, expect] of [
   ['egress not boolean', { egress: 'yes' }, /egress/],
 ]) {
   test(`parseJevConfig: ${name} throws — a malformed config is never silently off`, () => {
-    assert.throws(() => parseJevConfig(json), (e) => e instanceof JevConfigError && expect.test(e.message));
+    assert.throws(
+      () => parseJevConfig(json),
+      (e) => e instanceof JevConfigError && expect.test(e.message)
+    );
   });
 }
 
@@ -181,14 +195,32 @@ test('logDecision: one JSONL line with the contract fields, text truncated at 4k
   const long = 'y'.repeat(5000);
   assert.equal(
     logDecision(
-      { rail: 'review', mode: 'shadow', decider: 'regex', regex: true, jev: false, confidence: 0.1, text: long, sha: 'abc' },
+      {
+        rail: 'review',
+        mode: 'shadow',
+        decider: 'regex',
+        regex: true,
+        jev: false,
+        confidence: 0.1,
+        text: long,
+        sha: 'abc',
+      },
       { root: dir, now: () => 'T' }
     ),
     true
   );
   const line = JSON.parse(readFileSync(join(dir, '.jev', 'decisions.jsonl'), 'utf8').trim());
   assert.deepEqual(Object.keys(line), [
-    'rail', 'mode', 'decider', 'regex', 'jev', 'confidence', 'textHash', 'text', 'sha', 'ts',
+    'rail',
+    'mode',
+    'decider',
+    'regex',
+    'jev',
+    'confidence',
+    'textHash',
+    'text',
+    'sha',
+    'ts',
   ]);
   assert.equal(line.textHash, textHash(long));
   assert.ok(line.text.length < 4100 && line.text.endsWith('[truncated]'));
@@ -198,14 +230,85 @@ test('logDecision: a write failure warns and returns false — it never throws',
   const warned = [];
   const r = logDecision(
     { rail: 'prose', mode: 'jev', decider: 'jev', text: 't' },
-    { append: () => { throw new Error('EROFS'); }, mkdir: () => {}, warn: (m) => warned.push(m) }
+    {
+      append: () => {
+        throw new Error('EROFS');
+      },
+      mkdir: () => {},
+      warn: (m) => warned.push(m),
+    }
   );
   assert.equal(r, false);
   assert.match(warned[0], /EROFS.*decision stands/);
 });
 
 test('jevContext: resolves the effective mode once, from injected config and key', () => {
-  const ctx = jevContext('prose', { config: parseJevConfig({ rails: { prose: { mode: 'jev' } } }), key: null });
+  const ctx = jevContext('prose', {
+    config: parseJevConfig({ rails: { prose: { mode: 'jev' } } }),
+    key: null,
+  });
   assert.equal(ctx.mode, 'off');
   assert.equal(ctx.configured, 'jev');
+});
+
+// ── Fresh-review findings on PR #34 ─────────────────────────────────────────────────────────────────
+test('askJev never throws: undefined, circular or BigInt state, and a fetch that resolves nothing', async () => {
+  const circular = {};
+  circular.self = circular;
+  for (const [state, fetch] of [
+    [undefined, seq(ok()).fetch],
+    [circular, seq(ok()).fetch],
+    [{ n: 1n }, seq(ok()).fetch],
+    ['s', async () => undefined],
+  ]) {
+    const r = await askJev({ state, questions: Q }, { fetch, key: 'k' });
+    assert.equal(r.state, 'could-not-look', `state=${String(state)}`);
+  }
+  assert.equal((await askJev(undefined, { key: 'k' })).state, 'could-not-look');
+});
+
+test('askJev: the timeout covers a body that stalls after the headers arrive', async () => {
+  const fetch = async (url, init) => ({
+    status: 200,
+    headers: { get: () => null },
+    text: async () => '',
+    json: () =>
+      new Promise((_, reject) =>
+        init.signal.addEventListener('abort', () =>
+          reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+        )
+      ),
+  });
+  const t0 = Date.now();
+  const r = await askJev({ state: 's', questions: Q }, { fetch, key: 'k', timeoutMs: 20 });
+  assert.match(r.error, /timeout after 20ms/);
+  assert.ok(Date.now() - t0 < 1000);
+});
+
+for (const [name, json, expect] of [
+  ['a typo that would keep egress on', { egres: false }, /unknown key\(s\) in the top level: egres/],
+  ['a rail that is a string', { rails: { review: 'jev' } }, /rails.review must be an object/],
+  ['a mis-cased mode key', { rails: { review: { Mode: 'jev' } } }, /unknown key\(s\) in rails.review: Mode/],
+  ['rails as an array', { rails: [] }, /rails must be an object/],
+  ['an unknown threshold', { rails: { prose: { thresholds: { claims: 0.4 } } } }, /thresholds: claims/],
+]) {
+  test(`parseJevConfig: ${name} is refused, never silently defaulted`, () => {
+    assert.throws(
+      () => parseJevConfig(json),
+      (e) => e instanceof JevConfigError && expect.test(e.message)
+    );
+  });
+}
+
+test('parseJevConfig: $-prefixed keys are comments and allowed', () => {
+  assert.equal(
+    parseJevConfig({ $comment: 'x', rails: { review: { $why: 'y', mode: 'off' } } }).rails.review.mode,
+    'off'
+  );
+});
+
+test('jevContext never hands the API key to a caller that might log it', () => {
+  const ctx = jevContext('review', { config: parseJevConfig({}), key: 'secret' });
+  assert.ok(!JSON.stringify(ctx).includes('secret'));
+  assert.equal(ctx.hasKey, true);
 });

@@ -55,14 +55,27 @@ const isUnit = (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n
  * Unknown rails are refused (a misspelt rail would otherwise be a switch wired to nothing).
  */
 export function parseJevConfig(json) {
-  if (!json || typeof json !== 'object' || Array.isArray(json))
-    throw new JevConfigError('jev.config.json: not an object');
+  const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  // Unknown keys are REFUSED, not ignored: `{ "egres": false }` meant to stop data leaving, and ignoring it
+  // would keep egress on — a typo must fail loud, never silently mean something (fresh review, PR #34).
+  const refuseUnknown = (obj, allowed, where) => {
+    const extra = Object.keys(obj).filter((k) => !allowed.includes(k) && !k.startsWith('$'));
+    if (extra.length)
+      throw new JevConfigError(`jev.config.json: unknown key(s) in ${where}: ${extra.join(', ')}`);
+  };
+  if (!isObj(json)) throw new JevConfigError('jev.config.json: not an object');
+  refuseUnknown(json, ['model', 'egress', 'rails'], 'the top level');
   const model = json.model ?? DEFAULT_MODEL;
-  if (typeof model !== 'string' || !model) throw new JevConfigError('jev.config.json: model must be a string');
+  if (typeof model !== 'string' || !model)
+    throw new JevConfigError('jev.config.json: model must be a string');
   if (/latest|preview/.test(model))
-    throw new JevConfigError(`jev.config.json: model "${model}" is an alias — pin a version such as ${DEFAULT_MODEL}`);
+    throw new JevConfigError(
+      `jev.config.json: model "${model}" is an alias — pin a version such as ${DEFAULT_MODEL}`
+    );
   const egress = json.egress ?? true;
   if (typeof egress !== 'boolean') throw new JevConfigError('jev.config.json: egress must be true or false');
+  if (json.rails !== undefined && !isObj(json.rails))
+    throw new JevConfigError('jev.config.json: rails must be an object');
   const rails = {};
   for (const name of Object.keys(json.rails ?? {}))
     if (!RAILS.includes(name))
@@ -70,9 +83,14 @@ export function parseJevConfig(json) {
   for (const name of RAILS) {
     const d = DEFAULT_CONFIG.rails[name];
     const r = json.rails?.[name] ?? {};
+    if (!isObj(r)) throw new JevConfigError(`jev.config.json: rails.${name} must be an object`);
+    refuseUnknown(r, ['mode', 'thresholds', 'shadowExpires'], `rails.${name}`);
     const mode = r.mode ?? d.mode;
     if (!MODES.includes(mode))
       throw new JevConfigError(`jev.config.json: rails.${name}.mode must be one of ${MODES.join(' | ')}`);
+    if (r.thresholds !== undefined && !isObj(r.thresholds))
+      throw new JevConfigError(`jev.config.json: rails.${name}.thresholds must be an object`);
+    refuseUnknown(r.thresholds ?? {}, Object.keys(d.thresholds), `rails.${name}.thresholds`);
     const thresholds = { ...d.thresholds, ...(r.thresholds ?? {}) };
     for (const [k, v] of Object.entries(thresholds))
       if (!isUnit(v)) throw new JevConfigError(`jev.config.json: rails.${name}.thresholds.${k} must be 0…1`);
@@ -155,7 +173,18 @@ export const stateSize = (state) => (typeof state === 'string' ? state : JSON.st
  * Ask Jev. Returns `{ ok:true, answers, usage, model }` or `{ ok:false, state:'could-not-look', error }`.
  * Never throws. deps: { fetch, key, model, timeoutMs, sleep }.
  */
-export async function askJev({ state, questions }, deps = {}) {
+export async function askJev(req, deps = {}) {
+  // The whole body is guarded: a circular or undefined `state`, a BigInt, a fetch that resolves to nothing —
+  // any of them used to throw out of here and take the review down with it instead of falling back to the
+  // regex (fresh review, PR #34). "Never throws" is the contract every caller relies on.
+  try {
+    return await askJevUnguarded(req ?? {}, deps);
+  } catch (e) {
+    return could(`internal: ${e?.message || e}`);
+  }
+}
+
+async function askJevUnguarded({ state, questions }, deps) {
   const {
     fetch: doFetch = globalThis.fetch,
     key = readApiKey(),
@@ -167,50 +196,70 @@ export async function askJev({ state, questions }, deps = {}) {
   if (typeof doFetch !== 'function') return could('no fetch in this runtime');
   const ids = Object.keys(questions ?? {});
   if (!ids.length) return could('no questions');
+  if (state === undefined || state === null) return could('no state');
   if (stateSize(state) > STATE_CHAR_BUDGET) return could(`state too large (${stateSize(state)} chars)`);
 
   const body = JSON.stringify({ state, model, questions });
   for (let attempt = 0; ; attempt++) {
+    // ONE deadline per attempt, covering the body read too: clearing it once headers arrived let a stalled
+    // body hang until the runtime's own ~300 s body timeout (fresh review, PR #34).
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    let res;
+    let outcome;
     try {
-      res = await doFetch(JEV_ENDPOINT, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-        body,
-        signal: ctrl.signal,
-      });
+      outcome = await attemptOnce({ doFetch, body, key, signal: ctrl.signal, ids, model });
     } catch (e) {
+      outcome = {
+        done: could(ctrl.signal.aborted ? `timeout after ${timeoutMs}ms` : `network: ${e?.message || e}`),
+      };
+    } finally {
       clearTimeout(timer);
-      return could(e?.name === 'AbortError' ? `timeout after ${timeoutMs}ms` : `network: ${e?.message || e}`);
     }
-    clearTimeout(timer);
-    if (RETRY_STATUSES.has(res.status) && attempt < MAX_RETRIES) {
-      const after = Number(res.headers?.get?.('retry-after'));
-      await sleep(Number.isFinite(after) && after > 0 ? Math.min(after * 1000, 4000) : 250 * 2 ** attempt);
+    if (outcome.retry && attempt < MAX_RETRIES) {
+      await sleep(outcome.retryAfterMs ?? 250 * 2 ** attempt);
       continue;
     }
-    if (res.status !== 200) {
-      let detail = '';
-      try {
-        detail = (await res.text()).slice(0, 160);
-      } catch {
-        /* no body */
-      }
-      return could(`HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
-    }
-    let json;
-    try {
-      json = await res.json();
-    } catch {
-      return could('unparseable response body');
-    }
-    const answers = json?.answers;
-    const missing = ids.filter((id) => !answers || typeof answers[id] !== 'object' || answers[id] === null);
-    if (missing.length) return could(`response missing answers: ${missing.slice(0, 3).join(', ')}`);
-    return { ok: true, answers, usage: json.usage ?? null, model: json.model ?? model };
+    return outcome.done ?? could(`HTTP ${outcome.status}`);
   }
+}
+
+/** One HTTP attempt, body included. Returns { done } or { retry, status, retryAfterMs }. May throw (caller maps). */
+async function attemptOnce({ doFetch, body, key, signal, ids, model }) {
+  const res = await doFetch(JEV_ENDPOINT, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body,
+    signal,
+  });
+  if (!res || typeof res.status !== 'number') return { done: could('no response') };
+  if (RETRY_STATUSES.has(res.status)) {
+    const after = Number(res.headers?.get?.('retry-after'));
+    return {
+      retry: true,
+      status: res.status,
+      retryAfterMs: Number.isFinite(after) && after > 0 ? Math.min(after * 1000, 4000) : undefined,
+    };
+  }
+  if (res.status !== 200) {
+    let detail = '';
+    try {
+      detail = String(await res.text()).slice(0, 160);
+    } catch {
+      /* no body */
+    }
+    return { done: could(`HTTP ${res.status}${detail ? `: ${detail}` : ''}`) };
+  }
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    if (signal.aborted) throw e;
+    return { done: could('unparseable response body') };
+  }
+  const answers = json?.answers;
+  const missing = ids.filter((id) => !answers || typeof answers[id] !== 'object' || answers[id] === null);
+  if (missing.length) return { done: could(`response missing answers: ${missing.slice(0, 3).join(', ')}`) };
+  return { done: { ok: true, answers, usage: json.usage ?? null, model: json.model ?? model } };
 }
 
 /** A stable, short content hash — the log's join key without having to compare whole texts. */
@@ -272,7 +321,7 @@ export function jevContext(rail, deps = {}) {
   return {
     root,
     config,
-    key,
+    hasKey: Boolean(key),
     ...eff,
     rail: config.rails[rail],
     ask: deps.ask ?? ((req) => askJev(req, { key, model: config.model, fetch: deps.fetch })),
