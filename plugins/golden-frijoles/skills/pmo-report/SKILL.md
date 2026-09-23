@@ -37,6 +37,7 @@ requires_scripts:
   - pmo/templates/monthly-stakeholder-packet.md
   - pmo/templates/metrics-sheet.md
   - roadmap-extract.mjs
+  - lib/project-root.mjs
 ---
 
 # pmo-report - weekly PMO delivery

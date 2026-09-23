@@ -14,8 +14,6 @@
 // CLI plumbing is shared with cross-review.mjs via scripts/lib/cross-agent-cli.mjs. Zero npm deps — Node 18+.
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import {
   AGENTS,
   AGENT_BIN,
@@ -29,9 +27,9 @@ import {
   runVibe,
   runClaudeCode,
 } from './lib/cross-agent-cli.mjs';
+import { projectAsset } from './lib/project-root.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROMPT_PATH = join(__dirname, 'cross-panel.prompt.md');
+const PROMPT_PATH = projectAsset('cross-panel.prompt.md'); // a TEMPLATE FILL-IN the project owns
 
 function helpText(lenses) {
   return `cross-panel.mjs — advisory cross-agent second opinion on a proposed plan (a scope/seed doc).

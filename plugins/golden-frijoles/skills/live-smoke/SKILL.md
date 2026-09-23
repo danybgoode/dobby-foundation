@@ -16,6 +16,7 @@ description: >
 # (scripts/check-skill-scripts.mjs) walks the import graph and fails if this list understates it.
 requires_scripts:
   - live-smoke.mjs
+  - lib/project-root.mjs
 ---
 
 # live-smoke — the scripted default for verifying rendered behavior

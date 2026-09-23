@@ -28,6 +28,7 @@ requires_scripts:
   - prose/cpo-persona.md
   - prose-lessons.md
   - prose/weekly.task.md
+  - lib/project-root.mjs
 ---
 
 # weekly-recap — the weekly executive recap

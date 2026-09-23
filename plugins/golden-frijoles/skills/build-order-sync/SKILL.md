@@ -19,6 +19,7 @@ requires_scripts:
   - roadmap-extract.mjs
   - lib/cross-agent-cli.mjs
   - lib/gh-rest.mjs
+  - lib/project-root.mjs
 ---
 
 # build-order-sync — keep the generated board honest

@@ -19,6 +19,7 @@ requires_scripts:
   - doc-format.mjs
   - doc-format.enforced.json
   - lib/roadmap-contract.mjs
+  - lib/project-root.mjs
 ---
 
 # Doc hygiene — rolling maintenance for the always-read set (Cowork or Claude Code)

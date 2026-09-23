@@ -65,6 +65,14 @@ leave nothing outside it changed:
 | hidden subprocess → `process.execPath` + `join(kitRoot(), …)`, `cwd: projectRoot()` | `build-order-sync.mjs:68,73` · `pmo-report.mjs:66` · `standup.mjs:176,184` |
 | project-owned asset → `projectAsset()` | `cross-panel.mjs:34` (`cross-panel.prompt.md`) · `lib/prose-writer.mjs:74,76` + `prose-draft.mjs:117` + `lib/prose-brief.mjs:136` (`cpo-persona.md`, `prose-lessons.md`) · `doc-format.mjs:46` (`doc-format.enforced.json`) |
 
+- **Addendum (the architect, during S2.1):** the "kit asset / sibling script" row lists some sites in **top-level**
+  scripts (`build-order.mjs:22`, `doc-format.mjs:45`, `doc-hygiene.mjs:75`, `prose-draft.mjs:118`, the two `scriptsDir`
+  args). A top-level script's `__dirname` **is** `kitRoot()` in both modes by construction, since it sits at the root of
+  the set. So those lines were already correct and were left untouched: the shared rails' byte churn stays smaller, and
+  nothing changes behaviour. Every site that was actually wrong was converted: the project roots, the `lib/` files that
+  climbed to `<project>/scripts/`, the five hidden spawns (now `process.execPath` + a sibling path), and the four
+  project-owned assets. Four test fixtures and CI's scaffolder smoke hand-copy these files into temp projects, and each
+  now copies `lib/project-root.mjs` too.
 - Every converted file adds `lib/project-root.mjs` to its skills' `requires_scripts`. `check-skill-scripts` forces
   that.
 - **Copied mode must behave identically.** Every existing `template/scripts` test stays green without edits to its

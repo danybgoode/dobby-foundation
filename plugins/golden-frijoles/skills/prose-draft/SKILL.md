@@ -23,6 +23,7 @@ requires_scripts:
   - lib/reporting-config.mjs
   - prose/cpo-persona.md
   - prose/internal.task.md
+  - lib/project-root.mjs
 ---
 
 # prose-draft — delegated first drafts for file-derived close-out prose

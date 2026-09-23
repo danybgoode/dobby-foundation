@@ -18,6 +18,7 @@ requires_scripts:
   - roadmap-extract.mjs
   - preflight.mjs
   - lib/golden-onboarding.mjs
+  - lib/project-root.mjs
 ---
 
 # Groom — the planning front door (Cowork)

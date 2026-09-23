@@ -42,10 +42,10 @@
 
 import { readFileSync, readdirSync, existsSync, statSync, writeSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { join } from 'node:path';
+import { projectRoot } from './lib/project-root.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO = resolve(__dirname, '..');
+const REPO = projectRoot(); // D2
 const ROADMAP = join(REPO, 'Roadmap');
 const SEEDS = join(ROADMAP, '00-ideas', 'seeds');
 

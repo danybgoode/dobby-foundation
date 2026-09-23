@@ -37,6 +37,7 @@ requires_scripts:
   - lib/roadmap-status-buckets.mjs
   - roadmap-extract.mjs
   - vercel-prune-previews.mjs
+  - lib/project-root.mjs
 ---
 
 # standup-post — the daily standup post
