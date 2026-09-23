@@ -23,6 +23,7 @@ requires_scripts:
   - lib/cross-agent-cli.mjs
   - lib/prose-brief.mjs
   - lib/prose-guard.mjs
+  - lib/jev.mjs
   - lib/prose-writer.mjs
   - prose/cpo-persona.md
   - prose-lessons.md
