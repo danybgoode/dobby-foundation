@@ -82,7 +82,7 @@ export function markerRows(comments) {
       .map((c) => ({ c, m: parseJevMarker(c.body) }))
       // A marker from a run where Jev WAS configured but could not look (noul null, mode shadow|jev) is a
       // could-not-look decision, not a missing one (codex, #192). `off` markers are no decision at all.
-      .filter(({ m }) => m && m.mode !== 'off')
+      .filter(({ m }) => m && (m.mode === 'shadow' || m.mode === 'jev'))
       .filter(({ m }) => typeof m.regexOk === 'boolean' || m.mode !== 'jev')
       .map(({ c, m }) => ({
         rail: 'review',

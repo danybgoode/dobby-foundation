@@ -136,3 +136,7 @@ test('monitoring after the flip (codex, #192): could-not-look markers count, off
   ]);
   assert.equal(kept[0].confidence, 0.9, 'the newer decision wins regardless of input order');
 });
+
+test('a marker with no known mode is not evidence (codex, #40)', () => {
+  assert.equal(markerRows([{ url: 'a', body: 'x\n<!-- jev:{"noul":null} -->' }]).length, 0);
+});
