@@ -27,6 +27,12 @@ jobs:
         with:
           node-version: '20'
 
+      # The print modes below skip every consistency check, so run the full check first: plugin.json,
+      # the newest CHANGELOG heading (and kit/package.json once it exists) agree, and the version is not
+      # below a release that already exists. A direct push to main must not cut an inconsistent release.
+      - name: Release is consistent (plugin.json = CHANGELOG, not below the newest tag)
+        run: node scripts/check-release.mjs --against-tags
+
       - name: Read the version plugin.json ships
         id: version
         run: echo "version=$(node scripts/check-release.mjs --print-version)" >> "$GITHUB_OUTPUT"
