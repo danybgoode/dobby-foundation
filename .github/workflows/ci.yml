@@ -35,6 +35,14 @@ jobs:
       - name: Plugin leak guard
         run: node scripts/check-plugin-leaks.mjs
 
+      # D4: a version bump IS the release. Only meaningful on a PR (it diffs against the base branch),
+      # and needs the real merge base, not the shallow single commit `pull_request` checks out by
+      # default — `fetch-depth: 0` above already gives us that. On push (a merge to main, or the
+      # schedule) there is no base to diff against, so this step only runs for `pull_request`.
+      - name: Release version bump (PRs only)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-release.mjs --base "origin/${{ github.base_ref }}"
+
       # Every skill declares the repo-local scripts it wraps (`requires_scripts:` in its SKILL.md
       # frontmatter); this asserts template/scripts/ actually supplies them. Before it existed the
       # contract lived only in prose, and EIGHT of ten skills shipped with no script anywhere — not
@@ -124,7 +132,8 @@ jobs:
             scripts/check-skill-scripts.test.mjs \
             scripts/render-skill-adverts.test.mjs \
             scripts/pack-skills.test.mjs \
-            scripts/check-plugin-leaks.test.mjs
+            scripts/check-plugin-leaks.test.mjs \
+            scripts/check-release.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
