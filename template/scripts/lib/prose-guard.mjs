@@ -5,6 +5,14 @@
 // not decoration: nearly every rule records a *measured* failure of a real draft, and the reason a
 // rule exists is the only thing that stops someone deleting it as noise.
 //
+// ── Since jev-semantic-guards (2026-09-23): the four SEMANTIC families are decided by Jev ──────────
+// Fix claim, invented beneficiary, liveness claim and invented commitment are judged by `judgeProse` (bottom of
+// this file) whenever jev.config.json → rails.prose.mode is `jev`. The regex families below are now the
+// OFFLINE FALLBACK — they decide, unchanged, when Jev cannot look or the rail is off, and `checkProse` still
+// supplies the mechanical rules (length, banned words, tool names, unfinished) every time. Measured on 158
+// labelled drafts: the judge 88.0%, these regexes alone 72.2%, every family at or above them (sprint-5.md).
+// The incident comments on each family stay: they are the fallback's reasoning, and the eval fixtures.
+//
 // ── Why this exists ───────────────────────────────────────────────────────────────────────────
 // Prompt instructions reduce hallucination; they do not eliminate it. Measured on golden-beans'
 // commit-report rail (2026-07-25), a cheap model given a dense engineering commit produced material

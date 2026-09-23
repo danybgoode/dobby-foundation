@@ -3,6 +3,12 @@
 // Byte-identical in dobby-foundation's template and every consuming project (ways-of-work-lean-pass
 // D11). Project-specific values live in `scripts/review-config.json`, never in this file.
 //
+// ── Since jev-semantic-guards (2026-09-23): Jev DECIDES "is this a real review?"; the regex below is the
+// OFFLINE FALLBACK ── `judgeReviewOutput` (section 4) is what cross-review calls. `assertReviewOutput` still
+// decides, byte-unchanged, whenever Jev cannot look (no key, egress:false, 429, timeout) or is unsure, and
+// always when jev.config.json → rails.review.mode is `off`. Measured on 76 labelled replies: the judge 100%,
+// this regex alone 86.8% — it rejected real prose findings and accepted plan transcripts (sprint-5.md).
+//
 // ── 1. A silent reviewer is a FAILED run (D9) ──────────────────────────────────────────────────────
 // With two external passes, a CLI that exited 0 and printed nothing was contradicted by the other one.
 // With one, nothing contradicts it: an empty or structureless reply reads exactly like "looks clean".
