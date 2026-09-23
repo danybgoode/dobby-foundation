@@ -197,8 +197,9 @@ jobs:
       - name: optional Notion sync runs from where a project would copy it
         run: |
           work="$(mktemp -d)"
-          mkdir -p "$work/scripts" "$work/Roadmap"
+          mkdir -p "$work/scripts/lib" "$work/Roadmap"
           cp template/scripts/roadmap-extract.mjs template/optional/notion/roadmap-to-notion.mjs "$work/scripts/"
+          cp template/scripts/lib/project-root.mjs "$work/scripts/lib/" # the extractor resolves the project through it
           test "$(PR_ACTION=opened PR_DRAFT=true node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "In progress"
           test "$(PR_ACTION=closed PR_DRAFT=false node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "clear"
           ( cd "$work" && node scripts/roadmap-to-notion.mjs --pr some-epic --dry --status "In review" > /dev/null )
