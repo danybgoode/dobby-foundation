@@ -125,7 +125,8 @@ measured 2026-09-23). Resolve it rather than hardcoding one. A wrong path is how
 
 ```bash
 GROOM=""
-for c in "${CLAUDE_PLUGIN_ROOT:-}/skills/groom" ./.agents/skills/groom "$HOME/.agents/skills/groom" \
+for c in "${CLAUDE_PLUGIN_ROOT:-}/skills/groom" "$HOME"/.claude/plugins/cache/golden-frijoles/golden-frijoles/*/skills/groom \
+         ./.agents/skills/groom "$HOME/.agents/skills/groom" \
          "$HOME/.claude/skills/groom" "$HOME/mnt/.claude/skills/groom" ./skills/groom; do
   [ -f "$c/scaffold-epic.mjs" ] && { GROOM="$c"; break; }
 done

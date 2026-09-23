@@ -39,7 +39,7 @@ Run each of these and read its exit/output; don't infer from what the repo "look
 | Is `Roadmap/` present? | `test -d Roadmap` (or an equivalent file check) |
 | Is `gf` linked to a Golden Frijoles project? | run `preflight.mjs` through the run rule above: `node scripts/preflight.mjs` if the project has it, else `npx -y @golden-frijoles/kit@<version> preflight` |
 | Is the kit reachable at all? | `npx -y @golden-frijoles/kit@<version> --version` |
-| Which channel is this? | `${CLAUDE_PLUGIN_ROOT}` set → the Claude Code plugin. Unset → either `npx skills` (no hooks, no agents directory) or a raw SKILL.md read (no execution at all — say so and stop before claiming to run anything) |
+| Which channel is this? | Where THIS skill was loaded from (its base directory, shown when the skill is invoked): under a Claude Code plugin cache (`…/.claude/plugins/cache/golden-frijoles/…`) or a `--plugin-dir` → the **Claude Code plugin**. Under `.agents/skills/` or `~/.claude/skills/` → **`npx skills`** (no hooks, no agents). Read from a URL → a raw read (no execution: say so and stop before claiming to run anything). Don't use `$CLAUDE_PLUGIN_ROOT`: it is **not** set in a skill's shell (measured 2026-09-23) |
 
 A command that can't run (offline npx, no network) is **could not look**, not "broken" — name the
 escape hatch (retry online, or copy the script into `scripts/`) and move on; never claim the project
@@ -47,7 +47,8 @@ is broken because a network probe failed.
 
 ## Stage 2 — No `Roadmap/`? Offer setup
 
-Wave 1's whole setup is: **`gf-kit init`** (adopts the repo — writes the `Roadmap/` skeleton, never
+Wave 1's whole setup is **`gf-kit init`**, run through the rule above (`npx -y @golden-frijoles/kit@<the version in
+the run rule> init`, or `node scripts/init.mjs` if the project has it). It adopts the repo — writes the `Roadmap/` skeleton, never
 overwrites anything, writes nothing outside `Roadmap/`), then offer `groom` to plan the first idea.
 There is no interview yet — that's wave 2, and it is not referenced here.
 

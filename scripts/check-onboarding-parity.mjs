@@ -220,13 +220,20 @@ function fingerprint(path) {
  */
 function installPromptExecChecks() {
   let failed = false;
+  // WHICH tree the prompt's commands run against. By default, THIS checkout: that is the tree the PR ships, so the
+  // gate can go green before merge (checking the live repo made a PR that adds the umbrella skill un-mergeable
+  // under a required check: it could only pass once it had already merged). `--live` runs them against the
+  // published repo, which is the post-merge verification recorded in the sprint walkthrough.
+  const live = process.argv.includes('--live');
+  const source = live ? 'golden-frijoles/skills' : repoRoot;
+  const label = live ? 'golden-frijoles/skills' : '<this checkout>';
 
   // ── 1. `npx skills add golden-frijoles/skills --list` lists `golden-frijoles` ─────────────────
   const npxProbe = spawnSync('npx', ['--version'], { encoding: 'utf8', timeout: 20_000 });
   if (npxProbe.error) {
     console.log('::warning::check-onboarding-parity --exec: `npx skills --list` SKIPPED — no `npx` resolvable.');
   } else {
-    const list = spawnSync('npx', ['-y', 'skills@1.7.0', 'add', 'golden-frijoles/skills', '--list'], {
+    const list = spawnSync('npx', ['-y', 'skills@1.7.0', 'add', source, '--list'], {
       encoding: 'utf8',
       timeout: 90_000,
     });
@@ -236,20 +243,22 @@ function installPromptExecChecks() {
     // with zero skills actually listed under the name. Presence of the repo name is not presence of
     // the skill (LEARNINGS: presence is not execution) — only a SEPARATE "golden-frijoles" token,
     // the skill's own list entry, counts.
-    const withoutRepoArg = output.replace(/golden-frijoles\/skills/g, '');
+    const withoutRepoArg = output.split(source).join('').replace(/golden-frijoles\/skills/g, '');
     if (list.error || (list.status !== 0 && looksLikeNetworkTrouble(output))) {
       console.log(
         `::warning::check-onboarding-parity --exec: \`npx skills --list\` SKIPPED — could not look: ` +
           `${(list.error?.message ?? output).slice(0, 200)}`
       );
-    } else if (!/\bgolden-frijoles\b/.test(withoutRepoArg)) {
+    } else if (!/^[│|\s]*golden-frijoles\s*$/m.test(withoutRepoArg)) {
+      // A whole list ENTRY, not a token: `\b` treats a hyphen as a boundary, so `golden-frijoles-renamed`, a path
+      // or a description passed the looser test (caught by mutation in review, the builder's own class of bug).
       console.error(
-        '  ❌ npx skills add golden-frijoles/skills --list  →  "golden-frijoles" is not in the listed skills:\n' +
+        `  ❌ npx skills add ${label} --list  →  "golden-frijoles" is not in the listed skills:\n` +
           `     ${output.trim().split('\n').slice(0, 8).join('\n     ')}`
       );
       failed = true;
     } else {
-      console.log('  ✅ npx skills add golden-frijoles/skills --list  →  golden-frijoles listed');
+      console.log(`  ✅ npx skills add ${label} --list  →  golden-frijoles listed`);
     }
   }
 
@@ -268,7 +277,7 @@ function installPromptExecChecks() {
   const isolatedHome = mkdtempSync(join(tmpdir(), 'gf-parity-claude-plugin-'));
   const isolatedEnv = { ...process.env, HOME: isolatedHome, XDG_CONFIG_HOME: isolatedHome, CLAUDE_CONFIG_DIR: isolatedHome };
 
-  const addMarketplace = spawnSync(CLAUDE_BIN, ['plugin', 'marketplace', 'add', 'golden-frijoles/skills'], {
+  const addMarketplace = spawnSync(CLAUDE_BIN, ['plugin', 'marketplace', 'add', source], {
     encoding: 'utf8',
     timeout: 90_000,
     env: isolatedEnv,
@@ -306,10 +315,13 @@ function installPromptExecChecks() {
   }
 
   const isolatedInstalledPlugins = join(isolatedHome, 'plugins', 'installed_plugins.json');
-  const listsIt = existsSync(isolatedInstalledPlugins) && readFileSync(isolatedInstalledPlugins, 'utf8').includes('golden-frijoles');
+  // The exact plugin id, not a substring: a checkout path or a marketplace URL can contain "golden-frijoles" too.
+  const listsIt =
+    existsSync(isolatedInstalledPlugins) &&
+    readFileSync(isolatedInstalledPlugins, 'utf8').includes('"golden-frijoles@golden-frijoles"');
   if (!listsIt) {
     console.error(
-      '  ❌ claude plugin marketplace add golden-frijoles/skills && claude plugin install golden-frijoles@golden-frijoles\n' +
+      `  ❌ claude plugin marketplace add ${label} && claude plugin install golden-frijoles@golden-frijoles\n` +
         `     → golden-frijoles is not listed in the isolated config afterwards.\n` +
         `     marketplace add: ${addOutput.trim().slice(0, 300)}\n` +
         `     install:         ${installOutput.trim().slice(0, 300)}`
