@@ -32,7 +32,7 @@ Plan → branch + scaffold docs → build story → verify → QA/smoke → PR �
    the product owner sees scope as it grows, and keep them current (✅ ticks, commit refs).
 3. **Build one story at a time.** Reuse before rebuild. Commit per story, **path-limited**.
 4. **Verify + QA.** The deterministic gate — typecheck, lint, build, the suite — is green **before**
-   merge, run by the building agent, not only by CI. **Deploy rail.** This repo has no runtime deploy: merging to `main` publishes the `ways-of-work` plugin
+   merge, run by the building agent, not only by CI. **Deploy rail.** This repo has no runtime deploy: merging to `main` publishes the `golden-frijoles` plugin
 (every consuming project pulls it on its next session) and the spawn template (copied once by new
 projects). So "done means shipped" here is **merged to `main` with CI green**, plus — when a change is
 meant to reach consuming projects' own copies (the byte-identical shared scripts, the vendored
@@ -95,7 +95,7 @@ Four rules: **an exhausted bet returns to shaping**, never extends in flight; **
 boundaries** into `Roadmap/bets/<wave>.md`, three lines each, recording what they displaced; and **uphill
 work stays on the strongest model**. Not every ask earns the betting table — `groom` sorts shaped bets
 from fixed scope (appetite S, straight to a builder) and reactive/ops work. Why it works this way:
-[`references/shapeup/`](https://github.com/danybgoode/dobby-foundation/blob/main/template/references/shapeup/README.md).
+[`references/shapeup/`](https://github.com/golden-frijoles/skills/blob/main/template/references/shapeup/README.md).
 
 ## Review & merge
 
@@ -126,7 +126,7 @@ full reply, exits non-zero and fails the PR's `cross-review/<lens>` status. Both
 (`scripts/cross-review.prompt.md`): one pass, a `file:line` citation or the finding is not posted, at most
 3 nits, skip what CI enforces, Blocking/Should-fix only on a re-review. `/security-review` is available
 locally as a pre-push self-check, never a gate. Why this shape:
-[`references/review-stack.md`](https://github.com/danybgoode/dobby-foundation/blob/main/template/references/review-stack.md).
+[`references/review-stack.md`](https://github.com/golden-frijoles/skills/blob/main/template/references/review-stack.md).
 
 **Every finding is fixed or answered on the PR; neither pass authorizes anything.** **HIGH** = money
 (payments, checkout, fulfillment), auth and authorization boundaries, tenancy, DB migrations, shared infra;

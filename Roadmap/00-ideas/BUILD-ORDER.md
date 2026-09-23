@@ -10,13 +10,13 @@
 > funnel), then run `node scripts/build-order.mjs`. This board and the Notion "Marketplace Roadmap"
 > DB are both *derived views* — never hand-edit the board.
 
-## 🏗️ Building now (0)
-
-_None._
-
-## 📋 Ready to build (scaffolded, not started) (1)
+## 🏗️ Building now (1)
 
 - [One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo](../../09-platform-infra/golden-frijoles-plugin/README.md) — 09 Platform-infra · 0/23 stories · risk: High
+
+## 📋 Ready to build (scaffolded, not started) (0)
+
+_None._
 
 ## ✅ Shipped (5)
 

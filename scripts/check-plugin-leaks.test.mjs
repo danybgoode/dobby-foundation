@@ -64,6 +64,46 @@ test('a flag KEY is fine; a file or table that holds defaults is not', () => {
   assert.equal(scan(file('DEFAULT_FLAGS'), { allow: [] }).violations.length, 1);
 });
 
+// ── the retired plugin identity rule (golden-frijoles-plugin S1.3, D6) ───────────────────────────
+// The rename touches IDENTIFIERS ONLY: the marketplace/plugin name and repo, never the process name
+// or a past epic's slug. So this rule has to fire on the five old-identity spellings and stay silent
+// on `ways-of-work-lean-pass` (an epic slug) and `render-ways-of-working` (the generator script).
+
+test('the retired plugin identity rule fires on each spelling of the old marketplace/plugin identity', () => {
+  for (const leak of [
+    'enabledPlugins: { "ways-of-work@dobby-foundation": true }',
+    'source: ./plugins/ways-of-work',
+    'the `ways-of-work` plugin advertises ten skills',
+    'listed in the dobby-foundation marketplace',
+    '/plugin marketplace add danybgoode/dobby-foundation',
+    // Fresh review of #44: three spellings the first pattern missed.
+    '"dobby-foundation": { "source": { "source": "github" } }',
+    '"golden-frijoles@dobby-foundation": true',
+    'invoke ways-of-work:groom to plan it',
+  ]) {
+    const result = scan(file(leak, 'plugins/golden-frijoles/skills/groom/SKILL.md'), { allow: [] });
+    assert.ok(names(result).includes('retired plugin identity'), `expected a leak for: ${leak}`);
+  }
+});
+
+test('the retired plugin identity rule does NOT fire on the process name or the generator script', () => {
+  const legitimate = [
+    'How the product owner and Claude (builder) ship product together.',
+    'moved here verbatim (ways-of-work-lean-pass S3.2)',
+    'node scripts/render-ways-of-working.mjs --check',
+    '`epic-dod` and `render-ways-of-working` are copied, not forked',
+    'the golden-frijoles marketplace',
+    'the `golden-frijoles` plugin',
+    'plugins/golden-frijoles/skills/groom',
+    // Provenance D6 keeps: past PRs and the epic that extracted this repo.
+    'found by codex on dobby-foundation#17',
+    '(`Roadmap/09-platform-infra/dobby-foundation/`), so a second project',
+    'golden-frijoles@golden-frijoles',
+  ];
+  const result = scan(file(legitimate.join('\n')), { allow: [] });
+  assert.deepEqual(names(result), [], JSON.stringify(result.violations));
+});
+
 // ── the pre-existing rules still fire ─────────────────────────────────────────────────────────
 
 test('the origin-project and personal-name rules still fire', () => {

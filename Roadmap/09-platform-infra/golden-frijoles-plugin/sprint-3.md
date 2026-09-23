@@ -48,6 +48,90 @@ stories:
 
 One name to start from, a way to adopt any repo, and the install prompt, from one module and checked by running it, on the landing's closing CTA, `/install` and signed-in onboarding. It ends with the two stranger walkthroughs.
 
+## Build contract (locked by the architect before the builder started)
+
+Cites the epic README's D2, D3, D4, D6, D8 and deviations X9, X10. **Branch:** `feat/golden-frijoles-plugin-s3`, cut
+from `-s2`. One PR here (S3.1, S3.2, S3.4, and S3.5's written walkthrough) plus one golden-beans PR (S3.3). The S3
+merge bumps to `0.3.0` (X5).
+
+**The install prompt: its text lives once.** The string is the audit's §3.1 prompt, verbatim. golden-beans
+`apps/web/lib/install-prompt.ts` is the **source** (`export const INSTALL_PROMPT`). It's a constant: it names only
+`github.com` / `raw.githubusercontent.com` URLs and no site URL, so AGENTS rule #5 (`getSiteUrl()`) doesn't apply. Say
+so in its header. This repo **transcribes** it into `template/scripts/lib/golden-onboarding.mjs` as
+`INSTALL_PROMPT`, naming the source file, the same way that module already transcribes `cli-install.ts`. The
+transcription is never edited by hand without the source changing first.
+
+**S3.1: The umbrella skill.**
+- `plugins/golden-frijoles/skills/golden-frijoles/SKILL.md`, ≤ 150 lines, with a `summary:` for the adverts.
+  `requires_scripts: [init.mjs, lib/project-root.mjs]` (its closure).
+- **Detect** (each detection is a command, never a guess):
+  - Is `Roadmap/` present?
+  - Is `gf` linked? Use `node scripts/preflight.mjs` through the D3 rule.
+  - Is the kit reachable? Use `npx -y @golden-frijoles/kit@<v> --version`.
+  - Which channel is this? `${CLAUDE_PLUGIN_ROOT}` set means the Claude Code plugin; otherwise it's `npx skills`
+    or a raw read.
+- **Route by job:** plan → `groom`; build → `live-smoke` (+ the review rails, with their project-local caveat);
+  operate → `standup-post` / `weekly-recap` / `pmo-report` / `babysit-pr` / `doc-hygiene` / `vercel-prune`;
+  ship → `gf`.
+- **State what the `npx skills` channel lacks:** no build-view hook, no `pr-reviewer` agent.
+- **Setup in wave 1** = `gf-kit init` (S3.2), then offer `groom`. Wave 2's interview isn't referenced.
+- It carries `INSTALL_PROMPT` verbatim in a fenced block, which makes it a parity surface.
+
+**S3.2: `gf-kit init` = `template/scripts/init.mjs`.**
+- It exports `SKELETON`: `Roadmap/README.md`, `Roadmap/WAYS-OF-WORKING.md`, `Roadmap/LEARNINGS.md`,
+  `Roadmap/00-ideas/README.md`, `Roadmap/00-ideas/seeds/.gitkeep`, `Roadmap/00-ideas/audits/.gitkeep`.
+- Where the skeleton comes from: `kitRoot()/skeleton/` when installed, `kitRoot()/../` in copied mode (that's
+  `template/`). `build-kit.mjs` copies `template/<each SKELETON path>` into `kit/dist/skeleton/`, reading the list
+  from `init.mjs`'s export. That's one list.
+- It writes into `projectRoot()` and **never overwrites** an existing file: it prints `skipped <path> (exists)`. It's
+  idempotent, and it writes nothing outside `Roadmap/`. Its exit is 0 whether it wrote anything or not.
+- `init.test.mjs` covers a fresh temp repo, one that's partially present, and one that's fully present, plus a byte
+  check that it never wrote over a pre-existing file. Watch it fail once by mutation.
+- The tarball spec from S2.1 gains `gf-kit init` in an empty temp repo.
+
+**S3.3: golden-beans (X9).**
+- `INSTALL_PROMPT` goes through `CopyPromptCard` in three places:
+  - `MakerClosingCta` (it replaces that card's current prompt; the **hero keeps** `handoffPrompt`);
+  - `/install` (`app/install/page.tsx`);
+  - `/app/onboarding/[projectSlug]`.
+- **First, measure** `public-install`'s structural signature before and after
+  (`node apps/web/design-system/state-contract.mjs --check` + `console-visual`). If the signature changes, stop at
+  that point. The `console-prototype.html` edit + `APPROVED.md` line are a design approval **owed to Daniel in one
+  focused question**. Never edit the prototype and leave the hash alone.
+- An api spec asserts each of the three routes serves the exact string. The onboarding one is authed: use the
+  existing authed fixture pattern, and if none can reach it, say so and mark it owed.
+- A browser smoke on `/` and `/install`. The signed-in onboarding smoke is owed to Daniel.
+- The gate is golden-beans' own.
+
+**S3.4: Parity that runs (D8, X10).** Carried in from S1 review (#44): the repo `README.md` is the
+stranger's front door on `golden-frijoles/skills`, and S1 retitled it without rewriting it. The intro and the *Consume the
+marketplace* section are rewritten here for a stranger, around `INSTALL_PROMPT`. The `## Origin` provenance stays.
+`check-onboarding-parity.mjs`:
+- `INSTALL_PROMPT` must appear verbatim in the repo `README.md`, the umbrella SKILL.md, and the golden-onboarding
+  transcription. Fixtures fire on a one-word drift.
+- `--exec` adds three probes:
+  - `npx -y skills@1.7.0 add golden-frijoles/skills --list` must list `golden-frijoles`.
+  - `claude plugin marketplace add golden-frijoles/skills` then `claude plugin install golden-frijoles@golden-frijoles`
+    run with `HOME`, `XDG_CONFIG_HOME` and `CLAUDE_CONFIG_DIR` at an empty temp dir. Assert the temp config now lists
+    `golden-frijoles`.
+  - **The negative control:** the sha256 of the real `~/.claude/plugins/installed_plugins.json` is unchanged
+    (absent-before = absent-after).
+- A missing `claude` or `npx`, or no network, skips with a `::warning::`. It never fails for that.
+- CI: the existing `--exec` step installs the pinned `@anthropic-ai/claude-code@2.1.278` first. `--exec` runs against
+  the **live repo**, so it goes green only after the S1 transfer and the S3 merge. The PR states that, and the check
+  is re-run post-merge and pasted.
+
+**S3.5: Walkthroughs.**
+- Rewrite this sprint's smoke walkthrough with real, runnable steps for (a) Claude Code and (b) Codex through
+  `npx skills`.
+- Pass = a seed in `Roadmap/00-ideas/seeds/` **and** no `scripts/` dir. In (b) the umbrella skill says what's
+  missing.
+- The builder dry-runs (a) itself in a scrubbed `HOME` with a temp repo, as far as a headless session allows, and
+  reports exactly where it stopped. The runs on a clean machine are owed to Daniel.
+
+**Stop and escalate** on any trigger in WAYS-OF-WORKING → *Escalate, don't guess*, and on any design-approval change
+(X9).
+
 ## Stories
 
 ### Story 3.1 — The golden-frijoles umbrella skill
@@ -70,7 +154,7 @@ One name to start from, a way to adopt any repo, and the install prompt, from on
 
 ### Story 3.4 — The prompt is checked by running it
 **As** Daniel, **I want** every surface's install prompt to agree and to execute, **so that** no surface advertises a command that doesn't exist.
-**Acceptance:** `check-onboarding-parity.mjs` asserts the identical string in the plugin README, the umbrella SKILL.md and a transcription of golden-beans' module (with the source file named, as `golden-onboarding.mjs` does). `--exec`: runs `npx skills add golden-frijoles/skills --list` and asserts `golden-frijoles` is listed; runs `claude plugin marketplace add golden-frijoles/skills` + `claude plugin install golden-frijoles@golden-frijoles` in a **scrubbed `HOME` / `XDG_CONFIG_HOME` / `CLAUDE_CONFIG_DIR`**, asserting the isolation with a negative control (D8). It skips loudly when a binary is missing and never fails for that.
+**Acceptance:** `check-onboarding-parity.mjs` asserts the identical string in the repo `README.md` (*lock X10: there's no plugin README*), the umbrella SKILL.md and a transcription of golden-beans' module (with the source file named, as `golden-onboarding.mjs` does). `--exec`: runs `npx skills add golden-frijoles/skills --list` and asserts `golden-frijoles` is listed; runs `claude plugin marketplace add golden-frijoles/skills` + `claude plugin install golden-frijoles@golden-frijoles` in a **scrubbed `HOME` / `XDG_CONFIG_HOME` / `CLAUDE_CONFIG_DIR`**, asserting the isolation with a negative control (D8). It skips loudly when a binary is missing and never fails for that.
 **QA:** parity fixtures that fire on a one-word drift; the exec mode in CI
 **Risk:** low
 

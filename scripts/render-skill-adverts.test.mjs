@@ -16,8 +16,8 @@ import {
 } from './render-skill-adverts.mjs';
 
 const skill = (name, summary) => `---\nname: ${name}\nsummary: "${summary}"\ndescription: >\n  long\n---\n\n# ${name}\n`;
-const MARKETPLACE = JSON.stringify({ name: 'm', plugins: [{ name: 'ways-of-work', source: './x', description: 'hand-kept' }] }, null, 2);
-const PLUGIN = JSON.stringify({ name: 'ways-of-work', description: 'hand-kept' }, null, 2);
+const MARKETPLACE = JSON.stringify({ name: 'm', plugins: [{ name: 'golden-frijoles', source: './x', description: 'hand-kept' }] }, null, 2);
+const PLUGIN = JSON.stringify({ name: 'golden-frijoles', description: 'hand-kept' }, null, 2);
 const README = `# r\n\n<!-- skills:start -->\nold list\n${END}\n\ntail\n`;
 
 function skillsDir(entries) {
@@ -73,19 +73,19 @@ test('the committed adverts are current — the same assertion CI makes with --c
   const root = new URL('..', import.meta.url).pathname;
   const files = {
     marketplace: join(root, '.claude-plugin', 'marketplace.json'),
-    plugin: join(root, 'plugins', 'ways-of-work', '.claude-plugin', 'plugin.json'),
+    plugin: join(root, 'plugins', 'golden-frijoles', '.claude-plugin', 'plugin.json'),
     readme: join(root, 'README.md'),
   };
   const out = renderAll({
-    skills: loadSkills(join(root, 'plugins', 'ways-of-work', 'skills')),
+    skills: loadSkills(join(root, 'plugins', 'golden-frijoles', 'skills')),
     marketplaceText: readFileSync(files.marketplace, 'utf8'),
     pluginText: readFileSync(files.plugin, 'utf8'),
     readmeText: readFileSync(files.readme, 'utf8'),
   });
   for (const [path, text] of Object.entries(out)) assert.equal(text, readFileSync(path, 'utf8'), `${path} is stale`);
   // …and it lists exactly the skill directories that exist.
-  const dirs = readdirSync(join(root, 'plugins', 'ways-of-work', 'skills'))
-    .filter((d) => existsSync(join(root, 'plugins', 'ways-of-work', 'skills', d, 'SKILL.md')));
+  const dirs = readdirSync(join(root, 'plugins', 'golden-frijoles', 'skills'))
+    .filter((d) => existsSync(join(root, 'plugins', 'golden-frijoles', 'skills', d, 'SKILL.md')));
   const plugin = JSON.parse(readFileSync(files.plugin, 'utf8'));
   for (const d of dirs) assert.match(plugin.description, new RegExp(`\\b${d}\\b`));
 });

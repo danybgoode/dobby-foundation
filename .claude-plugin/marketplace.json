@@ -1,14 +1,14 @@
 {
-  "name": "dobby-foundation",
+  "name": "golden-frijoles",
   "owner": {
     "name": "Daniel"
   },
-  "description": "Portable ways-of-work for ~/dobby/ sibling projects — 10 living skills (babysit-pr, build-order-sync, doc-hygiene, groom, live-smoke, pmo-report, prose-draft, standup-post, vercel-prune, weekly-recap) distributed from one versioned place.",
+  "description": "Golden Frijoles: the planning, build and operate skills (10): babysit-pr, build-order-sync, doc-hygiene, groom, live-smoke, pmo-report, prose-draft, standup-post, vercel-prune, weekly-recap — distributed from one versioned place.",
   "plugins": [
     {
-      "name": "ways-of-work",
-      "source": "./plugins/ways-of-work",
-      "description": "The scrum cadence + planning/ops skills: babysit-pr, build-order-sync, doc-hygiene, groom, live-smoke, pmo-report, prose-draft, standup-post, vercel-prune, weekly-recap."
+      "name": "golden-frijoles",
+      "source": "./plugins/golden-frijoles",
+      "description": "Golden Frijoles: the planning, build and operate skills (10): babysit-pr, build-order-sync, doc-hygiene, groom, live-smoke, pmo-report, prose-draft, standup-post, vercel-prune, weekly-recap."
     }
   ]
 }

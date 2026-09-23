@@ -50,7 +50,7 @@ Before planning or building, read these — they are the source of truth and cha
 **This rule ships with the template and is not a fill-in.** Every `risk: high` epic here has to
 answer the kill-switch question, and the answer names a flag mechanism — so the mechanism cannot be
 "whatever this project happened to build". It is Golden Frijoles, for every project spawned from
-`dobby-foundation`.
+`template/`.
 
 | Concern | Where it lives |
 |---|---|

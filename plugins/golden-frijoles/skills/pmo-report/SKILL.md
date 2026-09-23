@@ -41,9 +41,9 @@ requires_scripts:
 
 # pmo-report - weekly PMO delivery
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/pmo-report.mjs` and the
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/pmo-report.mjs` and the
 > closure listed in `requires_scripts:` above. Those files ship in the *consuming project's* `scripts/`
-> dir, not inside this plugin — a project spawned from the `dobby-foundation`
+> dir, not inside this plugin — a project spawned from this repo's
 > template gets them via `template/scripts/`. If a script or its config is missing, say so and stop
 > rather than reimplementing or guessing it.
 

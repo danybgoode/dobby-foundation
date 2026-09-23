@@ -108,7 +108,7 @@ const SURFACES = [
     ],
   },
   {
-    file: 'plugins/ways-of-work/skills/groom/references/kill-switch.md',
+    file: 'plugins/golden-frijoles/skills/groom/references/kill-switch.md',
     why: 'Stage 6b: the mechanism a kill-switch story is planned against',
     must: [
       `${CLI_BIN} flags create <domain>.<feature>_enabled --kill-switch --all-envs`,

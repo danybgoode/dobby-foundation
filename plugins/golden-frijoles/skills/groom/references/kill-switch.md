@@ -48,7 +48,7 @@ question and **write the answer in the scope seed** (the answer is mandatory; th
      compile-time defaults through the fallback chain. Every dashboard said the flags existed.*
   5. **Runtime placement.** The provider is **server-side**: its `flagReadKey` is a credential and must
      never reach a browser bundle. For a **middleware / Edge seam**, read
-     [`references/flags-runtime.md`](https://github.com/danybgoode/dobby-foundation/blob/main/template/references/flags-runtime.md)
+     [`references/flags-runtime.md`](https://github.com/golden-frijoles/skills/blob/main/template/references/flags-runtime.md)
      — it ships into every spawned project at `references/flags-runtime.md` — before planning it — the SDK runs there, but its
      background-snapshot design does not, and the answer changes the shape of the story.
 - **No →** write the **one-line carve-out reason** (e.g. *DB migration — can't sit behind a runtime flag;

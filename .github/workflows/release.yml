@@ -1,0 +1,68 @@
+name: Release
+
+# D5: a version bump merged to `main` publishes, and CI creates the tag — nobody pushes one by hand.
+# Consumers and strangers with no pinned `ref` track `main`, so the version on `main` is already live
+# the instant the merge lands; a tag pushed BEFORE a squash-merge can't point at the commit that ships.
+#
+# S1 has no kit yet, so this workflow only tags + releases the plugin. S2 adds a publish job
+# (`@golden-frijoles/kit` to npm, OIDC trusted publishing, provenance) that runs BEFORE the tag step —
+# the tag is the record that a release happened, and it must not exist until the thing it records does.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# Two pushes close together must not race `gh release create` for the same tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full tag history to know whether v<version> already exists
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The print modes below skip every consistency check, so run the full check first: plugin.json,
+      # the newest CHANGELOG heading (and kit/package.json once it exists) agree, and the version is not
+      # below a release that already exists. A direct push to main must not cut an inconsistent release.
+      - name: Release is consistent (plugin.json = CHANGELOG, not below the newest tag, bumped if shipped)
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # `before` is all zeros on a branch's first push; there is no base to compare then.
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/check-release.mjs --against-tags --base "$BEFORE"
+          else
+            node scripts/check-release.mjs --against-tags
+          fi
+
+      - name: Read the version plugin.json ships
+        id: version
+        run: echo "version=$(node scripts/check-release.mjs --print-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Tag + GitHub Release (only if v<version> doesn't exist yet)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="v${VERSION}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "release: ${tag} already exists — this push did not bump the version. Nothing to do."
+            exit 0
+          fi
+          node scripts/check-release.mjs --print-section > /tmp/release-notes.md
+          gh release create "${tag}" \
+            --title "${tag}" \
+            --notes-file /tmp/release-notes.md \
+            --target "${GITHUB_SHA}"
+          echo "release: created ${tag} at ${GITHUB_SHA}."

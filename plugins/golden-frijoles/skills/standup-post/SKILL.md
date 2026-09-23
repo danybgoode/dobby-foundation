@@ -41,10 +41,10 @@ requires_scripts:
 
 # standup-post — the daily standup post
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/standup.mjs` (plus
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/standup.mjs` (plus
 > `scripts/build-order.mjs --check` and `scripts/vercel-prune-previews.mjs` for its drift/preview
 > signals), which ship in the *consuming project's* `scripts/` dir, not inside this plugin — a
-> project spawned from the `dobby-foundation` template gets them via `template/scripts/`. If a
+> project spawned from `template/` gets them via `template/scripts/`. If a
 > script is missing, say so and stop rather than reimplementing its logic inline.
 
 > This skill never merges a PR, retries CI, or edits any repo's code. Its only writes are a chat

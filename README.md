@@ -1,9 +1,9 @@
-# dobby-foundation
+# Golden Frijoles skills
 
 Portable ways-of-work for the `~/dobby/` sibling-repo workspace (`medusa-bonsai`, `golden-beans`, and
 future isolated projects). Two layers, built in strict order:
 
-1. **A Claude Code plugin marketplace** (`.claude-plugin/marketplace.json` + `plugins/ways-of-work/`)
+1. **A Claude Code plugin marketplace** (`.claude-plugin/marketplace.json` + `plugins/golden-frijoles/`)
    — the *living* skills, listed below. Installed once per project, updated from this one place — a
    groom improvement lands here and reaches every consuming project, no fork drift.
 2. **A project template** (`template/`, story 1.3) — the *copy-once* skeleton a new project spawns
@@ -13,7 +13,7 @@ future isolated projects). Two layers, built in strict order:
 
 ## The skills
 
-The list is **generated** from `plugins/ways-of-work/skills/`. Each skill's one-line `summary:` lives in
+The list is **generated** from `plugins/golden-frijoles/skills/`. Each skill's one-line `summary:` lives in
 its own `SKILL.md`, and `node scripts/render-skill-adverts.mjs` rewrites this table and the descriptions in
 `marketplace.json` and `plugin.json`. CI fails if any of them is stale, so there is no hand-kept skill
 list anywhere in this repo.
@@ -52,25 +52,25 @@ Currently building
 ```
 
 Every line comes from `scripts/build-state.mjs`, which reads the epic docs' **frontmatter contract**, git,
-and (outside the hook) one `gh` call. `plugins/ways-of-work/hooks/` is a thin renderer on top of it: it
+and (outside the hook) one `gh` call. `plugins/golden-frijoles/hooks/` is a thin renderer on top of it: it
 runs the resolver on `turn.start`, caches the view in `$.store` against branch + HEAD, and prints it with
 `$.ui.status`. It never calls `gh`, and it never parses a doc itself.
 
 - **It needs `scripts/build-state.mjs` in the project** — a project spawned from `template/` has it.
 - **Function hooks are pre-release**: the mod only runs with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
   Without it, `hooks/hooks.json` is inert and nothing else changes.
-- **The kill-switch is deleting `plugins/ways-of-work/hooks/hooks.json`.** No runtime deploy — though for
+- **The kill-switch is deleting `plugins/golden-frijoles/hooks/hooks.json`.** No runtime deploy — though for
   consuming projects it is still a commit that has to reach this repo's `main`, which is how they get the
   plugin at all.
   The plugin still validates, the mod disappears, and the contract, the checks and the resolver are
   untouched. (Emptying `modules` does *not* work: `hooks.json` must declare `hooks` or `modules`.)
-- `claude plugin validate plugins/ways-of-work` checks the registration offline, and runs in CI.
+- `claude plugin validate plugins/golden-frijoles` checks the registration offline, and runs in CI.
 
 ## Consume the marketplace
 
 ```
-/plugin marketplace add danybgoode/dobby-foundation
-/plugin install ways-of-work@dobby-foundation
+/plugin marketplace add golden-frijoles/skills
+/plugin install golden-frijoles@golden-frijoles
 ```
 
 Or checked into a project's `.claude/settings.json` (team-shared, zero manual step per session):
@@ -78,9 +78,9 @@ Or checked into a project's `.claude/settings.json` (team-shared, zero manual st
 ```json
 {
   "extraKnownMarketplaces": {
-    "dobby-foundation": { "source": { "source": "github", "repo": "danybgoode/dobby-foundation" } }
+    "golden-frijoles": { "source": { "source": "github", "repo": "golden-frijoles/skills" } }
   },
-  "enabledPlugins": { "ways-of-work@dobby-foundation": true }
+  "enabledPlugins": { "golden-frijoles@golden-frijoles": true }
 }
 ```
 
@@ -181,7 +181,7 @@ node scripts/check-skill-scripts.mjs                        # audits template/ (
 node scripts/check-skill-scripts.mjs --repo-root <project>  # audits a consuming project
 ```
 
-Each skill in `plugins/ways-of-work/skills/` wraps a repo-local script (`scripts/<name>.mjs`) that
+Each skill in `plugins/golden-frijoles/skills/` wraps a repo-local script (`scripts/<name>.mjs`) that
 does **not** ship inside the plugin — plugins are copied to a cache dir on install, so a skill can't
 reach `../scripts/` outside its own directory. The script lives in the *consuming project's*
 `scripts/` dir instead (a project spawned from `template/` gets them via `template/scripts/`). If

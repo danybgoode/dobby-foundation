@@ -20,9 +20,9 @@ requires_scripts:
 
 # live-smoke — the scripted default for verifying rendered behavior
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/live-smoke.mjs` (repo
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/live-smoke.mjs` (repo
 > root `scripts/`, like every other skill), which drives the app's own Playwright `browser` project. A
-> project spawned from the `dobby-foundation` template gets the script, a runnable
+> project spawned from `template/` gets the script, a runnable
 > `apps/example-app` harness with the ad-hoc spec, and an auth-helper stub to fill in. **If the script,
 > its config, or the app's harness is missing, say so and stop rather than guessing an equivalent.**
 

@@ -12,7 +12,7 @@
 // It never throws into the turn: any failure logs (visible with `claude --debug`) and clears the view.
 import { repoFactsFrom, shouldRefresh, statusTextFrom } from './build-view.mjs';
 
-const STORE_KEY = 'ways-of-work/build-view';
+const STORE_KEY = 'golden-frijoles/build-view';
 const GIT_TIMEOUT_MS = 2_000;
 const RESOLVE_TIMEOUT_MS = 5_000;
 

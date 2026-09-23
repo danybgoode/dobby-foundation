@@ -96,7 +96,7 @@ test('an empty archive is still structurally valid', () => {
 
 test('collect prefixes entries with the skill name and uses forward slashes', () => {
   const names = collect(
-    new URL('../plugins/ways-of-work/skills/groom', import.meta.url).pathname,
+    new URL('../plugins/golden-frijoles/skills/groom', import.meta.url).pathname,
     'groom'
   ).map((e) => e.name);
   assert.ok(names.includes('groom/SKILL.md'), 'SKILL.md must sit at the skill-dir root');

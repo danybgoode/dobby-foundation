@@ -5,7 +5,7 @@
 // A consuming project enables this plugin in its `.claude/settings.json` (`extraKnownMarketplaces`
 // + `enabledPlugins`). That is CLAUDE CODE's mechanism, and it works: every Claude Code session in
 // that repo loads the plugin. **Cowork does not read it.** Cowork loads its own installed-plugin
-// set from the desktop app, so a project can have `ways-of-work` enabled for years and Cowork will
+// set from the desktop app, so a project can have `golden-frijoles` enabled for years and Cowork will
 // never see it.
 //
 // Which matters most for exactly one skill: `groom` is titled "the planning front door (Cowork)"
@@ -39,7 +39,7 @@ import { dirname, join, relative, sep } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
-const SKILLS_DIR = join(repoRoot, 'plugins', 'ways-of-work', 'skills');
+const SKILLS_DIR = join(repoRoot, 'plugins', 'golden-frijoles', 'skills');
 
 // ── CRC32 ──────────────────────────────────────────────────────────────────────────────────────
 const CRC_TABLE = (() => {

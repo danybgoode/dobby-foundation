@@ -35,6 +35,16 @@ jobs:
       - name: Plugin leak guard
         run: node scripts/check-plugin-leaks.mjs
 
+      # D4: a version bump IS the release. Only meaningful on a PR (it diffs against the base branch),
+      # and needs the real merge base, not the shallow single commit `pull_request` checks out by
+      # default — `fetch-depth: 0` above already gives us that. On push (a merge to main, or the
+      # schedule) there is no base to diff against, so this step only runs for `pull_request`.
+      - name: Release version bump (PRs only)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/check-release.mjs --base "origin/$BASE_REF"
+
       # Every skill declares the repo-local scripts it wraps (`requires_scripts:` in its SKILL.md
       # frontmatter); this asserts template/scripts/ actually supplies them. Before it existed the
       # contract lived only in prose, and EIGHT of ten skills shipped with no script anywhere — not
@@ -49,7 +59,7 @@ jobs:
       - name: Skill script contract
         run: node scripts/check-skill-scripts.mjs
 
-      # The advertised skill list is GENERATED from plugins/ways-of-work/skills/ into marketplace.json
+      # The advertised skill list is GENERATED from plugins/golden-frijoles/skills/ into marketplace.json
       # (twice), plugin.json and the README. It used to be hand-kept in all four and they disagreed.
       - name: Skill adverts are generated, not hand-kept
         run: node scripts/render-skill-adverts.mjs --check
@@ -61,15 +71,15 @@ jobs:
       - name: groom generator tests
         run: |
           node --test \
-            plugins/ways-of-work/skills/groom/emit-kickoff.test.mjs \
-            plugins/ways-of-work/skills/groom/emit-epic-kickoff.test.mjs \
-            plugins/ways-of-work/skills/groom/scaffold-epic.test.mjs
+            plugins/golden-frijoles/skills/groom/emit-kickoff.test.mjs \
+            plugins/golden-frijoles/skills/groom/emit-epic-kickoff.test.mjs \
+            plugins/golden-frijoles/skills/groom/scaffold-epic.test.mjs
 
       # ── The build view mod (build-visualization-claude-mods S4) ─────────────────────────────
       # Its pure half: the cache decision and the status text. The hook file itself is four calls on `$`
       # and is covered by `claude plugin validate` below, which reads the module statically.
       - name: build view mod — the pure half
-        run: node --test plugins/ways-of-work/hooks/build-view.test.mjs
+        run: node --test plugins/golden-frijoles/hooks/build-view.test.mjs
 
       # `claude plugin validate` needs NO API key, and it is the only thing that checks the hook module
       # against the real function-hooks contract: a malformed hooks.json, an unknown event name, or a `$`
@@ -83,7 +93,7 @@ jobs:
           # already bit this step once: the version CI installed required a `hooks` key that 2.1.278 does
           # not. Bump the pin deliberately, after re-running the probe sessions in the sprint doc.
           if npm i -g @anthropic-ai/claude-code@2.1.278 --no-audit --no-fund; then
-            CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin validate plugins/ways-of-work
+            CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 claude plugin validate plugins/golden-frijoles
           else
             echo "::warning::could not install @anthropic-ai/claude-code — plugin validate was SKIPPED, not passed."
           fi
@@ -124,7 +134,8 @@ jobs:
             scripts/check-skill-scripts.test.mjs \
             scripts/render-skill-adverts.test.mjs \
             scripts/pack-skills.test.mjs \
-            scripts/check-plugin-leaks.test.mjs
+            scripts/check-plugin-leaks.test.mjs \
+            scripts/check-release.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
@@ -199,7 +210,7 @@ jobs:
           cmp scripts/epic-dod.mjs template/scripts/epic-dod.mjs
           cmp Roadmap/WAYS-OF-WORKING.template.md template/Roadmap/WAYS-OF-WORKING.template.md
           node scripts/render-ways-of-working.mjs --check
-          test "$(wc -l < plugins/ways-of-work/skills/groom/SKILL.md)" -le 220 \
+          test "$(wc -l < plugins/golden-frijoles/skills/groom/SKILL.md)" -le 220 \
             || { echo "groom SKILL.md is over its 220-line budget — move reference material to references/" >&2; exit 1; }
 
       - name: foundation board generator is the template's, and the board is fresh
@@ -226,7 +237,7 @@ jobs:
       # broken placeholder here is invisible until someone scaffolds an epic, so render one and
       # assert nothing was left unsubstituted.
       #
-      # NOTE: this step previously asserted the output landed at `plugins/ways-of-work/Roadmap/...`
+      # NOTE: this step previously asserted the output landed at `plugins/golden-frijoles/Roadmap/...`
       # — i.e. it encoded the very bug it should have caught. The scaffolder resolved its target repo
       # relative to its own package, so installed as a marketplace plugin it wrote the epic into the
       # plugin CACHE and exited green. It now resolves the ACTIVE repo from --repo-root (default cwd),
@@ -235,7 +246,7 @@ jobs:
         run: |
           work="$(mktemp -d)"
           mkdir -p "$work/Roadmap"
-          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/scaffold-epic.mjs" \
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/golden-frijoles/skills/groom/scaffold-epic.mjs" \
               --slug ci-smoke --area 09 --macro 09-platform-infra \
               --title "CI smoke" --risk low --type chore --sprints "S1 one;S2 two" )
           out="$work/Roadmap/09-platform-infra/ci-smoke"
@@ -248,7 +259,7 @@ jobs:
             exit 1
           fi
           # Nothing may be written back into the plugin package — that regression is the whole point.
-          if [ -d plugins/ways-of-work/Roadmap ]; then
+          if [ -d plugins/golden-frijoles/Roadmap ]; then
             echo "scaffolder wrote into the plugin package instead of the active repo" >&2
             exit 1
           fi
@@ -256,9 +267,9 @@ jobs:
 
           # Both kickoff generators must render against that freshly-scaffolded epic. A generator
           # that dies on its own scaffolder's output is the failure this catches.
-          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/emit-epic-kickoff.mjs" \
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/golden-frijoles/skills/groom/emit-epic-kickoff.mjs" \
               --epic ci-smoke > epic-kickoff.txt )
-          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/ways-of-work/skills/groom/emit-kickoff.mjs" \
+          ( cd "$work" && node "$GITHUB_WORKSPACE/plugins/golden-frijoles/skills/groom/emit-kickoff.mjs" \
               --epic ci-smoke --sprint 1 > sprint-kickoff.txt )
           for f in "$work/epic-kickoff.txt" "$work/sprint-kickoff.txt"; do
             test -s "$f" || { echo "empty kickoff: $f" >&2; exit 1; }

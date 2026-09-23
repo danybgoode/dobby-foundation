@@ -28,9 +28,10 @@ const repoRoot = join(__dirname, '..');
 
 // Everything a consuming project actually receives: the plugin, the spawn template, the marketplace
 // manifest, and the front-door README. `scripts/` is excluded — it is this repo's own tooling, not
-// shipped, and this file lives there.
+// shipped, and this file lives there. LICENSE + NOTICE ship too (S1.1): a stray project name in either
+// is the same residue as anywhere else.
 const SCAN_ROOTS = ['plugins', 'template', '.claude-plugin'];
-const SCAN_FILES = ['README.md'];
+const SCAN_FILES = ['README.md', 'LICENSE', 'NOTICE'];
 
 // Text formats this repo actually ships. Anything else (an image, a lockfile) is skipped rather than
 // guessed at — every shipped file here is one of these today, and a new format is a deliberate add.
@@ -80,6 +81,21 @@ export const RULES = [
        + 'fallback argument is NOT a parallel store. If you need to name a flag, name its KEY '
        + '(`<domain>.<feature>_enabled`), never a file or a table that holds defaults.',
   },
+  {
+    // golden-frijoles-plugin S1.3 (D6). The marketplace, the plugin dir and the repo were all renamed
+    // to golden-frijoles/golden-frijoles/golden-frijoles-skills. The rename touches IDENTIFIERS ONLY
+    // (D6): it does not touch `ways-of-work-lean-pass` provenance, `render-ways-of-working`, or
+    // Roadmap/ history — so this rule is deliberately narrow (the retired MARKETPLACE/PLUGIN identity),
+    // not a bare `ways-of-work` sweep, which would also fire on the process name and a past epic's slug.
+    name: 'retired plugin identity',
+    pattern: /ways-of-work@|@dobby-foundation\b|"dobby-foundation"\s*:|\bways-of-work:[a-z]|plugins\/ways-of-work|`ways-of-work` plugin|dobby-foundation marketplace|danybgoode\/dobby-foundation/,
+    why: 'Names the retired marketplace/plugin identity (`ways-of-work@dobby-foundation`, '
+       + '`plugins/ways-of-work`, "the `ways-of-work` plugin", "dobby-foundation marketplace", '
+       + '`danybgoode/dobby-foundation`). The product is `golden-frijoles`, installed from '
+       + '`golden-frijoles/skills` — a shipped file naming the old identity sends a stranger to '
+       + 'install line that no longer resolves. `ways-of-work-lean-pass` provenance, '
+       + '`render-ways-of-working` and Roadmap/ history are deliberately out of scope (D6).',
+  },
 ];
 
 // Deliberate matches. Each entry is matched on the file plus the EXACT trimmed line text, so a line
@@ -108,7 +124,7 @@ export const ALLOW = [
     why: 'An author field is supposed to name a person. Excluded by the harness-portability pitch.',
   },
   {
-    file: 'plugins/ways-of-work/.claude-plugin/plugin.json',
+    file: 'plugins/golden-frijoles/.claude-plugin/plugin.json',
     line: '"name": "Daniel"',
     why: 'Same — the plugin manifest author field.',
   },
