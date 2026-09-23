@@ -179,7 +179,7 @@ available. When none is, the PR says the layer is DARK.
 
 ### Decided during the build (named deviations)
 - **D12: the report behind the flip** is [`shadow-report-2026-09-23.md`](shadow-report-2026-09-23.md). The
-  gate passed on both rails and every family: review 100.0% vs 86.8%, prose 88.0% vs 72.2%.
+  gate passed on both rails and every family: review 98.7% vs 87.0%, prose 86.5% vs 71.2%.
 - **D13: measured thresholds.** Review is `real ≥ 0.85` / `not-real ≤ 0.3` (the pitch guessed 0.15). Prose is
   `claim ≥ 0.8` (the pitch guessed 0.5). Both are swept in the report.
 - **D14: headings are never claims.** Markdown headings are dropped from prose units. "## What shipped" scored
