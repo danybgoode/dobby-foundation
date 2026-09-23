@@ -171,3 +171,10 @@ test('the comment labels the lens, records the CLI version, and marks a re-revie
   assert.match(general, /Re-review/);
   assert.doesNotMatch(buildComment('Codex', 'f', false, {}), /Re-review/);
 });
+
+test('the reviewer diff treats jev-eval.fixtures.json as generated data (jev-semantic-guards)', async () => {
+  const { stripGeneratedFileDiffs } = await import('./lib/cross-agent-cli.mjs');
+  const hunk =
+    'diff --git a/scripts/jev-eval.fixtures.json b/scripts/jev-eval.fixtures.json\nindex 1..2 100644\n--- a/scripts/jev-eval.fixtures.json\n+++ b/scripts/jev-eval.fixtures.json\n@@ -1 +1 @@\n-{}\n+{"review":[]}\n';
+  assert.deepEqual(stripGeneratedFileDiffs(hunk).strippedFiles, ['scripts/jev-eval.fixtures.json']);
+});
