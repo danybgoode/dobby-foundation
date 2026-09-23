@@ -11,11 +11,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { buildKit } from './build-kit.mjs';
-
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+import { basename, dirname, join } from 'node:path';
+import { stageKit } from './build-kit.mjs';
 
 // git exports GIT_DIR & co. into hooks, and from a worktree they point at the REAL repo (LEARNINGS, 2026-09-23).
 function sealedEnv() {
@@ -28,9 +25,10 @@ const npm = spawnSync('npm', ['--version'], { encoding: 'utf8' });
 const hasNpm = !npm.error && npm.status === 0;
 
 test('the packed kit, installed in a stranger repo, runs build-order from a subdir against that repo', { skip: !hasNpm && 'npm not found — could not look' }, () => {
-  buildKit();
+  const kitDir = realpathSync(mkdtempSync(join(tmpdir(), 'kit-stage-')));
+  stageKit(kitDir);
   const packDir = realpathSync(mkdtempSync(join(tmpdir(), 'kit-pack-')));
-  const pack = spawnSync('npm', ['pack', '--pack-destination', packDir, join(repoRoot, 'kit')], {
+  const pack = spawnSync('npm', ['pack', '--pack-destination', packDir, kitDir], {
     encoding: 'utf8',
     env: sealedEnv(),
   });
@@ -49,25 +47,44 @@ test('the packed kit, installed in a stranger repo, runs build-order from a subd
   const git = spawnSync('git', ['init', '-q'], { cwd: repo, env: sealedEnv() });
   assert.equal(git.status, 0, String(git.stderr));
 
-  const install = spawnSync('npm', ['install', '--offline', '--no-audit', '--no-fund', join(packDir, tgz)], {
-    cwd: repo,
+  // Installed OUTSIDE the stranger repo, the way npx's cache is (~/.npm/_npx): a walk that started from the
+  // package's own location instead of cwd would then find no project (fresh review of #45, nit 2).
+  const tools = realpathSync(mkdtempSync(join(tmpdir(), 'kit-tools-')));
+  const install = spawnSync('npm', ['install', '--offline', '--no-audit', '--no-fund', '--prefix', tools, join(packDir, tgz)], {
     encoding: 'utf8',
     env: sealedEnv(),
   });
   assert.equal(install.status, 0, install.stderr);
 
-  const bin = join(repo, 'node_modules', '.bin', 'gf-kit');
+  const bin = join(tools, 'node_modules', '.bin', 'gf-kit');
   const run = spawnSync(bin, ['build-order'], { cwd: join(repo, 'apps', 'web', 'src'), encoding: 'utf8', env: sealedEnv() });
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
 
   const board = join(repo, 'Roadmap', '00-ideas', 'BUILD-ORDER.md');
   assert.ok(existsSync(board), 'BUILD-ORDER.md was not written into the stranger repo');
   assert.match(readFileSync(board, 'utf8'), /\[A seed\]\(seeds\/a-seed\.md\)/, 'the board must list THIS repo’s seed');
-  const pkgDir = join(repo, 'node_modules', '@golden-frijoles', 'kit');
+  const pkgDir = join(tools, 'node_modules', '@golden-frijoles', 'kit');
   assert.equal(existsSync(join(pkgDir, 'Roadmap')), false, 'the kit wrote into its own package');
   assert.equal(existsSync(join(pkgDir, 'dist', 'Roadmap')), false, 'the kit wrote into its own dist/');
   assert.equal(existsSync(join(repo, 'scripts')), false, 'nothing may be copied into the stranger repo');
 
   const list = spawnSync(bin, ['--list'], { cwd: repo, encoding: 'utf8', env: sealedEnv() });
   assert.match(list.stdout, /^build-order$/m);
+
+  // A RELATIVE --root must survive a script that spawns a sibling with `cwd: <project>` (fresh review of #45,
+  // should-fix 1): build-order-sync's drift check is exactly that child. Commit a fresh board, then ask from the
+  // parent directory. The right answer is "up to date"; the bug read the project at <project>/<project>.
+  const git2 = (args) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: repo, env: sealedEnv() });
+  assert.equal(git2(['add', '-A']).status, 0);
+  assert.equal(git2(['commit', '-q', '-m', 'board']).status, 0);
+  const sync = spawnSync(bin, ['--root', basename(repo), 'build-order-sync', '--dry-run'], {
+    cwd: dirname(repo),
+    encoding: 'utf8',
+    env: sealedEnv(),
+  });
+  assert.equal(sync.status, 0, `${sync.stdout}\n${sync.stderr}`);
+  assert.match(sync.stdout, /up to date/);
+
+  const missing = spawnSync(bin, ['--root', join(repo, 'nope'), 'build-order'], { encoding: 'utf8', env: sealedEnv() });
+  assert.equal(missing.status, 2, 'a --root that does not exist is refused, not guessed');
 });

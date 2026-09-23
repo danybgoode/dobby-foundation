@@ -64,6 +64,17 @@ export function buildKit({
   return { dist, files: manifest };
 }
 
+/**
+ * A complete, private kit in `dir` (the committed kit/ files + a fresh dist/), for specs. Tests run in parallel,
+ * and two that rebuilt the shared kit/dist/ raced each other (one wiped it while the other was packing it).
+ */
+export const KIT_COMMITTED = ['package.json', 'bin.mjs', 'README.md'];
+export function stageKit(dir) {
+  mkdirSync(dir, { recursive: true });
+  for (const f of KIT_COMMITTED) copyFileSync(join(KIT_DIR, f), join(dir, f));
+  return buildKit({ kitDir: dir });
+}
+
 function main(argv) {
   if (argv.includes('--list')) {
     process.stdout.write(`${kitManifest().join('\n')}\n`);

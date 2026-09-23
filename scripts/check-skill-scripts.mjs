@@ -179,12 +179,36 @@ export function resolveSkill({
     };
   }
 
-  // D3 (golden-frijoles-plugin): in a consuming project, a skill whose ENTRY script (its first declared .mjs)
-  // is absent locally runs from @golden-frijoles/kit, which is self-contained. So nothing of its closure is
-  // required locally. A present entry means the project runs its own copy, and its whole closure must be here.
-  const entry = declared.find((rel) => rel.endsWith('.mjs'));
-  if (kitFallback && entry && !exists(join(scriptsDir, entry))) {
-    return { skill, status: 'kit', missing: [], present: [], entry };
+  // D3 (golden-frijoles-plugin): in a consuming project the run rule decides PER SCRIPT — a top-level
+  // `scripts/<x>.mjs` that exists locally runs locally, one that doesn't runs from the self-contained kit. So
+  // judge each invocable script the same way (fresh review of #45: keying off the first declared .mjs passed a
+  // repo whose stale local build-order.mjs then crashed). A local one needs its whole import closure here; an
+  // absent one needs nothing. Declared data files are required only while something of the skill runs locally.
+  if (kitFallback) {
+    const invocable = declared.filter((rel) => rel.endsWith('.mjs') && !rel.includes('/'));
+    const local = invocable.filter((rel) => exists(join(scriptsDir, rel)));
+    if (!local.length) return { skill, status: 'kit', missing: [], present: [], kitRuns: invocable };
+    const needed = new Set(local);
+    for (const rel of local) {
+      if (!read) continue;
+      const c = importClosure(rel, { scriptsDir, read, exists });
+      for (const f of c.files) needed.add(f);
+      for (const b of c.broken) needed.add(b.to); // an import that isn't there is exactly what's missing
+    }
+    // With no reader to walk imports, be conservative: every declared non-invocable file is needed locally.
+    for (const rel of declared) if (!rel.endsWith('.mjs') || (!read && rel.includes('/'))) needed.add(rel);
+    const missingLocal = [...needed].filter((rel) => !exists(join(scriptsDir, rel))).sort();
+    const kitRuns = invocable.filter((rel) => !local.includes(rel));
+    if (missingLocal.length) {
+      return {
+        skill,
+        status: 'missing',
+        missing: missingLocal,
+        present: local,
+        note: `runs ${local.join(', ')} locally, but its closure is incomplete`,
+      };
+    }
+    return { skill, status: 'ok', missing: [], present: local, kitRuns };
   }
 
   const missing = declared.filter((rel) => !exists(join(scriptsDir, rel)));
@@ -331,9 +355,10 @@ function main(argv) {
 
   for (const r of results) {
     if (r.status === 'ok') {
-      console.log(`  ok        ${r.skill} — ${r.present.length} script(s) present`);
+      const viaKit = r.kitRuns?.length ? ` (from the kit: ${r.kitRuns.join(', ')})` : '';
+      console.log(`  ok        ${r.skill} — ${r.present.length} script(s) present${viaKit}`);
     } else if (r.status === 'kit') {
-      console.log(`  kit       ${r.skill} — no local scripts/${r.entry}, so it runs from @golden-frijoles/kit`);
+      console.log(`  kit       ${r.skill} — no local copy of ${r.kitRuns.join(', ')}, so it runs from @golden-frijoles/kit`);
     } else if (r.status === 'exempt') {
       console.log(`  exempt    ${r.skill} — ${NO_SCRIPTS_EXPECTED[r.skill]}`);
     } else if (r.status === 'debt') {
@@ -352,6 +377,9 @@ function main(argv) {
         '\n  Each is recorded in KNOWN_ABSENT with a reason. They are DARK, not working:' +
         '\n  a skill whose script is absent must say so and STOP, never reimplement it inline.'
       );
+    } else if (results.some((r) => r.status === 'kit' || r.kitRuns?.length)) {
+      // Not "every declared script is present" — some aren't, by design (fresh review of #45).
+      console.log('\n✓ no breakage: every script is either whole locally or served by @golden-frijoles/kit.');
     } else {
       console.log('\n✓ every declared script is present.');
     }

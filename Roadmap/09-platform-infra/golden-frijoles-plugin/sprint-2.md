@@ -55,7 +55,8 @@ per the routing table. **Branch:** `feat/golden-frijoles-plugin-s2`, cut from th
 plus one golden-beans PR for S2.5.
 
 **S2.1: `template/scripts/lib/project-root.mjs` (D2).** It exports `kitRoot`, `projectRoot`, `projectAsset` and
-`isInstalled`, with no other exports and no side effects at import. Convert **exactly these sites** in the closure, and
+`isInstalled`, with no side effects at import. *(Amended in review of #45: it also exports `KIT_PACKAGE_NAME` and
+`findProjectRoot`, which the unit tests exercise directly. They're pure helpers and don't form a second contract.)* Convert **exactly these sites** in the closure, and
 leave nothing outside it changed:
 
 | Class | Sites |

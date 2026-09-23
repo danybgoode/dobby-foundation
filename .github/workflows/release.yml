@@ -56,9 +56,19 @@ jobs:
             echo "publish: no kit/ in this tree, so there is nothing to publish."
             exit 0
           fi
-          if npm view "@golden-frijoles/kit@${version}" version >/dev/null 2>&1; then
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "publish: v${version} is already released (this push did not bump). Nothing to publish."
+            exit 0
+          fi
+          # Only a 404 means "not on npm yet". Any other failure (5xx, timeout, rate limit) is could-not-look,
+          # and publishing over an existing version is refused anyway. Fail loudly and let a re-run decide.
+          if view="$(npm view "@golden-frijoles/kit@${version}" version 2>&1)"; then
             echo "publish: @golden-frijoles/kit@${version} is already on npm (a re-run). Nothing to publish."
             exit 0
+          elif ! printf '%s' "$view" | grep -q 'E404'; then
+            echo "::error::could not look: npm view failed without a 404, so it is unknown whether ${version} is published."
+            printf '%s\n' "$view"
+            exit 1
           fi
           node scripts/build-kit.mjs
           node scripts/check-skill-scripts.mjs --kit

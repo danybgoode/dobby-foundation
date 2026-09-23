@@ -24,7 +24,8 @@ requires_scripts:
 > The project's own copy always wins. The kit needs no install and copies nothing into the repo. If npx fails on
 > the network or the registry (ENOTFOUND, ECONNREFUSED, ETIMEDOUT, E404, a proxy error), report **could not
 > look: the kit is unreachable**, not a broken project, and offer to retry online or to copy the script into
-> `scripts/`. Never re-implement a script's logic inline.
+> `scripts/`. This covers the scripts the kit carries (`gf-kit --list`). Any other `scripts/` command here is
+> project tooling: if the project lacks it, say so and stop. Never re-implement a script's logic inline.
 <!-- kit:end -->
 
 > **This skill's scheduled/default action is ALWAYS a dry-run report.** `--apply` is a distinct,

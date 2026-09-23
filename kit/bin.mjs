@@ -12,7 +12,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -78,7 +78,16 @@ function main(argv) {
     return 2;
   }
   const env = { ...process.env };
-  if (args.root !== null) env.GF_PROJECT_ROOT = args.root;
+  if (args.root !== null) {
+    // ABSOLUTE, resolved once here: scripts spawn siblings with `cwd: <project>`, and a relative root would be
+    // re-resolved against that cwd in every child (fresh review of #45: pmo-report read zero rows, silently).
+    const root = resolve(args.root);
+    if (!existsSync(root)) {
+      process.stderr.write(`gf-kit: --root ${args.root}: no such directory\n`);
+      return 2;
+    }
+    env.GF_PROJECT_ROOT = root;
+  }
   const run = spawnSync(process.execPath, [join(DIST, `${args.name}.mjs`), ...args.rest], { stdio: 'inherit', env });
   if (run.error) {
     process.stderr.write(`gf-kit: could not start ${args.name}: ${run.error.message}\n`);
