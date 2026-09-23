@@ -18,9 +18,9 @@ requires_scripts:
 
 # vercel-prune — nightly stale-preview report (dry-run by default, apply is human-gated)
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps
+> **Distribution note (golden-frijoles plugin):** this skill wraps
 > `scripts/vercel-prune-previews.mjs`, which ships in the *consuming project's* `scripts/` dir, not
-> inside this plugin — a project spawned from the `dobby-foundation` template gets it via
+> inside this plugin — a project spawned from `template/` gets it via
 > `template/scripts/`. If the script is missing, say so and stop rather than reimplementing its
 > logic inline.
 

@@ -9,7 +9,7 @@ operating_posture: ""
 design_is_scope: "Reference end-states are inspiration, never signed-off scope."
 
 deploy_rail: |
-  **Deploy rail.** This repo has no runtime deploy: merging to `main` publishes the `ways-of-work` plugin
+  **Deploy rail.** This repo has no runtime deploy: merging to `main` publishes the `golden-frijoles` plugin
   (every consuming project pulls it on its next session) and the spawn template (copied once by new
   projects). So "done means shipped" here is **merged to `main` with CI green**, plus — when a change is
   meant to reach consuming projects' own copies (the byte-identical shared scripts, the vendored

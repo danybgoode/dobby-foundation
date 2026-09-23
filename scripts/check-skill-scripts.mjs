@@ -2,7 +2,7 @@
 // check-skill-scripts.mjs — does a consuming project actually have the scripts its skills wrap?
 //
 // ── Why this exists ────────────────────────────────────────────────────────────────────────────
-// Each skill in plugins/ways-of-work/skills/ wraps a repo-local `scripts/<name>.mjs` that
+// Each skill in plugins/golden-frijoles/skills/ wraps a repo-local `scripts/<name>.mjs` that
 // deliberately does NOT ship inside the plugin (plugins are copied to a cache dir on install, so a
 // skill cannot reach `../scripts/`). The consuming project supplies it. That contract was written
 // down in prose — inside each SKILL.md's `description` and a "Distribution note" paragraph — and
@@ -55,7 +55,7 @@ import { dirname, join, relative, normalize, isAbsolute } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
-const SKILLS_DIR = join(repoRoot, 'plugins', 'ways-of-work', 'skills');
+const SKILLS_DIR = join(repoRoot, 'plugins', 'golden-frijoles', 'skills');
 
 // Skills that legitimately wrap nothing repo-local. Each needs a written reason, same discipline as
 // check-plugin-leaks.mjs's ALLOW list — an entry with no reason is the thing to catch in review.

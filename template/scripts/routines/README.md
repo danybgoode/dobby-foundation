@@ -48,7 +48,7 @@ secrets/allow-list. Nothing here provisions infra or changes any account.
    | Routine | Drift found | State |
    |---|---|---|
    | `smoke-triage` (`<trigger-id>`) | Stored prompt was a short ad-hoc text that had **never** matched `smoke-triage.prompt.md` — no diagnosis rubric, no advisory banner, no failure ping, and branch `claude/smoke-fix-<date>` instead of `claude/smoke-triage-<date>` | re-synced 2026-08-17 |
-   | `ops-nightly` (`<trigger-id>`) | Stored prompt still called `skills/<name>/SKILL.md` paths that no longer exist (skills moved to the `ways-of-work` plugin) and still described step 4 as a simple skill call, not the 3-phase CPO prose write with its mechanical guard | re-synced 2026-08-17 |
+   | `ops-nightly` (`<trigger-id>`) | Stored prompt still called `skills/<name>/SKILL.md` paths that no longer exist (skills moved to the `golden-frijoles` plugin) and still described step 4 as a simple skill call, not the 3-phase CPO prose write with its mechanical guard | re-synced 2026-08-17 |
 
    The ops-nightly divergence was caught by the routine itself — it followed the repo file instead of
    its stored prompt and reported the mismatch. That worked because the run had the repo in front of

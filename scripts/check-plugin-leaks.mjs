@@ -81,6 +81,21 @@ export const RULES = [
        + 'fallback argument is NOT a parallel store. If you need to name a flag, name its KEY '
        + '(`<domain>.<feature>_enabled`), never a file or a table that holds defaults.',
   },
+  {
+    // golden-frijoles-plugin S1.3 (D6). The marketplace, the plugin dir and the repo were all renamed
+    // to golden-frijoles/golden-frijoles/golden-frijoles-skills. The rename touches IDENTIFIERS ONLY
+    // (D6): it does not touch `ways-of-work-lean-pass` provenance, `render-ways-of-working`, or
+    // Roadmap/ history — so this rule is deliberately narrow (the retired MARKETPLACE/PLUGIN identity),
+    // not a bare `ways-of-work` sweep, which would also fire on the process name and a past epic's slug.
+    name: 'retired plugin identity',
+    pattern: /ways-of-work@|plugins\/ways-of-work|`ways-of-work` plugin|dobby-foundation marketplace|danybgoode\/dobby-foundation/,
+    why: 'Names the retired marketplace/plugin identity (`ways-of-work@dobby-foundation`, '
+       + '`plugins/ways-of-work`, "the `ways-of-work` plugin", "dobby-foundation marketplace", '
+       + '`danybgoode/dobby-foundation`). The product is `golden-frijoles`, installed from '
+       + '`golden-frijoles/skills` — a shipped file naming the old identity sends a stranger to '
+       + 'install line that no longer resolves. `ways-of-work-lean-pass` provenance, '
+       + '`render-ways-of-working` and Roadmap/ history are deliberately out of scope (D6).',
+  },
 ];
 
 // Deliberate matches. Each entry is matched on the file plus the EXACT trimmed line text, so a line
@@ -109,7 +124,7 @@ export const ALLOW = [
     why: 'An author field is supposed to name a person. Excluded by the harness-portability pitch.',
   },
   {
-    file: 'plugins/ways-of-work/.claude-plugin/plugin.json',
+    file: 'plugins/golden-frijoles/.claude-plugin/plugin.json',
     line: '"name": "Daniel"',
     why: 'Same — the plugin manifest author field.',
   },

@@ -32,9 +32,9 @@ requires_scripts:
 
 # weekly-recap — the weekly executive recap
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/weekly-recap.mjs`,
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/weekly-recap.mjs`,
 > which ships in the *consuming project's* `scripts/` dir, not inside this plugin — a project
-> spawned from the `dobby-foundation` template gets it via `template/scripts/`. If the script is
+> spawned from `template/` gets it via `template/scripts/`. If the script is
 > missing, say so and stop rather than reimplementing its logic inline.
 
 > This skill never merges a PR, edits an epic's status, or touches any repo's code. Its only writes are

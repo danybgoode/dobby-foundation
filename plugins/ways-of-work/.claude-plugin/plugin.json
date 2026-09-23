@@ -1,7 +1,0 @@
-{
-  "name": "ways-of-work",
-  "description": "Planning + ops skills for the dobby-foundation ways-of-work: babysit-pr, build-order-sync, doc-hygiene, groom, live-smoke, pmo-report, prose-draft, standup-post, vercel-prune, weekly-recap. Every git commit is a new version — no pinned version field, this is an actively-developed internal plugin.",
-  "author": {
-    "name": "Daniel"
-  }
-}

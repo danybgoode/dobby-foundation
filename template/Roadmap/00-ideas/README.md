@@ -79,7 +79,7 @@ enforced enum — a present-but-unrecognized value fails the board, it never fal
 3. **Queue** — bet on it at a wave boundary (`appetite:` + `underwritten_by:` set, the wave's
    `Roadmap/bets/` file records what it displaced); `status: queued`.
 4. **Scaffold** — on approval, `groom` runs its own `scaffold-epic.mjs` (ships inside the `groom`
-   skill, `ways-of-work` plugin) to create the epic/sprint docs, then sets the seed's `epic:` +
+   skill, `golden-frijoles` plugin) to create the epic/sprint docs, then sets the seed's `epic:` +
    `status: scaffolded`. **No file ever moves between folders** — the frontmatter carries the state.
 
 Filenames are kebab-case and match `slug`. Audits live in `audits/`, never in `seeds/`.

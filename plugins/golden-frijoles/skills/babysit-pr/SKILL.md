@@ -20,9 +20,9 @@ requires_scripts:
 
 # babysit-pr — advisory PR watch (never merges, never gates)
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/babysit-pr.mjs`, which
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/babysit-pr.mjs`, which
 > ships in the *consuming project's* `scripts/` dir, not inside this plugin — a project spawned from
-> the `dobby-foundation` template gets it via `template/scripts/`. If the script is missing, say so
+> `template/` gets it via `template/scripts/`. If the script is missing, say so
 > and stop rather than reimplementing its logic inline.
 
 > This skill's only writes are: re-running an already-FAILED workflow run (`gh run rerun --failed`)

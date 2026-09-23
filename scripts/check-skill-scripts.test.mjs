@@ -131,7 +131,7 @@ test('a recorded gap that has been closed fails as a stale ledger entry', () => 
 // from "the line was deleted".
 test('the PAID debts: re-adding weekly-recap / standup-post / pmo-report / live-smoke to the ledger fails as stale', () => {
   const template = new URL('../template/', import.meta.url).pathname;
-  const skillsDir = new URL('../plugins/ways-of-work/skills/', import.meta.url).pathname;
+  const skillsDir = new URL('../plugins/golden-frijoles/skills/', import.meta.url).pathname;
   for (const skill of ['weekly-recap', 'standup-post', 'pmo-report', 'live-smoke']) {
     const declared = parseRequiresScripts(readFileSync(join(skillsDir, skill, 'SKILL.md'), 'utf8'));
     const r = resolveSkill({
@@ -218,7 +218,7 @@ test('every KNOWN_ABSENT entry carries a reason a reviewer can act on', () => {
 
 test('the ledger only names skills that actually exist in the plugin', () => {
   // A ledger entry for a deleted skill is dead weight that reads as real debt forever.
-  const skillsDir = new URL('../plugins/ways-of-work/skills/', import.meta.url).pathname;
+  const skillsDir = new URL('../plugins/golden-frijoles/skills/', import.meta.url).pathname;
   for (const skill of Object.keys(KNOWN_ABSENT)) {
     assert.ok(
       existsSync(join(skillsDir, skill, 'SKILL.md')),

@@ -3,7 +3,7 @@
 The copy-once skeleton for a new `~/dobby/` sibling project: a generalized `Roadmap/` (ways-of-work,
 learnings, session kickoffs, the idea funnel), an `AGENTS.md` skeleton with a per-project rules slot,
 CI workflow shapes, portable `scripts/`, and a Playwright `api`/`browser` e2e harness shape. Pairs with
-the `ways-of-work` plugin (`../.claude-plugin/marketplace.json`) — the template is copy-once, the
+the `golden-frijoles` plugin (`../.claude-plugin/marketplace.json`) — the template is copy-once, the
 plugin is pull-based/versioned; see the repo root README for the distinction.
 
 ## Spawn a new project from this template
@@ -40,7 +40,7 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
    fill in `.githooks/pre-push`'s advisory TEMPLATE FILL-IN, so local pre-push feedback mirrors
    `ci.yml`'s real checks).
 4. **Wire the marketplace and the permissions** — `.claude/settings.json` already points at this
-   repo's `ways-of-work` plugin and carries the committed `permissions` block: an `allow` list of verb
+   repo's `golden-frijoles` plugin and carries the committed `permissions` block: an `allow` list of verb
    classes, a `deny` list (CLI deploys, `supabase db push|reset`, force pushes, `rm -rf`, whole-tree
    staging, hand-edits of generated boards) and an `ask` list (secret/env writes). Every deny/ask rule
    is cited in `.claude/permissions-ledger.json`; `node scripts/permissions-smoke.mjs` checks the pair.
@@ -92,7 +92,7 @@ plugin is pull-based/versioned; see the repo root README for the distinction.
   `server.mjs`, an `api` spec, a `browser` spec, the live-smoke ad-hoc spec, and an auth-helper stub.
   `cd apps/example-app && npm install && npm run test:e2e` goes green before any product code exists,
   which proves the wiring. Replace the server with your app and keep the harness.
-- **Every skill the `ways-of-work` plugin advertises runs here.** `scripts/` carries each skill's full
+- **Every skill the `golden-frijoles` plugin advertises runs here.** `scripts/` carries each skill's full
   script closure, and the plugin's CI proves it against this directory.
 - **The flag seam is already wired.** `apps/example-app/flags.mjs` wraps `createFlagProvider` with a
   fallback-per-call contract, `server.mjs` reads a demo kill-switch through it, and

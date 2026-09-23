@@ -27,7 +27,7 @@ requires_scripts:
 
 # prose-draft — delegated first drafts for file-derived close-out prose
 
-> **Distribution note (dobby-foundation plugin):** this skill wraps `scripts/prose-draft.mjs`
+> **Distribution note (golden-frijoles plugin):** this skill wraps `scripts/prose-draft.mjs`
 > (+ the shared `prose/cpo-persona.md` and `prose/internal.task.md` — the house voice's SSOT), which ships in the *consuming project's*
 > `scripts/` dir via `template/scripts/`. If the script is missing, say so and stop rather than
 > reimplementing its logic inline.
