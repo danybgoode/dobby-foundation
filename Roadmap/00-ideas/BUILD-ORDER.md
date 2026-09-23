@@ -29,15 +29,5 @@ _None._
 
 - [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
 
-## ⚠️ Status drift — README frontmatter vs sprint/retro-derived (1)
-
-These epics’ authoritative README-frontmatter `status:` disagrees with what the sprint/retro
-derivation infers. The board trusts the **frontmatter**; a mismatch usually means a close-out
-forgot to set `status:` (or the README is stale). Reconcile the README, then this advisory clears.
-
-| Epic | frontmatter (used) | sprint/retro-derived |
-|---|---|---|
-| Jev semantic guards — review-guard and prose-guard decide with Jev, not regex | In progress | Scaffolded |
-
 ---
-_Epics: 5 · seeds in funnel: 1 · status drift: 1. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 5 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
