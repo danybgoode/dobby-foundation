@@ -163,6 +163,7 @@ test('jevMarker: carries mode, decider, noul, severity, model — never the repl
   assert.deepEqual(parseJevMarker(`body${m}`), {
     mode: 'jev',
     decider: 'jev',
+    regexOk: false,
     noul: 0.97,
     severity: 'blocking',
     model: 'jev-1.13.0',
@@ -170,6 +171,7 @@ test('jevMarker: carries mode, decider, noul, severity, model — never the repl
   assert.deepEqual(parseJevMarker(jevMarker(null)), {
     mode: 'off',
     decider: 'regex',
+    regexOk: null,
     noul: null,
     severity: null,
     model: null,

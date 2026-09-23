@@ -88,3 +88,35 @@ test('appendLabels: only labelled rows are appended, unrecorded, never twice', (
     decision: null,
   });
 });
+
+test('post-flip markers carry the regex verdict: a Jev-only pass is a DISAGREEMENT, not agreement (PR #39)', () => {
+  const body = (v) => `x${jevMarker(v)}`;
+  const jevOnly = {
+    mode: 'jev',
+    decider: 'jev',
+    regexOk: false,
+    jev: { noul: 0.95, severity: 'nit', model: 'm' },
+  };
+  const rows = markerRows([{ url: 'a', body: body(jevOnly) }]);
+  assert.equal(rows[0].regex, false);
+  assert.equal(classify(rows[0], T), 'disagree');
+  const legacyJev = `x\n<!-- jev:{"mode":"jev","decider":"jev","noul":0.95,"severity":null,"model":null} -->`;
+  assert.equal(
+    markerRows([{ url: 'b', body: legacyJev }]).length,
+    0,
+    'a jev marker without regexOk is skipped'
+  );
+});
+
+test('dedupe: the same comment from the backtest and from its marker counts once', () => {
+  const rows = [
+    { rail: 'review', textHash: 'h1', source: 'backtest:https://x/1' },
+    { rail: 'review', textHash: 'https://x/1', source: 'marker:https://x/1' },
+  ];
+  assert.equal(dedupe(rows).length, 1);
+});
+
+test('appendLabels skips a row with no valid rail instead of throwing', () => {
+  const { added } = appendLabels({ review: [], prose: [] }, [{ id: 'z', label: true, rail: 'reviews' }]);
+  assert.equal(added, 0);
+});

@@ -434,6 +434,9 @@ export function jevMarker(verdict) {
   const payload = {
     mode: verdict?.mode ?? 'off',
     decider: verdict?.decider ?? 'regex',
+    // The regex's OWN verdict. Once Jev decides, a posted comment is no longer proof the regex accepted the
+    // reply — without this, the report would count Jev-only passes as agreement (review of PR #39).
+    regexOk: typeof verdict?.regexOk === 'boolean' ? verdict.regexOk : null,
     noul: typeof verdict?.jev?.noul === 'number' ? Number(verdict.jev.noul.toFixed(3)) : null,
     severity: verdict?.jev?.severity ?? null,
     model: verdict?.jev?.model ?? null,

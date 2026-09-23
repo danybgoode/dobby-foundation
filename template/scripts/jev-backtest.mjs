@@ -146,6 +146,12 @@ export const CLOSE_OUT_EVIDENCE = {
 };
 
 async function proseBacktest(files, root) {
+  if (!files.length) {
+    process.stderr.write(
+      'usage: node scripts/jev-backtest.mjs --prose <file.md> [<file.md> …] — no files given\n'
+    );
+    process.exit(2);
+  }
   const key = readApiKey({ root });
   const base = loadJevConfig({ root });
   if (!key || !base.egress) {

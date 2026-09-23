@@ -43,7 +43,11 @@ export function parseLog(text) {
 /** One row per (rail, text): a replayed backtest must not count twice. The newest entry wins. Pure. */
 export function dedupe(rows) {
   const by = new Map();
-  for (const r of rows) by.set(`${r.rail}:${r.textHash}:${r.source ?? ''}`, r);
+  // One key per thing judged: a comment URL whether it came from the backtest (`backtest:<url>`) or a marker
+  // (`marker:<url>`), else the text hash. Keying on the raw source counted one comment twice (PR #39).
+  const key = (r) =>
+    `${r.rail}:${r.source ? String(r.source).replace(/^(?:backtest|marker):/, '') : r.textHash}`;
+  for (const r of rows) by.set(key(r), r);
   return [...by.values()];
 }
 
@@ -65,16 +69,21 @@ export function classify(row, thresholds) {
   return sortedJson(row.regex) === sortedJson(row.jev) ? 'agree' : 'disagree';
 }
 
-/** Markers from posted comments → review rows (a posted comment is one the regex ACCEPTED). */
+/**
+ * Markers from posted comments → review rows. The regex's verdict is the marker's own `regexOk`. An older
+ * marker has none: in `off`/`shadow` a posted comment WAS regex-accepted, so `true` is sound there; a `jev`
+ * marker without it cannot say what the regex thought, so it is skipped rather than guessed (PR #39).
+ */
 export function markerRows(comments) {
   return comments
     .map((c) => ({ c, m: parseJevMarker(c.body) }))
     .filter(({ m }) => m && typeof m.noul === 'number')
+    .filter(({ m }) => typeof m.regexOk === 'boolean' || m.mode !== 'jev')
     .map(({ c, m }) => ({
       rail: 'review',
       mode: m.mode,
       decider: m.decider,
-      regex: true,
+      regex: typeof m.regexOk === 'boolean' ? m.regexOk : true,
       jev: m.noul >= 0.5,
       confidence: m.noul,
       textHash: c.url,
@@ -160,6 +169,10 @@ export function appendLabels(fixtures, labelled) {
   let added = 0;
   for (const c of labelled) {
     if (c.label == null || seen.has(c.id)) continue;
+    if (!['review', 'prose'].includes(c.rail)) {
+      process.stderr.write(`jev-report: skipped ${c.id ?? '(no id)'} — rail must be review or prose\n`);
+      continue;
+    }
     const { rail, regex, jev, ...fx } = c;
     next[rail].push({ ...fx, recorded: null, decision: null });
     added++;
