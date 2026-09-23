@@ -4,16 +4,17 @@ name: Release
 # Consumers and strangers with no pinned `ref` track `main`, so the version on `main` is already live
 # the instant the merge lands; a tag pushed BEFORE a squash-merge can't point at the commit that ships.
 #
-# S1 has no kit yet, so this workflow only tags + releases the plugin. S2 adds a publish job
-# (`@golden-frijoles/kit` to npm, OIDC trusted publishing, provenance) that runs BEFORE the tag step —
-# the tag is the record that a release happened, and it must not exist until the thing it records does.
+# Two jobs, least privilege each. `publish` holds `id-token: write` (npm trusted publishing: OIDC, provenance,
+# no stored token) and read-only contents; `release` holds `contents: write` and runs only after the kit is
+# confirmed on npm. The tag is the record that a release happened, so it must not exist until the thing it
+# records does. Re-running either job is safe: each step checks what already exists before acting.
 
 on:
   push:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 # Two pushes close together must not race `gh release create` for the same tag.
 concurrency:
@@ -21,8 +22,73 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Trusted publishing needs npm >= 11.5.1 and Node >= 22.14 (npm docs, checked 2026-09-23).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install -g npm@^11.5.1 --no-audit --no-fund
+
+      - name: Release is consistent before anything is published
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/check-release.mjs --against-tags --base "$BEFORE"
+          else
+            node scripts/check-release.mjs --against-tags
+          fi
+
+      - name: Publish @golden-frijoles/kit@<version> (only if this version is not on npm yet)
+        run: |
+          version="$(node scripts/check-release.mjs --print-version)"
+          if [ ! -f kit/package.json ]; then
+            echo "publish: no kit/ in this tree, so there is nothing to publish."
+            exit 0
+          fi
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "publish: v${version} is already released (this push did not bump). Nothing to publish."
+            exit 0
+          fi
+          # Only a 404 means "not on npm yet". Any other failure (5xx, timeout, rate limit) is could-not-look,
+          # and publishing over an existing version is refused anyway. Fail loudly and let a re-run decide.
+          if view="$(npm view "@golden-frijoles/kit@${version}" version 2>&1)"; then
+            echo "publish: @golden-frijoles/kit@${version} is already on npm (a re-run). Nothing to publish."
+            exit 0
+          elif ! printf '%s' "$view" | grep -q 'E404'; then
+            echo "::error::could not look: npm view failed without a 404, so it is unknown whether ${version} is published."
+            printf '%s\n' "$view"
+            exit 1
+          fi
+          node scripts/build-kit.mjs
+          node scripts/check-skill-scripts.mjs --kit
+          ( cd kit && npm publish --provenance --access public )
+          # The registry is eventually consistent. Confirm before the tag job records a release.
+          for i in 1 2 3 4 5 6; do
+            if npm view "@golden-frijoles/kit@${version}" version >/dev/null 2>&1; then
+              echo "publish: @golden-frijoles/kit@${version} is live."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::published, but @golden-frijoles/kit@${version} is not visible on npm after 60s."
+          exit 1
+
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the tag + GitHub Release
     steps:
       - uses: actions/checkout@v4
         with:

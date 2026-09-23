@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 2
 title: "The kit"
 risk: high
-phase: Shaping
+phase: In review
 stories_total: 5
 stories:
   - id: S2.1
@@ -12,28 +12,28 @@ stories:
     i_want: "to find the user's project and my own templates separately"
     so_that: "I work the same whether I was copied into `scripts/` or installed as a package"
     risk: high
-    status: planned
+    status: in-progress
   - id: S2.2
     title: "Build the kit from the skills' closure"
     as_a: "a maintainer"
     i_want: "`@golden-frijoles/kit` generated from `requires_scripts`"
     so_that: "there's one list of what the skills need and no second copy of any script"
     risk: high
-    status: planned
+    status: in-progress
   - id: S2.3
     title: "Tag publishes the kit with provenance"
     as_a: "Daniel"
     i_want: "a pushed `v*` tag to publish the kit from CI"
     so_that: "a release needs no npm token on any machine"
     risk: high
-    status: planned
+    status: in-progress
   - id: S2.4
     title: "Skills run the kit unless the project has its own copy"
     as_a: "a skill"
     i_want: "to run a local `scripts/<x>.mjs` when the project has one, and the pinned kit otherwise"
     so_that: "strangers are served and deliberate forks keep working"
     risk: high
-    status: planned
+    status: in-progress
   - id: S2.5
     title: "golden-beans runs on the kit (the dogfood)"
     as_a: "Daniel"
@@ -44,7 +44,7 @@ stories:
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 2: The kit
 
-**Status:** ⬜ not started · **Wave:** 1
+**Status:** 🟡 in review. S2.1–S2.4 built by the orchestrator; S2.3's bootstrap owed to Daniel; S2.5 follows the 0.2.0 publish · **Wave:** 1
 
 Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declared closure, learns to tell the project apart from itself, and is published by a tag. golden-beans proves it by deleting its copies.
 
@@ -52,10 +52,11 @@ Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declare
 
 Cites the epic README's D1, D2, D3, D4, D5, D7, D8 and deviations X1–X4, X6. **Builder:** the orchestrator (Opus),
 per the routing table. **Branch:** `feat/golden-frijoles-plugin-s2`, cut from the S1 branch. One PR in this repo,
-plus one golden-beans PR for S2.5.
+plus one golden-beans PR for S2.5 (danybgoode/golden-beans#162).
 
 **S2.1: `template/scripts/lib/project-root.mjs` (D2).** It exports `kitRoot`, `projectRoot`, `projectAsset` and
-`isInstalled`, with no other exports and no side effects at import. Convert **exactly these sites** in the closure, and
+`isInstalled`, with no side effects at import. *(Amended in review of #45: it also exports `KIT_PACKAGE_NAME` and
+`findProjectRoot`, which the unit tests exercise directly. They're pure helpers and don't form a second contract.)* Convert **exactly these sites** in the closure, and
 leave nothing outside it changed:
 
 | Class | Sites |
@@ -65,6 +66,14 @@ leave nothing outside it changed:
 | hidden subprocess → `process.execPath` + `join(kitRoot(), …)`, `cwd: projectRoot()` | `build-order-sync.mjs:68,73` · `pmo-report.mjs:66` · `standup.mjs:176,184` |
 | project-owned asset → `projectAsset()` | `cross-panel.mjs:34` (`cross-panel.prompt.md`) · `lib/prose-writer.mjs:74,76` + `prose-draft.mjs:117` + `lib/prose-brief.mjs:136` (`cpo-persona.md`, `prose-lessons.md`) · `doc-format.mjs:46` (`doc-format.enforced.json`) |
 
+- **Addendum (the architect, during S2.1):** the "kit asset / sibling script" row lists some sites in **top-level**
+  scripts (`build-order.mjs:22`, `doc-format.mjs:45`, `doc-hygiene.mjs:75`, `prose-draft.mjs:118`, the two `scriptsDir`
+  args). A top-level script's `__dirname` **is** `kitRoot()` in both modes by construction, since it sits at the root of
+  the set. So those lines were already correct and were left untouched: the shared rails' byte churn stays smaller, and
+  nothing changes behaviour. Every site that was actually wrong was converted: the project roots, the `lib/` files that
+  climbed to `<project>/scripts/`, the five hidden spawns (now `process.execPath` + a sibling path), and the four
+  project-owned assets. Four test fixtures and CI's scaffolder smoke hand-copy these files into temp projects, and each
+  now copies `lib/project-root.mjs` too.
 - Every converted file adds `lib/project-root.mjs` to its skills' `requires_scripts`. `check-skill-scripts` forces
   that.
 - **Copied mode must behave identically.** Every existing `template/scripts` test stays green without edits to its
@@ -124,13 +133,23 @@ leave nothing outside it changed:
 - The version comes from `plugin.json`. `--check` covers the stamp.
 - The rule's text lives **once**, in the renderer.
 - Measure npx offline behaviour with a warm cache before adding `--prefer-offline`, and record the measurement.
-- `groom`'s generator lookup gains the `npx skills` install paths (measured, not guessed).
+  **Measured 2026-09-23** (`@golden-frijoles/cli@0.1.0`, network cut with an unreachable proxy, same registry): warm
+  cache + exact pin → **exit 0** with or without `--prefer-offline`. Cold cache → exit 1 with an npm network error.
+  So there's no `--prefer-offline`, and the rule reports a network or registry error as *could not look*.
+- `groom`'s generator lookup gains the `npx skills` install paths (measured, not guessed). **Measured** with
+  `skills@1.7.0`: `./.agents/skills/groom` (project), `~/.agents/skills/groom` (global), `~/.claude/skills/groom`
+  (`-a claude-code -g`). The whole skill directory travels, generators included.
 - Spec: running an entry through the rule with a fake local `scripts/<x>.mjs` present runs the local one, and with it
   absent runs `kit/bin.mjs`.
 - `check-skill-scripts --repo-root` learns the same rule. A skill whose entry is absent locally reports
   `kit` (passing). A skill whose entry is present must have its whole closure present, which is today's rule.
 
-**S2.5: golden-beans on the kit (D3, X6).** A mechanical rule decides which files go, applied after `0.2.0` is on npm:
+**S2.5: golden-beans on the kit (D3, X6).** A mechanical rule decides which files go, applied after `0.2.0` is on npm.
+*Corrected by the architect during S2.4:* S2.1 changed the template, so golden-beans' untouched copies are no longer
+byte-identical to `kit/dist@0.2.0`, and "identical to the kit" would delete almost nothing. The test is **byte-identical
+to the pre-epic template** (`origin/main` `12fcc06`, the version it was copied from), i.e. an unmodified shared copy.
+Every file it keeps is re-copied from the new template in the same PR (`lib/project-root.mjs` included), which is the
+shared-rails rule:
 - **Deletable** = byte-identical to `kit/dist/<f>` at `0.2.0` **and** not reached from anything golden-beans keeps.
   "Reached" means an import closure, a `scripts/<f>` path in `.github/`, `.githooks/`, `package.json` or a kept
   script, or a kept test.
@@ -185,15 +204,40 @@ secret handling, and anything S2.3 would need beyond the steps above.
 - **deterministic gate:** every CI check green before merge; high-risk stories → Daniel merges
 
 ## Sprint 2 — Smoke walkthrough (do these in order)
-Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview URL for golden-beans changes while pre-merge.
+Env: production (npm, GitHub). Steps 1–3 are **owed to Daniel** before the S2 PR merges (a new external publish). The
+rest runs after it merges.
 
-1. Open https://www.npmjs.com/package/@golden-frijoles/kit
-   → Version 0.1.x is listed with a **Provenance** badge linking to the release workflow run.
-2. In an empty folder: `git init demo && cd demo && mkdir Roadmap && npx -y @golden-frijoles/kit@<version> --list`
-   → It prints the scripts the kit carries. Nothing is written to `demo/`.
-3. In `~/dobby/golden-beans`: `ls scripts/ | wc -l`, then compare with the same command on `main` before this sprint
-   → Fewer files. The PR body lists exactly which were deleted and which forks stayed, with reasons.
-4. In `~/dobby/golden-beans`, ask Claude Code to "sync the build order"
-   → It runs the kit (the transcript shows `gf-kit build-order-sync`) and reports no drift or opens its PR as before.
+1. **Bootstrap the package (owed to Daniel; npm account with 2FA).** In an empty folder:
+   ```
+   mkdir gf-kit-bootstrap && cd gf-kit-bootstrap
+   printf '%s\n' '{"name":"@golden-frijoles/kit","version":"0.0.0","description":"Bootstrap placeholder. Install @golden-frijoles/kit@>=0.2.0.","license":"Apache-2.0","repository":{"type":"git","url":"git+https://github.com/golden-frijoles/skills.git","directory":"kit"}}' > package.json
+   printf '# @golden-frijoles/kit\n\nBootstrap placeholder. Use >= 0.2.0.\n' > README.md
+   npm login
+   npm publish --access public
+   npm deprecate @golden-frijoles/kit@0.0.0 "bootstrap placeholder, use @golden-frijoles/kit@>=0.2.0"
+   ```
+   → https://www.npmjs.com/package/@golden-frijoles/kit shows 0.0.0, marked deprecated.
+2. **Attach the trusted publisher (owed to Daniel).** npmjs.com → the package → **Settings** → *Trusted Publisher* →
+   GitHub Actions: organization `golden-frijoles`, repository `skills`, workflow `release.yml`, environment blank → Save.
+   → The settings page lists the GitHub Actions publisher.
+3. *(Optional, recommended)* Same page → *Publishing access* → "Require two-factor authentication and disallow tokens".
+   → From then on, only the workflow can publish.
+4. After the S2 PR merges, open https://github.com/golden-frijoles/skills/actions/workflows/release.yml
+   → The run for the merge commit is green: `publish` then `release`.
+5. Open https://www.npmjs.com/package/@golden-frijoles/kit
+   → Version **0.2.0** is `latest`, with a **Provenance** badge linking to that workflow run.
+6. Open https://github.com/golden-frijoles/skills/releases
+   → **v0.2.0** exists, and its notes are CHANGELOG.md's `0.2.0` section.
+7. In an empty folder: `git init demo && cd demo && mkdir Roadmap && npx -y @golden-frijoles/kit@0.2.0 --list`
+   → It prints the 14 scripts the kit carries, and `ls` shows nothing new in `demo/`.
+8. Same folder: `npx -y @golden-frijoles/kit@0.2.0 build-order && ls Roadmap/00-ideas`
+   → `BUILD-ORDER.md` appears in *this* folder's `Roadmap/00-ideas/`, and there's still no `scripts/` folder.
+9. In `~/dobby/golden-beans` after its S2.5 PR (danybgoode/golden-beans#162) merges: ask Claude Code to "check doc hygiene"
+   → The transcript shows the run rule taking the kit branch: `npx -y @golden-frijoles/kit@0.2.0 doc-hygiene --check`
+     (golden-beans no longer has `scripts/doc-hygiene.mjs`), and it prints the same report as before.
+10. Same repo: ask it to "sync the build order"
+   → This one stays **local** (`node scripts/build-order-sync.mjs`). golden-beans' extractor is a fork, and through the
+     kit the board would differ (measured in S2.5, see golden-beans `scripts/README.md`). It reports no drift, or opens
+     its PR as before.
 
 If any step fails, note the step number + what you saw — that's the bug report.

@@ -11,6 +11,7 @@ import {
   CHANGELOG,
   changelogSection,
   compareVersions,
+  consistencyErrors,
   highestTagVersion,
   kitClosureFiles,
   newestChangelogVersion,
@@ -142,4 +143,13 @@ test('pluginVersion and changelogSection refuse anything but a strict x.y.z (it 
   assert.throws(() => pluginVersion(JSON.stringify({ version: '0.1.0(a+)+' })), /not a semver/);
   assert.throws(() => changelogSection('## [0.1.0]\nx\n', '0.1.0|.*'), /not a semver/);
   assert.equal(pluginVersion(JSON.stringify({ version: '0.1.0' })), '0.1.0');
+});
+
+test('consistencyErrors: plugin, CHANGELOG and kit move in lockstep — a plugin-only bump fails', () => {
+  assert.deepEqual(consistencyErrors({ plugin: '0.2.0', changelog: '0.2.0', kit: '0.2.0' }), []);
+  assert.deepEqual(consistencyErrors({ plugin: '0.1.0', changelog: '0.1.0', kit: null }), [], 'no kit yet is fine');
+  const drift = consistencyErrors({ plugin: '0.2.1', changelog: '0.2.1', kit: '0.2.0' });
+  assert.equal(drift.length, 1);
+  assert.match(drift[0], /kit\/package\.json version "0\.2\.0" != plugin\.json version "0\.2\.1"/);
+  assert.equal(consistencyErrors({ plugin: '0.2.1', changelog: '0.2.0', kit: '0.2.1' }).length, 1);
 });

@@ -242,3 +242,60 @@ test('a stale NO_SCRIPTS_EXPECTED entry fails instead of masking a real declarat
     assert.ok(reason.length > 10, `${skill}'s exemption reason is too thin to review`);
   }
 });
+
+// ── D3: a consuming project may run a skill from the kit (golden-frijoles-plugin S2.4) ──────────────
+test('kitFallback: no local copy of any of its scripts means the skill runs wholly from the kit', () => {
+  const r = resolveSkill({
+    skill: 'vercel-prune',
+    declared: ['vercel-prune-previews.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: () => false,
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'kit');
+});
+
+test('kitFallback judges PER SCRIPT: a stale local build-order.mjs with no lib/ fails, whatever the first entry is', () => {
+  const files = { '/p/scripts/build-order.mjs': "import './lib/roadmap-status-buckets.mjs';\n" };
+  const r = resolveSkill({
+    skill: 'groom',
+    declared: ['cross-panel.mjs', 'build-order.mjs', 'lib/roadmap-status-buckets.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: (p) => p in files,
+    read: (p) => files[p],
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'missing');
+  assert.deepEqual(r.missing, ['lib/roadmap-status-buckets.mjs']);
+});
+
+test('kitFallback: a whole local script plus kit-served others is ok, and says which come from the kit', () => {
+  const files = { '/p/scripts/build-order.mjs': "import './lib/b.mjs';\n", '/p/scripts/lib/b.mjs': '' };
+  const r = resolveSkill({
+    skill: 'build-order-sync',
+    declared: ['build-order-sync.mjs', 'build-order.mjs', 'lib/b.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: (p) => p in files,
+    read: (p) => files[p],
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'ok');
+  assert.deepEqual(r.kitRuns, ['build-order-sync.mjs']);
+});
+
+test('kitFallback: a PRESENT entry means the project runs its own copy, and its closure must be whole', () => {
+  const r = resolveSkill({
+    skill: 's',
+    declared: ['s.mjs', 'lib/x.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: (p) => p === '/p/scripts/s.mjs',
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'missing');
+  assert.deepEqual(r.missing, ['lib/x.mjs']);
+});
+
+test('without kitFallback (the template, the built kit) an absent entry is still a failure', () => {
+  const r = resolveSkill({ skill: 's', declared: ['s.mjs'], scriptsDir: '/t/scripts', exists: () => false });
+  assert.equal(r.status, 'missing');
+});

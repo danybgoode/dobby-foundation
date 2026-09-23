@@ -103,6 +103,17 @@ export function touchesShippedSurface(changedFiles, closureFiles) {
   return changedFiles.some((f) => f.startsWith('plugins/') || f.startsWith('kit/') || closureFiles.has(f));
 }
 
+/**
+ * Pure — the always-on consistency rule (D4): plugin.json = CHANGELOG's newest heading = kit/package.json (once
+ * the kit exists). Returns the problems, [] when consistent. A plugin-only bump is exactly what this catches.
+ */
+export function consistencyErrors({ plugin, changelog, kit = null }) {
+  const errors = [];
+  if (plugin !== changelog) errors.push(`plugin.json version "${plugin}" != CHANGELOG.md newest heading "${changelog}".`);
+  if (kit !== null && kit !== plugin) errors.push(`kit/package.json version "${kit}" != plugin.json version "${plugin}".`);
+  return errors;
+}
+
 /** Pure — the highest `vX.Y.Z` among git tag names; null when there is none. */
 export function highestTagVersion(tagNames) {
   const versions = tagNames
@@ -151,16 +162,10 @@ function main(argv) {
 
   // ── Always: plugin.json, CHANGELOG.md's newest heading, and kit/package.json (once it exists) agree.
   const changelog = newestChangelogVersion(readFileSync(CHANGELOG, 'utf8'));
-  if (current !== changelog) {
-    console.error(`check-release: plugin.json version "${current}" != CHANGELOG.md newest heading "${changelog}".`);
+  const kit = existsSync(KIT_PACKAGE) ? JSON.parse(readFileSync(KIT_PACKAGE, 'utf8')).version : null;
+  for (const e of consistencyErrors({ plugin: current, changelog, kit })) {
+    console.error(`check-release: ${e}`);
     failed = true;
-  }
-  if (existsSync(KIT_PACKAGE)) {
-    const kitVersion = JSON.parse(readFileSync(KIT_PACKAGE, 'utf8')).version;
-    if (kitVersion !== current) {
-      console.error(`check-release: kit/package.json version "${kitVersion}" != plugin.json version "${current}".`);
-      failed = true;
-    }
   }
 
   // ── At release time (release.yml): never cut a version BELOW one already released. Equal is fine —

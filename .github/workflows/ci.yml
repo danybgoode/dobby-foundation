@@ -59,6 +59,18 @@ jobs:
       - name: Skill script contract
         run: node scripts/check-skill-scripts.mjs
 
+      # @golden-frijoles/kit is BUILT from the skills' declared closure, never committed (golden-frijoles-plugin
+      # D1). Build it the way release.yml will, assert the built package holds every declared file and whole
+      # import closures, and dry-run the publish so the package shape cannot rot between releases. The dry run
+      # needs no credential and uploads nothing.
+      - name: Kit builds from the closure, is whole, and packs
+        run: |
+          node scripts/build-kit.mjs
+          node scripts/check-skill-scripts.mjs --kit
+          # `npm pack --dry-run`, not `publish --dry-run`: npm >= 11 exits 1 on a dry-run publish over an existing
+          # version, which would turn every non-bumping PR red once a release is out (fresh review of #45).
+          ( cd kit && npm pack --dry-run )
+
       # The advertised skill list is GENERATED from plugins/golden-frijoles/skills/ into marketplace.json
       # (twice), plugin.json and the README. It used to be hand-kept in all four and they disagreed.
       - name: Skill adverts are generated, not hand-kept
@@ -135,7 +147,10 @@ jobs:
             scripts/render-skill-adverts.test.mjs \
             scripts/pack-skills.test.mjs \
             scripts/check-plugin-leaks.test.mjs \
-            scripts/check-release.test.mjs
+            scripts/check-release.test.mjs \
+            scripts/build-kit.test.mjs \
+            scripts/kit-tarball.test.mjs \
+            scripts/kit-bin.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
@@ -185,8 +200,9 @@ jobs:
       - name: optional Notion sync runs from where a project would copy it
         run: |
           work="$(mktemp -d)"
-          mkdir -p "$work/scripts" "$work/Roadmap"
+          mkdir -p "$work/scripts/lib" "$work/Roadmap"
           cp template/scripts/roadmap-extract.mjs template/optional/notion/roadmap-to-notion.mjs "$work/scripts/"
+          cp template/scripts/lib/project-root.mjs "$work/scripts/lib/" # the extractor resolves the project through it
           test "$(PR_ACTION=opened PR_DRAFT=true node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "In progress"
           test "$(PR_ACTION=closed PR_DRAFT=false node "$work/scripts/roadmap-to-notion.mjs" --lifecycle)" = "clear"
           ( cd "$work" && node scripts/roadmap-to-notion.mjs --pr some-epic --dry --status "In review" > /dev/null )
@@ -210,7 +226,8 @@ jobs:
           cmp scripts/epic-dod.mjs template/scripts/epic-dod.mjs
           cmp Roadmap/WAYS-OF-WORKING.template.md template/Roadmap/WAYS-OF-WORKING.template.md
           node scripts/render-ways-of-working.mjs --check
-          test "$(wc -l < plugins/golden-frijoles/skills/groom/SKILL.md)" -le 220 \
+          # The budget counts HAND-WRITTEN lines: the generated kit:start…kit:end run rule is identical in every skill.
+          test "$(sed '/kit:start/,/kit:end/d' plugins/golden-frijoles/skills/groom/SKILL.md | wc -l)" -le 220 \
             || { echo "groom SKILL.md is over its 220-line budget — move reference material to references/" >&2; exit 1; }
 
       - name: foundation board generator is the template's, and the board is fresh
@@ -290,7 +307,7 @@ jobs:
           mkdir -p "$work/scripts/lib" "$work/Roadmap/00-ideas/seeds"
           printf -- '---\nstatus: ready\nepic: 09-platform-infra/ci-smoke\n---\n# CI smoke\n' > "$work/Roadmap/00-ideas/seeds/ci-smoke.md"
           cp template/scripts/doc-format.mjs template/scripts/roadmap-extract.mjs template/scripts/doc-format.enforced.json "$work/scripts/"
-          cp template/scripts/lib/roadmap-contract.mjs "$work/scripts/lib/"
+          cp template/scripts/lib/roadmap-contract.mjs template/scripts/lib/project-root.mjs "$work/scripts/lib/"
           ( cd "$work" && node scripts/doc-format.mjs --check )
           echo "doc-format: the scaffolder's own output is clean."
           rm -rf "$work"

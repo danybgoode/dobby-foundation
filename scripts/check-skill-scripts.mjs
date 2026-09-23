@@ -33,6 +33,7 @@
 //   node scripts/check-skill-scripts.mjs                      # audit template/ (the CI gate)
 //   node scripts/check-skill-scripts.mjs --repo-root ~/dobby/golden-beans
 //   node scripts/check-skill-scripts.mjs --repo-root <path> --json
+//   node scripts/check-skill-scripts.mjs --kit                  # the BUILT kit (after scripts/build-kit.mjs)
 //
 // Exit 0 = no NEW breakage. Exit 1 = a skill is missing a script that isn't recorded debt, a skill
 // declares nothing at all, or a recorded gap has quietly been closed without updating the ledger.
@@ -151,6 +152,7 @@ export function resolveSkill({
   read = null,
   ledger = KNOWN_ABSENT,
   exemptions = NO_SCRIPTS_EXPECTED,
+  kitFallback = false,
 }) {
   const exempt = Object.prototype.hasOwnProperty.call(exemptions, skill);
 
@@ -175,6 +177,38 @@ export function resolveSkill({
       present: [],
       note: `listed in NO_SCRIPTS_EXPECTED but declares ${declared.length} script(s) — remove the entry`,
     };
+  }
+
+  // D3 (golden-frijoles-plugin): in a consuming project the run rule decides PER SCRIPT — a top-level
+  // `scripts/<x>.mjs` that exists locally runs locally, one that doesn't runs from the self-contained kit. So
+  // judge each invocable script the same way (fresh review of #45: keying off the first declared .mjs passed a
+  // repo whose stale local build-order.mjs then crashed). A local one needs its whole import closure here; an
+  // absent one needs nothing. Declared data files are required only while something of the skill runs locally.
+  if (kitFallback) {
+    const invocable = declared.filter((rel) => rel.endsWith('.mjs') && !rel.includes('/'));
+    const local = invocable.filter((rel) => exists(join(scriptsDir, rel)));
+    if (!local.length) return { skill, status: 'kit', missing: [], present: [], kitRuns: invocable };
+    const needed = new Set(local);
+    for (const rel of local) {
+      if (!read) continue;
+      const c = importClosure(rel, { scriptsDir, read, exists });
+      for (const f of c.files) needed.add(f);
+      for (const b of c.broken) needed.add(b.to); // an import that isn't there is exactly what's missing
+    }
+    // With no reader to walk imports, be conservative: every declared non-invocable file is needed locally.
+    for (const rel of declared) if (!rel.endsWith('.mjs') || (!read && rel.includes('/'))) needed.add(rel);
+    const missingLocal = [...needed].filter((rel) => !exists(join(scriptsDir, rel))).sort();
+    const kitRuns = invocable.filter((rel) => !local.includes(rel));
+    if (missingLocal.length) {
+      return {
+        skill,
+        status: 'missing',
+        missing: missingLocal,
+        present: local,
+        note: `runs ${local.join(', ')} locally, but its closure is incomplete`,
+      };
+    }
+    return { skill, status: 'ok', missing: [], present: local, kitRuns };
   }
 
   const missing = declared.filter((rel) => !exists(join(scriptsDir, rel)));
@@ -268,8 +302,14 @@ function closureStatus({ skill, declared, present, scriptsDir, exists, read }) {
   return { skill, status: 'ok', missing: [], present };
 }
 
-export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync, read = readFileSync } = {}) {
-  const scriptsDir = join(target, 'scripts');
+export function audit({
+  target,
+  scriptsDir = join(target, 'scripts'),
+  skillsDir = SKILLS_DIR,
+  exists = existsSync,
+  read = readFileSync,
+  kitFallback = false,
+} = {}) {
   return listSkills(skillsDir).map((skill) =>
     resolveSkill({
       skill,
@@ -277,13 +317,17 @@ export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync, rea
       scriptsDir,
       exists,
       read,
+      kitFallback,
     })
   );
 }
 
 function main(argv) {
   const rootIdx = argv.indexOf('--repo-root');
-  const target = rootIdx !== -1 ? argv[rootIdx + 1] : join(repoRoot, 'template');
+  // --kit: audit the BUILT package (kit/dist/ is laid out like a project's scripts/). Run after build-kit.mjs.
+  const kit = argv.includes('--kit');
+  const target = kit ? join(repoRoot, 'kit') : rootIdx !== -1 ? argv[rootIdx + 1] : join(repoRoot, 'template');
+  const scriptsDir = kit ? join(target, 'dist') : join(target, 'scripts');
   const asJson = argv.includes('--json');
 
   if (rootIdx !== -1 && !target) {
@@ -295,8 +339,9 @@ function main(argv) {
     return 2;
   }
 
-  const results = audit({ target });
-  const PASSING = new Set(['ok', 'exempt', 'debt']);
+  // Only a CONSUMING project can fall back to the kit; the template and the built kit must be whole.
+  const results = audit({ target, scriptsDir, kitFallback: rootIdx !== -1 && !kit });
+  const PASSING = new Set(['ok', 'exempt', 'debt', 'kit']);
   const bad = results.filter((r) => !PASSING.has(r.status));
   const debt = results.filter((r) => r.status === 'debt');
 
@@ -306,11 +351,14 @@ function main(argv) {
   }
 
   const label = relative(repoRoot, target) || target;
-  console.log(`check-skill-scripts: ${results.length} skill(s) against ${label}/scripts/\n`);
+  console.log(`check-skill-scripts: ${results.length} skill(s) against ${relative(repoRoot, scriptsDir) || scriptsDir}/\n`);
 
   for (const r of results) {
     if (r.status === 'ok') {
-      console.log(`  ok        ${r.skill} — ${r.present.length} script(s) present`);
+      const viaKit = r.kitRuns?.length ? ` (from the kit: ${r.kitRuns.join(', ')})` : '';
+      console.log(`  ok        ${r.skill} — ${r.present.length} script(s) present${viaKit}`);
+    } else if (r.status === 'kit') {
+      console.log(`  kit       ${r.skill} — no local copy of ${r.kitRuns.join(', ')}, so it runs from @golden-frijoles/kit`);
     } else if (r.status === 'exempt') {
       console.log(`  exempt    ${r.skill} — ${NO_SCRIPTS_EXPECTED[r.skill]}`);
     } else if (r.status === 'debt') {
@@ -329,6 +377,9 @@ function main(argv) {
         '\n  Each is recorded in KNOWN_ABSENT with a reason. They are DARK, not working:' +
         '\n  a skill whose script is absent must say so and STOP, never reimplement it inline.'
       );
+    } else if (results.some((r) => r.status === 'kit' || r.kitRuns?.length)) {
+      // Not "every declared script is present" — some aren't, by design (fresh review of #45).
+      console.log('\n✓ no breakage: every script is either whole locally or served by @golden-frijoles/kit.');
     } else {
       console.log('\n✓ every declared script is present.');
     }

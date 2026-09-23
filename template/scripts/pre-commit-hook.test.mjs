@@ -61,7 +61,7 @@ function fixtureRepo() {
   mkdirSync(join(dir, '.githooks'));
   mkdirSync(join(dir, 'scripts', 'lib'), { recursive: true });
   copyFileSync(join(TEMPLATE, '.githooks', 'pre-commit'), join(dir, '.githooks', 'pre-commit'));
-  for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json', 'lib/roadmap-contract.mjs']) {
+  for (const f of ['doc-format.mjs', 'roadmap-extract.mjs', 'doc-format.enforced.json', 'lib/roadmap-contract.mjs', 'lib/project-root.mjs']) {
     copyFileSync(join(TEMPLATE, 'scripts', f), join(dir, 'scripts', f));
   }
   mkdirSync(join(dir, 'Roadmap', '00-ideas', 'seeds'), { recursive: true });
