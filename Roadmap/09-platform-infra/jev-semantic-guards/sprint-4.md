@@ -30,7 +30,7 @@ stories:
 ---
 # Jev semantic guards — Sprint 4: Rollout to both consumers
 
-**Status:** ✅ Shipped — foundation [#38](https://github.com/danybgoode/dobby-foundation/pull/38) (`6324350`) · medusa-bonsai [#191](https://github.com/danybgoode/miyagi-product-management/pull/191) (`d655799`) + agy pin [#190](https://github.com/danybgoode/miyagi-product-management/pull/190) · golden-beans [#159](https://github.com/danybgoode/golden-beans/pull/159) (`2762b5b`) · S4.3 routine key owed to the product owner (smoke item 3)
+**Status:** ✅ Shipped — foundation [#38](https://github.com/danybgoode/dobby-foundation/pull/38) (`6324350`) · medusa-bonsai [#191](https://github.com/danybgoode/miyagi-product-management/pull/191) + agy pin [#190](https://github.com/danybgoode/miyagi-product-management/pull/190) · golden-beans [#159](https://github.com/danybgoode/golden-beans/pull/159) · S4.3 routine key owed to the product owner (smoke item 3)
 
 > Cross-repo. The review rail is forked in three repos (seed `review-rail-one-implementation`) — this sprint hand-patches each fork's single call site; it does not unify them.
 

@@ -30,7 +30,7 @@ stories:
 ---
 # Jev semantic guards — Sprint 5: Promotion — Jev decides, regex becomes fallback
 
-**Status:** ✅ Shipped — foundation [#39](https://github.com/danybgoode/dobby-foundation/pull/39) (`692ebcf`) + follow-ups [#40](https://github.com/danybgoode/dobby-foundation/pull/40) (`c6843ce`), [#41](https://github.com/danybgoode/dobby-foundation/pull/41) (`7944b34`), [#42](https://github.com/danybgoode/dobby-foundation/pull/42) (`6146847`) · medusa-bonsai [#192](https://github.com/danybgoode/miyagi-product-management/pull/192) (`06720a2`), [#193](https://github.com/danybgoode/miyagi-product-management/pull/193) (`ccd5c3f`) · golden-beans [#160](https://github.com/danybgoode/golden-beans/pull/160) (`791f674`)
+**Status:** ✅ Shipped — foundation [#39](https://github.com/danybgoode/dobby-foundation/pull/39) (`692ebcf`) + follow-ups [#40](https://github.com/danybgoode/dobby-foundation/pull/40) (`c6843ce`), [#41](https://github.com/danybgoode/dobby-foundation/pull/41) (`7944b34`), [#42](https://github.com/danybgoode/dobby-foundation/pull/42) (`6146847`) · medusa-bonsai [#192](https://github.com/danybgoode/miyagi-product-management/pull/192), [#193](https://github.com/danybgoode/miyagi-product-management/pull/193) · golden-beans [#160](https://github.com/danybgoode/golden-beans/pull/160)
 
 > **Wave 2 — re-bet at the boundary.** Starts when shadow has run its course (≥50 decisions per rail or the `shadowExpires` date, whichever first). Not optional: the CI expiry fails otherwise.
 
