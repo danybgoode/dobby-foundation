@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 2
 title: Review guard on Jev (shadow, marker, backtest)
 risk: high
-phase: Shaping
+phase: Building
 stories_total: 3
 stories:
   - id: S2.1
