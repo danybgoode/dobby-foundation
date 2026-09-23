@@ -7,6 +7,26 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-23
+
+### Added
+
+- The `golden-frijoles` umbrella skill: a stranger's agent that just installed the plugin has one
+  place to start, instead of needing to know ten skill names. It detects state with commands (is
+  `Roadmap/` present, is `gf` linked, is the kit reachable, which install channel), routes by job to
+  the right named skill, and states plainly what the `npx skills` channel lacks (no build-view hook,
+  no `pr-reviewer` agent).
+- `gf-kit init` (`node scripts/init.mjs`): adopts any existing repo by writing the `Roadmap/` skeleton
+  (README, WAYS-OF-WORKING, LEARNINGS, the `00-ideas/` funnel). Never overwrites a file that's already
+  there, is idempotent, and touches nothing outside `Roadmap/`.
+- The install prompt is one string, `golden-onboarding.mjs`'s `INSTALL_PROMPT`, transcribed from
+  golden-beans' `apps/web/lib/install-prompt.ts` and checked verbatim across the repo README, the
+  umbrella skill and the transcription itself — a one-word drift fails CI.
+- `check-onboarding-parity.mjs --exec` now also runs the install prompt: `npx skills add
+  golden-frijoles/skills --list`, and `claude plugin marketplace add` + `claude plugin install` in a
+  scrubbed `HOME`/`XDG_CONFIG_HOME`/`CLAUDE_CONFIG_DIR`, with a negative control against the real
+  `~/.claude/plugins/installed_plugins.json`.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added
