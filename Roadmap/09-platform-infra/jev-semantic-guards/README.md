@@ -177,6 +177,19 @@ hand-off would cost more than it saves.
 checkout (`review-route.mjs`, then `cross-review.mjs --repo danybgoode/dobby-foundation`) when a family is
 available. When none is, the PR says the layer is DARK.
 
+### Decided during the build (named deviations)
+- **D12: the report behind the flip** is [`shadow-report-2026-09-23.md`](shadow-report-2026-09-23.md). The
+  gate passed on both rails and every family: review 98.7% vs 87.0%, prose 86.5% vs 71.2%.
+- **D13: measured thresholds.** Review is `real ≥ 0.85` / `not-real ≤ 0.3` (the pitch guessed 0.15). Prose is
+  `claim ≥ 0.8` (the pitch guessed 0.5). Both are swept in the report.
+- **D14: headings are never claims.** Markdown headings are dropped from prose units. "## What shipped" scored
+  as a liveness claim across the retro backtest.
+- **D15: a repo with NO `jev.config.json` stays `off`.** The template's shipped config is `jev` both ways, and
+  it takes effect only with a key. A repo that never added the file never opted in to sending text to Jev.
+- **D16: the question wording is measured.** Both rails' first wordings lost to the regex, or barely beat it
+  (review "genuine review?" 0.73 on a real finding; prose liveness 48/62). The shipped wordings were chosen on
+  the labelled fixtures. The tables are in sprint-2.md and sprint-3.md.
+
 ### Build contracts (locked by the architect before the builder started)
 
 - **Sprint 1:** D1, D2, D3, D8. `jev.mjs` exports `askJev`, `loadJevConfig`, `effectiveMode`,
