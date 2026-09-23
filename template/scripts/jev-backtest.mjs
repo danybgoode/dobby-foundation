@@ -145,10 +145,19 @@ async function main() {
     process.exit(2);
   }
   const base = loadJevConfig({ root });
+  // egress:false means no text leaves this machine — the backtest sends every historical reply, so it obeys
+  // it too (fresh review, PR #35).
+  if (!base.egress) {
+    process.stderr.write(
+      'jev-backtest: jev.config.json sets egress:false — refusing to send replies to Jev.\n'
+    );
+    process.exit(2);
+  }
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
   // Shadow, so the log records it exactly as live shadow traffic — the regex's verdict stays the outcome.
   const config = parseJevConfig({
     model: base.model,
+    egress: base.egress,
     rails: { ...base.rails, review: { ...base.rails.review, mode: 'shadow', shadowExpires: tomorrow } },
   });
 
