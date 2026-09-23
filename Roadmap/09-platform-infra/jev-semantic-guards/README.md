@@ -6,7 +6,7 @@ title: "Jev semantic guards — review-guard and prose-guard decide with Jev, no
 area: 09-platform-infra
 risk: high
 type: feature
-phase: Locking architecture
+phase: Building
 sprints_total: 5
 stories_total: 15
 ---

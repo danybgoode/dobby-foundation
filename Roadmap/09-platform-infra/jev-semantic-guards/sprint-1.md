@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 1
 title: Client, config, decision log and eval harness
 risk: low
-phase: Shaping
+phase: Building
 stories_total: 4
 stories:
   - id: S1.1
