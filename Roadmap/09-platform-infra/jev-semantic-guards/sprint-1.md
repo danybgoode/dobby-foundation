@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 1
 title: Client, config, decision log and eval harness
 risk: low
-phase: Building
+phase: In review
 stories_total: 4
 stories:
   - id: S1.1
@@ -12,32 +12,32 @@ stories:
     i_want: "one zero-dep function that asks Jev typed questions and returns `{ok, answers, usage}` or `{ok:false, state:\"could-not-look\", error}`"
     so_that: "no rail ever mistakes \"Jev was unreachable\" for a verdict"
     risk: low
-    status: planned
+    status: done
   - id: S1.2
     title: Config + kill-switch (jev.config.json)
     as_a: the product owner
     i_want: "one committed file with per-rail `mode: off | shadow | jev`, thresholds, `model`, `shadowExpires` and `egress`"
     so_that: turning Jev off, on or into shadow is a one-line reviewed diff
     risk: low
-    status: planned
+    status: done
   - id: S1.3
     title: Decision log (.jev/decisions.jsonl)
     as_a: the product owner
     i_want: every guard decision recorded with who decided
     so_that: "a corpus of real disagreements exists — today rejected replies and drafts only reach stderr"
     risk: low
-    status: planned
+    status: done
   - id: S1.4
     title: Eval harness + shadow expiry (scripts/jev-eval.mjs)
     as_a: a builder bumping the model or thresholds
     i_want: a labelled fixture set replayed against recorded responses
     so_that: a bump is proven before it lands and shadow cannot rot
     risk: low
-    status: planned
+    status: done
 ---
 # Jev semantic guards — Sprint 1: Client, config, decision log and eval harness
 
-**Status:** ⬜ not started
+**Status:** 🔄 in review — S1.1 `66c0e01` · S1.2 `9013f5d` · S1.3 `0abb092` · S1.4 (see PR)
 
 ## Stories
 
@@ -79,3 +79,28 @@ Env: a local checkout of the repo named in each step, with `TYPESAFE_API_KEY` in
    → exits non-zero naming the expired rail.
 
 If any step fails, note the step number + what you saw — that's the bug report.
+
+### Smoke results — run 2026-09-22 (builder, worktree `feat/jev-semantic-guards`)
+
+1. ✅ `node --test template/scripts/lib/jev.test.mjs` → 26/26 pass, no network: every could-not-look case
+   (no key, 401, 422, 500, 429/529 after two backoff retries, timeout, network error, over-budget state,
+   unparseable body, missing answer) is its own spec with an injected `fetch`.
+2. ✅ `node template/scripts/jev-eval.mjs` → `offline: 0/0 fixtures match recordings`, exit 0. The fixture set
+   is filled by S2.1 (review) and S3.1 (prose), because the recordings are answers to *their* questions.
+3. ➡️ `--live` moves to S2/S3: it has nothing to score until the judges exist. Its results are recorded there.
+4. ✅ With `rails.review` set to `shadow` and `shadowExpires: 2026-09-21`, the run exits 1 with
+   `✗ rails.review has been in shadow past its shadowExpires (2026-09-21) — promote it to jev or set it off.`
+   CI runs it in both the foundation workflow and the template's `guards.yml`, unconditionally, since
+   expiry is a date and not a diff.
+
+**Mutation check:** each of these was applied on its own and caught by at least 3 failing specs:
+- zero retries
+- no shadow-expiry requirement
+- egress ignored
+- alias model allowed
+- a log failure reported as success
+- an inverted expiry comparison
+
+**Live API probe:** `curl` with this machine's key, where the timed-out banner scored `is_real_review = 0.10`
+in 0.45 s.
+
