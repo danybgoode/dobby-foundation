@@ -2,7 +2,7 @@
 
 Paste this into your agent, in an empty repo or an existing one:
 
-> Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill golden-frijoles` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
+> Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill '*'` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
 
 That last skill — `golden-frijoles` — is the front door: it detects what's already here (is
 `Roadmap/` present, is the kit reachable, which channel you're on), offers `gf-kit init` to adopt a
@@ -103,7 +103,7 @@ Or checked into a project's `.claude/settings.json` (team-shared, zero manual st
 **Any other agent `npx skills` supports** (Codex and others):
 
 ```
-npx skills add golden-frijoles/skills --skill golden-frijoles
+npx skills add golden-frijoles/skills --skill '*'
 ```
 
 This installs `SKILL.md` folders only — no hooks, no agents directory. The umbrella skill says so the

@@ -160,6 +160,7 @@ evidence came from. **Wave 1 only:** D9 and D10 stay as drafted under *Wave 2* b
 | X9 | S3.3: "state contract … updated, not bypassed" | `/install` is approved state `public-install`, hash-pinned in `APPROVED.md`; an onboarding state isn't among the 33 | measure `public-install`'s signature first; if it changes, the prototype edit needs a new approval line **owed to Daniel** |
 | X10 | S3.4: "the plugin README" | There's no plugin README, only the repo README | the repo `README.md` is the surface |
 | X11 | S1.4: medusa-bonsai + golden-beans, "the old entries removed" | Both consumers carry byte-shared rails that name the old identity (`doc-format.mjs`, `doc-hygiene.mjs`, the vendored `WAYS-OF-WORKING.template.md`) | the S1.4 PRs carry those byte copies too (shared-rails rule), plus `scripts/epic-dod.exemptions.json` |
+| X12 | The audit's prompt: `npx skills add golden-frijoles/skills --skill golden-frijoles` | Measured with `skills@1.7.0`: that installs **only** the umbrella skill, so its first hand-off to `groom` dead-ends | the prompt says `--skill '*'` (every skill; the agent is still chosen interactively), on every surface, and parity proves it |
 
 ### Model routing (auditable)
 

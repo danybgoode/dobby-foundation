@@ -193,7 +193,7 @@ Paste the install prompt (word for word — it's the fenced block in the umbrell
 README's opening section):
 
 ```
-Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill golden-frijoles` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
+Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill '*'` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
 ```
 
 → Claude runs `claude plugin marketplace add golden-frijoles/skills` then `claude plugin install
@@ -222,13 +222,13 @@ Same empty folder, a different agent:
 
 ```
 mkdir demo-codex && cd demo-codex && git init -q
-npx skills add golden-frijoles/skills --skill golden-frijoles
+npx skills add golden-frijoles/skills --skill '*'
 ```
 
 (Or paste the install prompt into Codex — it reads "If you're in another agent, run `npx skills add
-golden-frijoles/skills --skill golden-frijoles` and select your agent" and runs the equivalent command itself.)
+golden-frijoles/skills --skill '*'` and select your agent" and runs the equivalent command itself.)
 
-→ `npx skills` installs the `golden-frijoles` `SKILL.md` (and every skill it routes to) with **no hooks and no
+→ `npx skills` installs every skill: the `golden-frijoles` umbrella **and** the skills it routes to (`--skill '*'`; with `--skill golden-frijoles` alone, measured, only the umbrella lands, and its first hand-off to `groom` dead-ends) with **no hooks and no
 agents directory** — confirmed live this sprint (`npx -y skills@1.7.0 add golden-frijoles/skills --list`; see
 S3.4's report for the exact pre-merge output). The umbrella skill's own text says so: "No build-view hook … No
 `pr-reviewer` agent" — that's what makes this channel not a silent, worse Claude Code.
