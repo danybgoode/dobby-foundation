@@ -73,6 +73,7 @@ import {
   reviewMarker,
   RE_REVIEW_NOTE,
 } from './lib/review-guard.mjs';
+import { jevContext } from './lib/jev.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = join(__dirname, 'cross-review.prompt.md');
@@ -368,6 +369,10 @@ async function main() {
       process.exit(0);
     }
   }
+
+  // Resolve the Jev config BEFORE a review is paid for: a malformed jev.config.json throws, and throwing after
+  // the reviewer ran would lose its reply and strand the status at `pending` (fresh review, PR #35).
+  jevContext('review');
 
   // Pin the commit being reviewed BEFORE the reviewer runs: a push mid-review would otherwise move the
   // status onto a commit nobody read, and the re-review check needs to tell a new commit from a retry.
