@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 5
 title: "Promotion — Jev decides, regex becomes fallback"
 risk: high
-phase: Building
+phase: Shipped
 stories_total: 3
 stories:
   - id: S5.1
@@ -12,25 +12,25 @@ stories:
     i_want: a report of every regex/Jev disagreement from the logs and PR markers across all three repos
     so_that: I label only the cases that matter
     risk: high
-    status: planned
+    status: done
   - id: S5.2
     title: Set thresholds from data
     as_a: a builder
     i_want: thresholds tuned against the labelled set
     so_that: production uses measured values, not starting guesses
     risk: high
-    status: planned
+    status: done
   - id: S5.3
     title: "Flip to jev everywhere; regex is fallback-only"
     as_a: the product owner
     i_want: "`mode: jev` in the template and both consumers"
     so_that: Jev decides in production and the regexes run only when Jev cannot
     risk: high
-    status: planned
+    status: done
 ---
 # Jev semantic guards — Sprint 5: Promotion — Jev decides, regex becomes fallback
 
-**Status:** ⬜ not started
+**Status:** ✅ Shipped — foundation [#39](https://github.com/danybgoode/dobby-foundation/pull/39) (`692ebcf`) + follow-ups [#40](https://github.com/danybgoode/dobby-foundation/pull/40) (`c6843ce`), [#41](https://github.com/danybgoode/dobby-foundation/pull/41) (`7944b34`), [#42](https://github.com/danybgoode/dobby-foundation/pull/42) (`6146847`) · medusa-bonsai [#192](https://github.com/danybgoode/miyagi-product-management/pull/192) (`06720a2`), [#193](https://github.com/danybgoode/miyagi-product-management/pull/193) (`ccd5c3f`) · golden-beans [#160](https://github.com/danybgoode/golden-beans/pull/160) (`791f674`)
 
 > **Wave 2 — re-bet at the boundary.** Starts when shadow has run its course (≥50 decisions per rail or the `shadowExpires` date, whichever first). Not optional: the CI expiry fails otherwise.
 
@@ -67,3 +67,44 @@ Env: a local checkout of the repo named in each step, with `TYPESAFE_API_KEY` in
    → stderr says `decided by regex: jev could not look (no key)` and the result matches today's behaviour.
 
 If any step fails, note the step number + what you saw — that's the bug report.
+
+### Smoke results — run 2026-09-23 (builder; production checkouts)
+
+1. ✅ `node scripts/jev-report.mjs` ran over every shadow decision. The full report, with the labelled
+   disagreements, is [`shadow-report-2026-09-23.md`](shadow-report-2026-09-23.md).
+   ```
+   | review | 663 | 99.7% | 0.5% | 0.0% | 2 |
+   | prose  | 187 | 56.1% | —    | 0.0% | 82 |
+   ```
+2. ✅ All three repos read `"mode": "jev"` for both rails, and no rail is in `shadow`:
+   - the template, `template/jev.config.json`
+   - medusa-bonsai, `jev.config.json` (#192)
+   - golden-beans, `jev.config.json` (#160)
+3. ✅ **Keyless fallback.** This ran in medusa-bonsai's own `main` checkout with no key (`env -u TYPESAFE_API_KEY`):
+   ```
+   ok= true | decider= regex | severity-structured findings — decided by regex: jev could not look (no TYPESAFE_API_KEY)
+   ```
+   The result matches today's behaviour exactly, and that includes accepting the timed-out banner.
+   **With the key added** to that checkout's gitignored `.env.local`, the same banner gives:
+   ```
+   ok= false | decider= jev | the reviewer's reply is not a review — decided by jev (0.05)
+   ```
+
+**Live production decisions by Jev on routed reviews:**
+- medusa #192: `a real review (should_fix) — decided by jev (0.91)` and `(clean) — decided by jev (0.97)`
+- golden-beans #160: `(clean) — decided by jev (0.97)` and `(should_fix) — decided by jev (0.95)`
+
+Every marker carries `regexOk`, so the report sees Jev-only passes as disagreements.
+
+**The flip gate (S5.2)** is Jev ≥ regex on labelled data, per rail and per family:
+- review 98.7% vs 87.0% (77 cases)
+- prose 86.5% vs 71.2% (163 cases)
+
+The thresholds were set from a sweep over the recordings: review real 0.85 / not-real 0.3, prose claim 0.8.
+
+**LEARNINGS** carries the measurement finding. The follow-ups from review, all merged, were:
+- markers carry the regex's own verdict
+- harvest provenance, so forged comments are not evidence
+- could-not-look markers are counted
+- an empty report fails
+

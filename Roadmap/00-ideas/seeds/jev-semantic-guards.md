@@ -1,7 +1,7 @@
 ---
 title: "Jev semantic guards: review-guard and prose-guard decide with Jev, not regex"
 slug: jev-semantic-guards
-status: scaffolded
+status: shipped
 area: "09"
 type: feature
 priority: wave-2026-09-19

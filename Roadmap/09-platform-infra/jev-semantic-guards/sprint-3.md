@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 3
 title: Prose guard on Jev (semantic families)
 risk: low
-phase: In review
+phase: Shipped
 stories_total: 2
 stories:
   - id: S3.1
@@ -23,7 +23,7 @@ stories:
 ---
 # Jev semantic guards — Sprint 3: Prose guard on Jev (semantic families)
 
-**Status:** 🔄 in review — S3.1 `cbc630a` · S3.2 (see PR)
+**Status:** ✅ Shipped — merged to `main` in [#36](https://github.com/danybgoode/dobby-foundation/pull/36) (`2bbb970`) · the fixture-leak fix [#37](https://github.com/danybgoode/dobby-foundation/pull/37) (`920a6c9`)
 
 ## Stories
 

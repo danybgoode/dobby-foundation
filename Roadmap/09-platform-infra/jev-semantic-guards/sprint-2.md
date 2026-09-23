@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 2
 title: Review guard on Jev (shadow, marker, backtest)
 risk: high
-phase: In review
+phase: Shipped
 stories_total: 3
 stories:
   - id: S2.1
@@ -30,7 +30,7 @@ stories:
 ---
 # Jev semantic guards — Sprint 2: Review guard on Jev (shadow, marker, backtest)
 
-**Status:** 🔄 in review — S2.1 `ae4e981` `d6201be` · S2.2 `362cef7` · S2.3 `ef82ce8` (see PR)
+**Status:** ✅ Shipped — merged to `main` in [#35](https://github.com/danybgoode/dobby-foundation/pull/35) (`5616be7`)
 
 > Touches `securityPaths` (`scripts/cross-review.mjs`, `scripts/lib/review-guard.mjs`) — the security lens runs on this PR.
 
