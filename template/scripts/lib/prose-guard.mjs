@@ -663,7 +663,10 @@ export function decideProse({ units, questions, answers, evidence = {}, threshol
     if (q.family === 'flag-state-claim' && corroborated(sentence, liveFlags)) continue;
     if (!byFamily.has(q.family)) byFamily.set(q.family, { sentence, noul });
   }
-  const findings = SEMANTIC_CODES.filter((c) => byFamily.has(c) && !unanswered.has(c)).map((code) => {
+  // Every claim Jev DID find is a finding — including in a family where some other chunk could not look.
+  // Dropping those would let a caught claim through whenever one chunk hit a 529 (fresh review, PR #36);
+  // the caller unions them with the regex for exactly those families.
+  const findings = SEMANTIC_CODES.filter((c) => byFamily.has(c)).map((code) => {
     const { sentence, noul } = byFamily.get(code);
     const note = semanticNote(code, { liveFlags, sentence });
     return {
@@ -716,7 +719,9 @@ export async function judgeProse(draft, evidence = {}, deps = {}) {
     out = { ...regex, decider: 'regex' };
   } else {
     const mechanical = regex.findings.filter((f) => !SEMANTIC_CODES.includes(f.code));
-    const fromRegex = regex.findings.filter((f) => fallback.includes(f.code));
+    // A fallback family is the UNION of the regex's verdict and whatever Jev found in the chunks that answered.
+    const jevHit = new Set(jevCodes);
+    const fromRegex = regex.findings.filter((f) => fallback.includes(f.code) && !jevHit.has(f.code));
     const findings = [...mechanical, ...jev.findings, ...fromRegex];
     out = { ok: findings.length === 0, findings, decider: fallback.length ? 'jev+regex' : 'jev' };
   }

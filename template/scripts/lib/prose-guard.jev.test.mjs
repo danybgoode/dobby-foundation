@@ -182,3 +182,30 @@ test('semanticNote is held to checkProse’s own text — the notes cannot drift
     assert.equal(semanticNote(code, { liveFlags: ev.liveFlags ?? [], sentence: draft }), regexNote, code);
   }
 });
+
+test('one chunk failing does not discard what Jev found in the chunks that answered (fresh review, PR #36)', async () => {
+  const filler = Array.from({ length: 40 }, (_, i) => `Plain sentence ${i} is here.`).join(' ');
+  const draft = `${PARAPHRASED_DEADLINE} ${filler}`;
+  let call = 0;
+  const ask = async ({ questions }) => {
+    call++;
+    if (call === 2) return { ok: false, state: 'could-not-look', error: 'HTTP 529' };
+    const answers = {};
+    for (const [id, q] of Object.entries(questions))
+      answers[id] = {
+        noul: /Thursday demo/.test(q.instructions.sentence) && id.endsWith('_commitment') ? 0.95 : 0.01,
+      };
+    return { ok: true, model: 'jev-1.13.0', answers };
+  };
+  const v = await judgeProse(
+    draft,
+    { maxWords: 4000, minWords: 1 },
+    { config: cfg('jev'), key: 'k', ask, log: () => {} }
+  );
+  assert.ok(
+    codes(v).includes('invented-commitment'),
+    'the caught paraphrase survives a failed sibling chunk'
+  );
+  assert.ok(v.jevCodes.includes('invented-commitment'), 'and shadow data records it');
+  assert.equal(v.decider, 'jev+regex');
+});
