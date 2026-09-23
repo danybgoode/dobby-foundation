@@ -127,7 +127,7 @@ export function buildPrompt({ style, kind, sources, lessons = '' }) {
 
 // ── main ────────────────────────────────────────────────────────────────────────────────────
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   let kind, epic, sprint;
   for (let i = 0; i < args.length; i++) {
@@ -157,7 +157,7 @@ function main() {
   // misfire here: refs/dates are required (not invented), and the length budget is a document, not 60
   // words. `allowsBeneficiary` stays TRUE because a retro legitimately discusses merchants and buyers.
   // The size cap is gone with the argv path — devin takes the prompt in a file.
-  const result = writeProse({
+  const result = await writeProse({
     prompt,
     evidence: {
       allowsFixClaim: true,
@@ -189,4 +189,8 @@ function main() {
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) main();
+if (isMain)
+  main().catch((e) => {
+    process.stderr.write(`prose-draft: ${e?.message || e}\n`);
+    process.exit(1);
+  });

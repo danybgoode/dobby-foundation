@@ -19,6 +19,7 @@ requires_scripts:
   - lib/cross-agent-cli.mjs
   - lib/prose-writer.mjs
   - lib/prose-guard.mjs
+  - lib/jev.mjs
   - lib/reporting-config.mjs
   - prose/cpo-persona.md
   - prose/internal.task.md
