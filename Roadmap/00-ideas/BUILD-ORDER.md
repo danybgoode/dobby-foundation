@@ -14,9 +14,9 @@
 
 _None._
 
-## 📋 Ready to build (scaffolded, not started) (0)
+## 📋 Ready to build (scaffolded, not started) (1)
 
-_None._
+- [One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo](../../09-platform-infra/golden-frijoles-plugin/README.md) — 09 Platform-infra · 0/23 stories · risk: High
 
 ## ✅ Shipped (5)
 
@@ -31,4 +31,4 @@ _None._
 - [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
 
 ---
-_Epics: 5 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 6 · seeds in funnel: 1 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
