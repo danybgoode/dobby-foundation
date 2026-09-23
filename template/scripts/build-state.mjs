@@ -30,7 +30,16 @@ import { execFileSync } from 'node:child_process';
 // The repo is `--repo-root`, never an inherited GIT_DIR: git exports GIT_DIR (and friends) into hooks, and
 // they override `cwd` — so run from a hook, this resolver would describe whichever repository the hook
 // belongs to instead of the one it was asked about (found 2026-09-23 with the fixture leak in its spec).
-const GIT_ENV_TO_CLEAR = ['GIT_DIR', 'GIT_INDEX_FILE', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_PREFIX'];
+const GIT_ENV_TO_CLEAR = [
+  'GIT_DIR',
+  'GIT_INDEX_FILE',
+  'GIT_WORK_TREE',
+  'GIT_COMMON_DIR',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_CEILING_DIRECTORIES',
+  'GIT_PREFIX',
+];
 function repoEnv() {
   const env = { ...process.env };
   for (const k of GIT_ENV_TO_CLEAR) delete env[k];

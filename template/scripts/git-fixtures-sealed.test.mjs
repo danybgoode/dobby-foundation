@@ -10,19 +10,18 @@
 // the GIT_* environment (the `sealedEnv()` pattern). Static and cheap; it reads files, it runs no git.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const specs = [
-  ...readdirSync(here)
-    .filter((f) => f.endsWith('.test.mjs'))
-    .map((f) => join(here, f)),
-  ...readdirSync(join(here, 'lib'))
-    .filter((f) => f.endsWith('.test.mjs'))
-    .map((f) => join(here, 'lib', f)),
-];
+const specsIn = (dir) =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.test.mjs'))
+        .map((f) => join(dir, f))
+    : [];
+const specs = [...specsIn(here), ...specsIn(join(here, 'lib'))];
 
 /** Does this source build a git repository in a fixture? (`git('init'` / `['init'` passed to git.) */
 export const initsRepo = (src) => /\bgit\w*\(\s*['"]init['"]|['"]git['"]\s*,\s*\[\s*['"]init['"]/.test(src);
