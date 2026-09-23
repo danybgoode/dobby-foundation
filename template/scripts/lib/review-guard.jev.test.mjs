@@ -151,7 +151,7 @@ test('a very long reply is truncated with a note before it reaches Jev', async (
     { config: cfg('jev'), key: 'k', ask, log: () => {} }
   );
   assert.ok(calls[0].state.length < 61_000);
-  assert.match(calls[0].state, /reply truncated for length/);
+  assert.match(calls[0].state, /characters omitted from the middle/);
 });
 
 test('jevMarker: carries mode, decider, noul, severity, model — never the reply text', async () => {

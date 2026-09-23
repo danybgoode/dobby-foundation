@@ -282,17 +282,20 @@ export const RE_REVIEW_NOTE =
 export const REVIEW_STATE_CHARS = 60_000;
 
 export const REVIEW_QUESTIONS = {
-  // Wording measured, not guessed (2026-09-22, live, jev-1.13.0): asked "is this a genuine review of the
-  // pull request?", Jev scored the real prose finding only 0.73 (uncertain → regex decided, wrongly). Asked
-  // whether the text CONTAINS AN ASSESSMENT of the change, it scored that finding 0.97, a clean verdict
-  // 0.97, and a timeout, a CLI banner, a quota message and bare headings 0.01–0.09.
+  // Wording MEASURED, not guessed — on the 76 labelled review fixtures in jev-eval.fixtures.json (2026-09-23,
+  // jev-1.13.0), at real ≥ 0.85 / not-real ≤ 0.15. "Is this a genuine review?" scored a real prose finding
+  // 0.73. "Does it contain an assessment of a code change?" decided only 38/76, because terse clean verdicts
+  // ("Clean.", "Blocking: None.") sat in the uncertain band. This wording, which names the terse verdicts
+  // and the failure shapes, decided 74/76 and got all 74 right (the regex alone: 66/76). Re-measure with
+  // `node scripts/jev-eval.mjs --live` before changing a word of it.
   is_real_review: {
     type: 'noul',
-    instructions: 'Does this text contain an actual assessment of a code change?',
+    instructions:
+      'This is the output of an automated code reviewer. Did the reviewer deliver a verdict on the change?',
     criteria: {
-      true: 'It points out a specific problem in the code (in any wording or format) or explicitly concludes the change has no problems.',
+      true: 'Yes: it reports at least one finding about the code, OR it states a verdict that there is nothing to fix — e.g. "Clean.", "No findings.", "Blocking: None. Should-fix: None.", "Diff looks clean." A short clean verdict counts, and boilerplate footers after it do not change that.',
       false:
-        'It contains no assessment of the code: empty headings, a tool banner, an error, a quota or timeout message, a raw tool-call transcript.',
+        'No: the reviewer did not finish or never started — empty severity headings, a timeout or "analysis incomplete" note, a quota, rate-limit, login or HTTP error, a CLI banner or help text, a preamble or plan saying what it will do, or a raw tool-call transcript.',
     },
   },
   severity: {
@@ -308,12 +311,17 @@ export const REVIEW_QUESTIONS = {
   },
 };
 
-/** The state Jev sees: the reply, truncated with a note when it would not fit. Pure. */
+/**
+ * The state Jev sees: the reply, or — when it would not fit — its HEAD and TAIL with a note between. The tail
+ * matters most: a reviewer states its verdict last, and a head-only cut of a 124k-character reply showed Jev
+ * nothing but a file-list preamble (2026-09-23 backtest). Pure.
+ */
 export function reviewState(text) {
   const t = String(text ?? '');
-  return t.length > REVIEW_STATE_CHARS
-    ? `${t.slice(0, REVIEW_STATE_CHARS)}\n\n[… reply truncated for length: ${t.length - REVIEW_STATE_CHARS} more characters not shown]`
-    : t;
+  if (t.length <= REVIEW_STATE_CHARS) return t;
+  const head = Math.floor(REVIEW_STATE_CHARS / 3);
+  const tail = REVIEW_STATE_CHARS - head;
+  return `${t.slice(0, head)}\n\n[… ${t.length - REVIEW_STATE_CHARS} characters omitted from the middle for length …]\n\n${t.slice(-tail)}`;
 }
 
 /**
