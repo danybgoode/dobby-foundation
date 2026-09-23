@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 3
 title: Prose guard on Jev (semantic families)
 risk: low
-phase: Shaping
+phase: Building
 stories_total: 2
 stories:
   - id: S3.1

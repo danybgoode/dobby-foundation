@@ -2284,5 +2284,2434 @@
       }
     }
   ],
-  "prose": []
+  "prose": [
+    {
+      "id": "clean-internal",
+      "label": [],
+      "draft": "Whoever ships next gets faster feedback. A whole class of mistake is now caught in seconds rather than after a deploy, and the checks run on every change without anyone remembering to.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.15
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.14
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.38
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "beneficiary-tenants",
+      "label": [
+        "invented-beneficiary"
+      ],
+      "draft": "Tenants now benefit from a faster test suite that validates core functions in milliseconds.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "a measured incident recorded in prose-guard.mjs",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.95
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.27
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "beneficiary-allowed",
+      "label": [],
+      "draft": "Merchants can hand a partner a portfolio and see what that partner did with it.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.3
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-disclosure",
+      "label": [],
+      "draft": "The roadmap now records the agreed operating boundary. There was no customer-visible effect.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-does-not-launder",
+      "label": [
+        "invented-beneficiary"
+      ],
+      "draft": "There was no customer-visible effect. Users now benefit from faster and safer publishing.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.2
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.96
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.13
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-bullet-does-not-launder",
+      "label": [
+        "invented-beneficiary"
+      ],
+      "draft": "- no customer-visible effect\n- users now benefit from faster publishing",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.96
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.14
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-participle-incident",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "The previous backslash bypass is blocked, eliminating a potential open-redirect attack for everyone.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "a measured incident recorded in prose-guard.mjs",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-genuine-allowed",
+      "label": [],
+      "draft": "A sign-in that failed for some people is fixed; they can reach their account again.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.18
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.65
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-resolves",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "This resolves the crash people were hitting.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-now-closed",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "The leak is now closed.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.95
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-no-longer",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "Sign-in no longer breaks on a slow connection.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-removed",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "The vulnerability was removed.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-now-secure",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "The flow is now secure.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.72
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.13
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-prevents",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "This prevents the duplicate charge.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.95
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-incident",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "Nothing is currently blocked, though design sign-off on the Sprint 2 layout is owed before tomorrow.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "a measured incident recorded in prose-guard.mjs",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.99
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-friday",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "The review is due by Friday.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.99
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-next-week",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "This will ship next week.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.13
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.94
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-end-of-week",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "Approval is pending and needed by end of week.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.98
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-tomorrow",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "The migration is scheduled for tomorrow.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-monday",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "It will be ready by Monday.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "owed-without-date",
+      "label": [],
+      "draft": "The product owner still needs to add a repository secret before the automatic push turns on, and to read the three views themselves.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.16
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-flag-off",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The partner portfolio is live, so anyone handed a shop can now see what they are responsible for.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-corroborated",
+      "label": [],
+      "draft": "The activation crm is live, and the emission rail behind it now runs on every change.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [
+          "promoter.activation_crm_enabled"
+        ],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.95
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-one-flag-no-launder",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The activation crm is live. The partner portfolio is live too, ready for whoever gets handed one.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [
+          "promoter.activation_crm_enabled"
+        ],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "dark-honest-1",
+      "label": [],
+      "draft": "The rail is built and nothing is live yet, because the flag it sits behind has never been flipped.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "dark-honest-2",
+      "label": [],
+      "draft": "Everything landed dark; no part of it is enabled for anyone until the product owner flips the switch themselves.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.05
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "dark-honest-3",
+      "label": [],
+      "draft": "The portfolio is not live and will stay dark until someone reads it end to end.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.06
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-later-negation",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The partner portfolio is live for every shop, and no smoke test has been run against it.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-is-live",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The portfolio is live.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-now-enabled",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The reminder cron is now enabled.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-went-live",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The scorecard went live this morning.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-rolled-out",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The intake form is rolled out to everyone.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-in-production",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The emission rail is running in production.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-now-available",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The consent preview is now available.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "can-now-uncorroborated",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "A shop owner can now hand a partner one shop instead of the whole account.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.92
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "can-now-corroborated",
+      "label": [],
+      "draft": "A shop owner can now hand a partner one shop instead of the whole account.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [
+          "promoter.partner_handoff_enabled"
+        ],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.92
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "can-now-negated",
+      "label": [],
+      "draft": "Nobody can now hand a partner a shop, because the rail stays dark until the flag flips.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.45
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.07
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-shopper",
+      "label": [],
+      "draft": "Most of today went into the delivery rail rather than anything a shopper would see, and the work is internal.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "a measured incident recorded in prose-guard.mjs",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-user-visible",
+      "label": [],
+      "draft": "This has no user-visible effect; the beneficiary is whoever builds here next and the effect is a bug class caught earlier.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.13
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-unaffected",
+      "label": [],
+      "draft": "Merchants are unaffected by this work, which tightened an internal check that used to depend on memory.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.29
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "beneficiary-and-live",
+      "label": [
+        "invented-beneficiary",
+        "flag-state-claim"
+      ],
+      "draft": "Merchants can now hand a shop to a partner and buyers get a faster checkout as a result.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "prose-guard.test.mjs — the expected codes that spec pins",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.89
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim",
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "negation-and-dark",
+      "label": [],
+      "draft": "The release tooling now checks every migration before it runs, rather than anything a shopper would see. Nothing is live until the flag is flipped.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.07
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.12
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-paraphrase-door",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "This change closes the door on the open-redirect trick that let a crafted link bounce visitors elsewhere.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-paraphrase-stuck",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "Sellers' payouts won't get stuck anymore.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.13
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-participle-now-validates",
+      "label": [
+        "unsupported-fix-claim"
+      ],
+      "draft": "Login now validates the return address, eliminating a potential open-redirect attack.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.18
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "unsupported-fix-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-denied",
+      "label": [],
+      "draft": "This does not fix the slow export — that remains open.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "fix-nothing",
+      "label": [],
+      "draft": "We fixed nothing in this pass; the work was all documentation.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "past-incident-context",
+      "label": [],
+      "draft": "The new test pins the redirect check that a July change introduced, so a regression would fail the build.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.07
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-bless-thursday",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "Design needs to bless the new layout before the Thursday demo.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.98
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-land-wednesday",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "Expect the migration to land Wednesday.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.88
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "commitment-next-quarter",
+      "label": [
+        "invented-commitment"
+      ],
+      "draft": "The team plans to revisit pricing next quarter.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.58
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-commitment"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "owed-no-date",
+      "label": [],
+      "draft": "Owed to the product owner: one smoke run on a phone, no date set.",
+      "evidence": {
+        "allowsFixClaim": true,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-paraphrase-this-morning",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "Partners can hand a shop to a colleague from their dashboard as of this morning.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.96
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.07
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-paraphrase-switch-flipped",
+      "label": [
+        "flag-state-claim"
+      ],
+      "draft": "The switch has been flipped, so the new onboarding is what every newcomer sees now.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": true,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.96
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "flag-state-claim"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "live-corroborated-everyone",
+      "label": [],
+      "draft": "Shop hand-off is live for everyone.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [
+          "promoter.shop_handoff_enabled"
+        ],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.62
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.99
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "dark-nobody-yet",
+      "label": [],
+      "draft": "The flag stays off, so nobody can use the new export yet.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "dark-not-yet-available",
+      "label": [],
+      "draft": "The export is not yet available to anyone.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "describes-behaviour-now",
+      "label": [],
+      "draft": "The weekly report now groups merged pull requests by epic and names the story each one advanced.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.2
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "beneficiary-paraphrase-shoppers",
+      "label": [
+        "invented-beneficiary"
+      ],
+      "draft": "Shoppers will notice pages load noticeably quicker.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.12
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.07
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "beneficiary-paraphrase-people-buying",
+      "label": [
+        "invented-beneficiary"
+      ],
+      "draft": "Checkout feels snappier for the people buying from us.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.11
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.97
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.01
+          }
+        }
+      },
+      "decision": {
+        "codes": [
+          "invented-beneficiary"
+        ],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-not-visible",
+      "label": [],
+      "draft": "Nothing about this is visible to merchants; it only tightens the release checklist.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    },
+    {
+      "id": "no-impact-no-customer-notice",
+      "label": [],
+      "draft": "No customer will notice; the change only reorders internal checks.",
+      "evidence": {
+        "allowsFixClaim": false,
+        "allowsBeneficiary": false,
+        "liveFlags": [],
+        "minWords": 1
+      },
+      "source": "hand-written hard case — a paraphrase the regex misses, or an honest sentence it flags",
+      "recorded": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "s0_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_live": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s0_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_fix": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_beneficiary": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "s1_live": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "s1_commitment": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        }
+      },
+      "decision": {
+        "codes": [],
+        "decider": "jev"
+      }
+    }
+  ]
 }
