@@ -170,7 +170,9 @@ marketplace* section are rewritten here for a stranger, around `INSTALL_PROMPT`.
 - **deterministic gate:** every CI check green before merge; high-risk stories → Daniel merges
 
 ## Sprint 3 — Smoke walkthrough (do these in order)
-Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview URL for golden-beans changes while pre-merge.
+Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview URL for golden-beans changes while
+pre-merge. **Pass, for both stranger walkthroughs below: a seed lands in `Roadmap/00-ideas/seeds/` AND `ls` shows
+no `scripts/` folder in the repo** — the whole point of the kit (D1–D3) is that a stranger never receives scripts.
 
 1. Open https://goldenfrijoles.com and scroll to the closing section
    → A box with the install prompt and a **Copy** button. The hero still offers the workshop prompt.
@@ -178,11 +180,63 @@ Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview UR
    → The same prompt, character for character, with a Copy button.
 3. Sign in and open https://goldenfrijoles.com/app/onboarding/<your-project-slug> (owed to Daniel: signed-in)
    → The same prompt appears on the onboarding page.
-4. **Stranger walkthrough A (Claude Code).** On a clean machine or user account: `mkdir demo && cd demo && git init && claude`, paste the copied prompt
-   → Claude installs the plugin, loads `golden-frijoles`, and offers to set up.
-5. Say: "set it up, then groom this idea: a dark mode toggle"
-   → `Roadmap/` appears and a seed lands in `Roadmap/00-ideas/seeds/`. `ls` shows **no `scripts/` folder**.
-6. **Stranger walkthrough B (Codex).** Same empty folder, open Codex, paste the prompt, choose Codex when `npx skills` asks
-   → The skills install. The umbrella skill says the build view and review agent are Claude Code-only, and grooming the same idea lands a seed.
+
+### Stranger walkthrough A — Claude Code (owed to Daniel: the real, interactive run)
+
+On a machine that has never run either repo, in an empty folder:
+
+```
+mkdir demo && cd demo && git init -q && claude
+```
+
+Paste the install prompt (word for word — it's the fenced block in the umbrella skill, above, and in the repo
+README's opening section):
+
+```
+Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill golden-frijoles` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
+```
+
+→ Claude runs `claude plugin marketplace add golden-frijoles/skills` then `claude plugin install
+golden-frijoles@golden-frijoles`, loads the `golden-frijoles` skill, detects no `Roadmap/`, and offers `gf-kit
+init`.
+
+Then say: **"set it up, then groom this idea: a dark mode toggle"**
+
+→ `Roadmap/` appears (via `gf-kit init` — `npx -y @golden-frijoles/kit@<version> init` under the hood, since a
+fresh `demo/` has no local `scripts/`), then `groom` runs and a seed lands in `Roadmap/00-ideas/seeds/`. `ls`
+shows **no `scripts/` folder** — everything the skills ran came from `npx`, nothing was copied into the repo.
+
+**Builder's own dry run (S3.5, this sprint — as far as a headless session allows):** attempted non-interactively
+(`claude -p "<the prompt>"`) in a scrubbed `HOME`/`XDG_CONFIG_HOME`/`CLAUDE_CONFIG_DIR` empty temp dir, inside an
+empty `git init` repo, no timeout hit. **It stopped immediately, at authentication**: `claude -p` returned
+`{"is_error":true,"result":"Not logged in · Please run /login", ...}` before any tool call, because a scrubbed
+`HOME` has no OAuth credential and no keychain entry — by construction, since the same isolation this sprint's
+`--exec` probes rely on (D8) also isolates away a real login. This is as far as a headless dry run can go: the
+interactive login step, and everything after it (the plugin install, the skill load, `groom`), needs a real
+device session and is owed to Daniel below. It does confirm the negative property that matters most for a dry
+run of an untrusted prompt: nothing in the scrubbed sandbox touched the operator's real Claude Code config.
+
+### Stranger walkthrough B — Codex via `npx skills` (owed to Daniel: the real, interactive run)
+
+Same empty folder, a different agent:
+
+```
+mkdir demo-codex && cd demo-codex && git init -q
+npx skills add golden-frijoles/skills --skill golden-frijoles
+```
+
+(Or paste the install prompt into Codex — it reads "If you're in another agent, run `npx skills add
+golden-frijoles/skills --skill golden-frijoles` and select your agent" and runs the equivalent command itself.)
+
+→ `npx skills` installs the `golden-frijoles` `SKILL.md` (and every skill it routes to) with **no hooks and no
+agents directory** — confirmed live this sprint (`npx -y skills@1.7.0 add golden-frijoles/skills --list`; see
+S3.4's report for the exact pre-merge output). The umbrella skill's own text says so: "No build-view hook … No
+`pr-reviewer` agent" — that's what makes this channel not a silent, worse Claude Code.
+
+Then, in Codex: **"set it up, then groom this idea: a dark mode toggle"**
+
+→ Same as walkthrough A: `gf-kit init` (via `npx`) writes `Roadmap/`, `groom` runs, a seed lands in
+`Roadmap/00-ideas/seeds/`, and `ls` shows no `scripts/` folder. The umbrella skill states plainly, before doing
+anything else, that this channel lacks the build-view hook and the `pr-reviewer` agent.
 
 If any step fails, note the step number + what you saw — that's the bug report.
