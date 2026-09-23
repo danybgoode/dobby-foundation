@@ -35,11 +35,15 @@ jobs:
       # Trusted publishing needs npm >= 11.5.1 (npm docs). Node 24 bundles npm 11; the explicit upgrade and the
       # printed version make that a checked fact, not an assumption (the first run started on npm 10.9.2).
       #
-      # NO `registry-url` here. SUSPECTED, not proven: with it, setup-node writes a placeholder
-      # `_authToken=${NODE_AUTH_TOKEN}` into .npmrc, and two other projects saw npm use that instead of the OIDC
-      # exchange ("403 OIDC permission denied for this action", which this repo's first publish also got, run
-      # 35932758951). npm's own docs show `registry-url`, though, so if a publish still fails, read the verbose
-      # log below before believing this comment. Without it npm uses its default registry, npmjs.org.
+      # No `registry-url`: npm's default registry is npmjs.org. (It was removed while chasing a 403 and turned out
+      # NOT to be the cause. The verbose log showed the OIDC exchange succeeding either way.)
+      #
+      # What the first publish actually needed, learned on run 35933854829 (2026-09-23):
+      #   404 on PUT                               → no trusted publisher matched (npm-side settings)
+      #   403 "OIDC permission denied for this action", AFTER `oidc Successfully retrieved and set token`
+      #                                            → the trusted publisher's "Allowed actions" was stage-only
+      #   PUT 202, then "not visible after 60s"    → npm validates a publish asynchronously; the wait below
+      #                                              is minutes, not seconds
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -82,15 +86,17 @@ jobs:
           node scripts/check-skill-scripts.mjs --kit
           # --loglevel verbose: the log then says whether the OIDC exchange ran and why it failed (fresh review, #46).
           ( cd kit && npm publish --provenance --access public --loglevel verbose )
-          # The registry is eventually consistent. Confirm before the tag job records a release.
-          for i in 1 2 3 4 5 6; do
+          # npm answers a publish with 202 and validates it asynchronously: the first one took several minutes to
+          # appear. Confirm before the tag job records a release. A timeout here is safe: a re-run finds the
+          # version on npm, skips the publish and tags it.
+          for i in $(seq 1 45); do
             if npm view "@golden-frijoles/kit@${version}" version >/dev/null 2>&1; then
               echo "publish: @golden-frijoles/kit@${version} is live."
               exit 0
             fi
-            sleep 10
+            sleep 20
           done
-          echo "::error::published, but @golden-frijoles/kit@${version} is not visible on npm after 60s."
+          echo "::error::published (202), but @golden-frijoles/kit@${version} is not visible on npm after 15 min. Re-run this job once it appears: it will skip the publish and tag the release."
           exit 1
 
   release:
