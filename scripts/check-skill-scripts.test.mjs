@@ -242,3 +242,32 @@ test('a stale NO_SCRIPTS_EXPECTED entry fails instead of masking a real declarat
     assert.ok(reason.length > 10, `${skill}'s exemption reason is too thin to review`);
   }
 });
+
+// ── D3: a consuming project may run a skill from the kit (golden-frijoles-plugin S2.4) ──────────────
+test('kitFallback: an absent ENTRY means the skill runs from the kit, so nothing is required locally', () => {
+  const r = resolveSkill({
+    skill: 'build-order-sync',
+    declared: ['build-order-sync.mjs', 'build-order.mjs', 'lib/x.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: (p) => p === '/p/scripts/build-order.mjs', // kept locally for CI, entry deleted
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'kit');
+});
+
+test('kitFallback: a PRESENT entry means the project runs its own copy, and its closure must be whole', () => {
+  const r = resolveSkill({
+    skill: 's',
+    declared: ['s.mjs', 'lib/x.mjs'],
+    scriptsDir: '/p/scripts',
+    exists: (p) => p === '/p/scripts/s.mjs',
+    kitFallback: true,
+  });
+  assert.equal(r.status, 'missing');
+  assert.deepEqual(r.missing, ['lib/x.mjs']);
+});
+
+test('without kitFallback (the template, the built kit) an absent entry is still a failure', () => {
+  const r = resolveSkill({ skill: 's', declared: ['s.mjs'], scriptsDir: '/t/scripts', exists: () => false });
+  assert.equal(r.status, 'missing');
+});

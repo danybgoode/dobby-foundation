@@ -152,6 +152,7 @@ export function resolveSkill({
   read = null,
   ledger = KNOWN_ABSENT,
   exemptions = NO_SCRIPTS_EXPECTED,
+  kitFallback = false,
 }) {
   const exempt = Object.prototype.hasOwnProperty.call(exemptions, skill);
 
@@ -176,6 +177,14 @@ export function resolveSkill({
       present: [],
       note: `listed in NO_SCRIPTS_EXPECTED but declares ${declared.length} script(s) — remove the entry`,
     };
+  }
+
+  // D3 (golden-frijoles-plugin): in a consuming project, a skill whose ENTRY script (its first declared .mjs)
+  // is absent locally runs from @golden-frijoles/kit, which is self-contained. So nothing of its closure is
+  // required locally. A present entry means the project runs its own copy, and its whole closure must be here.
+  const entry = declared.find((rel) => rel.endsWith('.mjs'));
+  if (kitFallback && entry && !exists(join(scriptsDir, entry))) {
+    return { skill, status: 'kit', missing: [], present: [], entry };
   }
 
   const missing = declared.filter((rel) => !exists(join(scriptsDir, rel)));
@@ -275,6 +284,7 @@ export function audit({
   skillsDir = SKILLS_DIR,
   exists = existsSync,
   read = readFileSync,
+  kitFallback = false,
 } = {}) {
   return listSkills(skillsDir).map((skill) =>
     resolveSkill({
@@ -283,6 +293,7 @@ export function audit({
       scriptsDir,
       exists,
       read,
+      kitFallback,
     })
   );
 }
@@ -304,8 +315,9 @@ function main(argv) {
     return 2;
   }
 
-  const results = audit({ target, scriptsDir });
-  const PASSING = new Set(['ok', 'exempt', 'debt']);
+  // Only a CONSUMING project can fall back to the kit; the template and the built kit must be whole.
+  const results = audit({ target, scriptsDir, kitFallback: rootIdx !== -1 && !kit });
+  const PASSING = new Set(['ok', 'exempt', 'debt', 'kit']);
   const bad = results.filter((r) => !PASSING.has(r.status));
   const debt = results.filter((r) => r.status === 'debt');
 
@@ -320,6 +332,8 @@ function main(argv) {
   for (const r of results) {
     if (r.status === 'ok') {
       console.log(`  ok        ${r.skill} — ${r.present.length} script(s) present`);
+    } else if (r.status === 'kit') {
+      console.log(`  kit       ${r.skill} — no local scripts/${r.entry}, so it runs from @golden-frijoles/kit`);
     } else if (r.status === 'exempt') {
       console.log(`  exempt    ${r.skill} — ${NO_SCRIPTS_EXPECTED[r.skill]}`);
     } else if (r.status === 'debt') {

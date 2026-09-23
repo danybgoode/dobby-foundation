@@ -6,8 +6,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { chmodSync } from 'node:fs';
 import {
   END,
+  KIT_END,
+  renderKitBlock,
+  spliceKitBlock,
   loadSkills,
   parseSkillHeader,
   renderAll,
@@ -88,4 +93,65 @@ test('the committed adverts are current — the same assertion CI makes with --c
     .filter((d) => existsSync(join(root, 'plugins', 'golden-frijoles', 'skills', d, 'SKILL.md')));
   const plugin = JSON.parse(readFileSync(files.plugin, 'utf8'));
   for (const d of dirs) assert.match(plugin.description, new RegExp(`\\b${d}\\b`));
+});
+
+// ── The kit run rule (golden-frijoles-plugin D3 / S2.4) ─────────────────────────────────────────────
+
+const wrapping = (name, markers = true) =>
+  `---\nname: ${name}\nsummary: "s"\nrequires_scripts:\n  - ${name}.mjs\n---\n\n# ${name}\n\n` +
+  (markers ? `<!-- kit:start -->\n${KIT_END}\n\n` : '') +
+  `Run \`node scripts/${name}.mjs --dry-run\`.\n`;
+
+test('the kit block is stamped with plugin.json\'s version, into every skill that wraps scripts', () => {
+  const plugin = JSON.stringify({ name: 'golden-frijoles', version: '9.8.7' });
+  const out = renderAll({
+    skills: [{ name: 'a', summary: 's' }],
+    marketplaceText: MARKETPLACE,
+    pluginText: plugin,
+    readmeText: `x\n<!-- skills:start -->\n${END}\n`,
+    skillTexts: { '/a/SKILL.md': wrapping('a'), '/b/SKILL.md': skill('b', 'no scripts') },
+  });
+  assert.match(out['/a/SKILL.md'], /npx -y @golden-frijoles\/kit@9\.8\.7 <name> <args>/);
+  assert.equal(out['/b/SKILL.md'], undefined, 'a skill with no requires_scripts gets no run rule');
+});
+
+test('a script-wrapping skill with no kit markers is refused, never silently skipped', () => {
+  assert.throws(() => spliceKitBlock(wrapping('a', false), renderKitBlock('1.0.0'), 'a/SKILL.md'), /kit:start/);
+});
+
+test('re-rendering the block is a no-op (idempotent)', () => {
+  const once = spliceKitBlock(wrapping('a'), renderKitBlock('1.0.0'));
+  assert.equal(spliceKitBlock(once, renderKitBlock('1.0.0')), once);
+});
+
+/** Pull the literal shell line out of the rendered block and bind <name>/<args>, exactly as an agent would. */
+function ruleFor(version, name, args) {
+  const line = renderKitBlock(version).split('\n').find((l) => l.includes('if [ -f scripts/'));
+  return line.replace(/^> `/, '').replace(/`$/, '').replaceAll('<name>', name).replaceAll('<args>', args);
+}
+
+function project({ local }) {
+  const dir = mkdtempSync(join(tmpdir(), 'kit-rule-'));
+  const bin = join(dir, 'fakebin');
+  mkdirSync(bin);
+  // A fake npx records its argv, so the test sees exactly what the rule would ask the registry for.
+  writeFileSync(join(bin, 'npx'), '#!/bin/sh\necho "KIT $*"\n');
+  chmodSync(join(bin, 'npx'), 0o755);
+  if (local) {
+    mkdirSync(join(dir, 'scripts'));
+    writeFileSync(join(dir, 'scripts', 'build-order.mjs'), 'console.log("LOCAL " + process.argv.slice(2).join(" "));\n');
+  }
+  return { dir, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } };
+}
+
+test('the rule runs the project\'s own copy when it has one — and never the kit', () => {
+  const { dir, env } = project({ local: true });
+  const r = spawnSync('sh', ['-c', ruleFor('0.2.0', 'build-order', '--check')], { cwd: dir, env, encoding: 'utf8' });
+  assert.equal(r.stdout.trim(), 'LOCAL --check');
+});
+
+test('without a local copy the rule asks npx for exactly the pinned kit, the script and its args', () => {
+  const { dir, env } = project({ local: false });
+  const r = spawnSync('sh', ['-c', ruleFor('0.2.0', 'build-order', '--check')], { cwd: dir, env, encoding: 'utf8' });
+  assert.equal(r.stdout.trim(), 'KIT -y @golden-frijoles/kit@0.2.0 build-order --check');
 });
