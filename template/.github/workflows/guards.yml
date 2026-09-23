@@ -93,16 +93,16 @@ jobs:
           test "${#files[@]}" -gt 0 || { echo "no flag seam tests found" >&2; exit 1; }
           node --test "${files[@]}"
 
-      # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,
-      # the allow list made of verb classes, no project-level auto mode. Static only — the behavioural
-      # replay (`--live`) spends real Claude sessions, so it is run by hand when rules change; see the
-      # script header for what it can and cannot prove.
       # Jev semantic guards (jev-semantic-guards D8): replay the labelled fixtures' RECORDED Jev answers
       # through the real judges (offline — never calls the API), and fail when any rail has sat in `shadow`
       # past its `shadowExpires`. Unconditional on purpose: expiry is a date, not a diff.
       - name: jev — eval replay + shadow expiry
         run: node scripts/jev-eval.mjs
 
+      # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,
+      # the allow list made of verb classes, no project-level auto mode. Static only — the behavioural
+      # replay (`--live`) spends real Claude sessions, so it is run by hand when rules change; see the
+      # script header for what it can and cannot prove.
       - name: permissions — contract holds
         if: steps.areas.outputs.claude == 'true'
         run: node scripts/permissions-smoke.mjs

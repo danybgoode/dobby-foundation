@@ -21,16 +21,51 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadJevConfig, parseJevConfig, readApiKey, repoRoot } from './lib/jev.mjs';
+import { loadJevConfig, parseJevConfig, RAILS, readApiKey, repoRoot } from './lib/jev.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const FIXTURES_PATH = join(__dirname, 'jev-eval.fixtures.json');
 
-/** Rails whose shadow window has closed. Pure. `today` is YYYY-MM-DD. */
+/** Shadow is a short, expiring measurement: at most this many days out, ever. */
+export const MAX_SHADOW_DAYS = 21;
+/** A judge that exists must be proven on at least this many labelled cases (S1.4 acceptance). */
+export const MIN_FIXTURES = 30;
+
+const addDays = (ymd, n) =>
+  new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Shadow rails that fail the rot guard. Pure. `today` is the UTC date, YYYY-MM-DD (CI runs in UTC).
+ * Past its date is expired; more than MAX_SHADOW_DAYS out is refused too — `2099-01-01` would otherwise
+ * be a permanent shadow wearing an expiry date, and the gap only ever shrinks, so the cap is safe.
+ */
 export function expiredShadowRails(config, today) {
+  const cap = addDays(today, MAX_SHADOW_DAYS);
   return Object.entries(config.rails)
-    .filter(([, r]) => r.mode === 'shadow' && r.shadowExpires && r.shadowExpires < today)
-    .map(([name, r]) => ({ rail: name, shadowExpires: r.shadowExpires }));
+    .filter(
+      ([, r]) => r.mode === 'shadow' && r.shadowExpires && (r.shadowExpires < today || r.shadowExpires > cap)
+    )
+    .map(([name, r]) => ({
+      rail: name,
+      shadowExpires: r.shadowExpires,
+      why: r.shadowExpires < today ? 'past its shadowExpires' : `more than ${MAX_SHADOW_DAYS} days out`,
+    }));
+}
+
+/**
+ * Coverage failures: fixtures with no judge to replay them (a renamed judge must not turn CI green), and a
+ * judge with fewer than MIN_FIXTURES labelled cases. Pure.
+ */
+export function coverageFailures(fixtures, rails) {
+  const out = [];
+  for (const name of RAILS) {
+    const n = (fixtures[name] ?? []).length;
+    if (!rails[name] && n)
+      out.push(`${name}: ${n} fixture(s) but no judge to replay them — was the judge renamed?`);
+    if (rails[name] && n < MIN_FIXTURES)
+      out.push(`${name}: only ${n} labelled fixture(s); a judge needs ≥${MIN_FIXTURES}`);
+  }
+  return out;
 }
 
 /** An `ask` that answers ONLY from a recording — a missing answer is could-not-look, i.e. a stale fixture. */
@@ -39,7 +74,11 @@ export function replayAsk(recorded) {
     const ids = Object.keys(questions);
     const missing = ids.filter((id) => !recorded?.answers?.[id]);
     if (missing.length)
-      return { ok: false, state: 'could-not-look', error: `no recording for ${missing.slice(0, 3).join(', ')}` };
+      return {
+        ok: false,
+        state: 'could-not-look',
+        error: `no recording for ${missing.slice(0, 3).join(', ')}`,
+      };
     return {
       ok: true,
       answers: Object.fromEntries(ids.map((id) => [id, recorded.answers[id]])),
@@ -49,19 +88,28 @@ export function replayAsk(recorded) {
   };
 }
 
-/** An `ask` that forwards to live Jev and captures every answer, so the recording can be rewritten. */
+/**
+ * An `ask` that forwards to live Jev and captures every answer, so the recording can be rewritten. A
+ * could-not-look is RECORDED as a failure: the judge would fall back to the regex, and scoring that as
+ * Jev's answer — or baking it into the recording — would corrupt the flip gate (fresh review, PR #34).
+ */
 function recordingAsk(ask, sink) {
   return async (req) => {
     const r = await ask(req);
     if (r.ok) {
       Object.assign(sink.answers, r.answers);
       sink.model = r.model;
-    }
+    } else sink.errors.push(r.error);
     return r;
   };
 }
 
-const SEMANTIC_CODES = ['unsupported-fix-claim', 'invented-beneficiary', 'flag-state-claim', 'invented-commitment'];
+const SEMANTIC_CODES = [
+  'unsupported-fix-claim',
+  'invented-beneficiary',
+  'flag-state-claim',
+  'invented-commitment',
+];
 const sortedCodes = (findings) =>
   [...new Set((findings ?? []).map((f) => f.code).filter((c) => SEMANTIC_CODES.includes(c)))].sort();
 
@@ -114,20 +162,37 @@ export async function evaluate({ fixtures, rails, config, live = false, ask = nu
     const cfg = evalConfig(config, name);
     const tally = { n: cases.length, jevRight: 0, regexRight: 0, disagreements: 0, families: {} };
     for (const fx of cases) {
-      const sink = { answers: {}, model: null };
+      const sink = { answers: {}, model: null, errors: [] };
       const deps = {
         config: cfg,
         key: 'eval',
         log: () => {},
         ask: live ? recordingAsk(ask, sink) : replayAsk(fx.recorded),
       };
+      // A recording answers for the model that produced it. Replaying it under a bumped `model` would pass
+      // while proving nothing about the new one (codex, PR #34): re-record with --live first.
+      if (!live && fx.recorded?.model !== config.model) {
+        failures.push(
+          `${name}/${fx.id}: recorded by ${fx.recorded?.model ?? 'nothing'}, config pins ${config.model} — run --live`
+        );
+        continue;
+      }
       const decision = await rail.run(fx, deps);
       const summary = rail.summary(decision);
+      if (live && sink.errors.length) {
+        failures.push(
+          `${name}/${fx.id}: jev could not look (${sink.errors[0]}) — not scored, recording kept`
+        );
+        tally.n--;
+        continue;
+      }
       if (live) {
         fx.recorded = { model: sink.model, answers: sink.answers };
         fx.decision = summary;
       } else if (!same(summary, fx.decision)) {
-        failures.push(`${name}/${fx.id}: replay gave ${JSON.stringify(summary)}, recorded ${JSON.stringify(fx.decision)}`);
+        failures.push(
+          `${name}/${fx.id}: replay gave ${JSON.stringify(summary)}, recorded ${JSON.stringify(fx.decision)}`
+        );
       }
       const expected = rail.expected(fx);
       const jevRight = same(rail.predicted(decision), expected);
@@ -168,6 +233,10 @@ async function main() {
   const live = argv.includes('--live');
   const railIx = argv.indexOf('--rail');
   const only = railIx >= 0 ? argv[railIx + 1] : null;
+  if (railIx >= 0 && !RAILS.includes(only)) {
+    process.stderr.write(`jev-eval: --rail must be one of ${RAILS.join(', ')}\n`);
+    process.exit(2);
+  }
   const root = repoRoot();
   const config = loadJevConfig({ root });
 
@@ -191,8 +260,11 @@ async function main() {
   }
 
   const { failures, report } = await evaluate({ fixtures, rails, config, live, ask, only });
+  failures.push(...coverageFailures(fixtures, rails));
   const n = Object.values(report).reduce((s, t) => s + t.n, 0);
-  if (live) {
+  if (live && failures.length) {
+    process.stderr.write('jev-eval --live: failures below — the recordings were NOT rewritten.\n');
+  } else if (live) {
     writeFileSync(FIXTURES_PATH, `${JSON.stringify(fixtures, null, 2)}\n`);
     process.stdout.write(`live: re-scored ${n} fixtures against ${config.model}; recordings rewritten.\n`);
   } else {
@@ -202,7 +274,7 @@ async function main() {
   for (const f of failures) process.stderr.write(`✗ ${f}\n`);
   for (const e of expired)
     process.stderr.write(
-      `✗ rails.${e.rail} has been in shadow past its shadowExpires (${e.shadowExpires}) — promote it to jev or set it off.\n`
+      `✗ rails.${e.rail} is in shadow ${e.why} (${e.shadowExpires}) — promote it to jev or set it off.\n`
     );
   if (failures.length || expired.length) process.exit(1);
 }

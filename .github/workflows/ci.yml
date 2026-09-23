@@ -11,6 +11,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Daily, for the Jev shadow rot guard: expiry is a date, not a diff (jev-semantic-guards D8).
+  schedule:
+    - cron: '17 13 * * *'
 
 permissions:
   contents: read
