@@ -25,3 +25,6 @@ dist/
 
 # Jev decision log (jev-semantic-guards D3)
 .jev/
+
+# references folder
+references/
