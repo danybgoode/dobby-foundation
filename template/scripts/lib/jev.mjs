@@ -300,8 +300,9 @@ export function logDecision(entry, deps = {}) {
       ts: now(),
     };
     const dir = join(root, '.jev');
-    mkdir(dir, { recursive: true });
-    append(join(dir, 'decisions.jsonl'), `${JSON.stringify(line)}\n`);
+    // Owner-only: the log quotes reviewer replies and drafts, which can quote private code (PR #35 security lens).
+    mkdir(dir, { recursive: true, mode: 0o700 });
+    append(join(dir, 'decisions.jsonl'), `${JSON.stringify(line)}\n`, { mode: 0o600 });
     return true;
   } catch (e) {
     warn(`⚠ jev: could not write the decision log (${e?.message || e}) — the decision stands.`);

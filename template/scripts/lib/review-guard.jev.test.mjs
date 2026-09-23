@@ -214,3 +214,16 @@ test('a "-->" in the model name cannot close the marker early, and it round-trip
   assert.equal((m.match(/-->/g) || []).length, 1);
   assert.equal(parseJevMarker(m).model, 'x-->y');
 });
+
+test('an ask that says ok with no answers object falls back, it does not throw (agy, PR #35)', async () => {
+  const v = await judgeReviewOutput(
+    TIMED_OUT,
+    {},
+    { config: cfg('jev'), key: 'k', ask: async () => ({ ok: true }), log: () => {} }
+  );
+  assert.equal(v.decider, 'regex');
+  assert.equal(
+    parseJevMarker(jevMarker({ mode: 'jev', decider: 'jev', jev: { severity: 'nit' } })).noul,
+    null
+  );
+});

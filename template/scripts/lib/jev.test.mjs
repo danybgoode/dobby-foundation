@@ -2,7 +2,7 @@
 // no spec here touches the network.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -311,4 +311,10 @@ test('jevContext never hands the API key to a caller that might log it', () => {
   const ctx = jevContext('review', { config: parseJevConfig({}), key: 'secret' });
   assert.ok(!JSON.stringify(ctx).includes('secret'));
   assert.equal(ctx.hasKey, true);
+});
+
+test('logDecision writes the log owner-only (it can quote private code)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'jev-'));
+  logDecision({ rail: 'review', mode: 'jev', decider: 'jev', text: 't' }, { root: dir });
+  assert.equal(statSync(join(dir, '.jev', 'decisions.jsonl')).mode & 0o777, 0o600);
 });

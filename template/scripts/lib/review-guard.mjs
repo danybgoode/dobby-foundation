@@ -384,9 +384,11 @@ export async function judgeReviewOutput(text, opts = {}, deps = {}) {
   const res = await ctx.ask({ state: reviewState(t), questions: REVIEW_QUESTIONS });
   // Only a real probability is a verdict. `Number()` would turn `true`, "1" or 5 into a Jev-decided PASS and
   // null or "" into a FAIL (fresh review, PR #35) — any other shape is could-not-look and the regex decides.
-  const raw = res.ok ? res.answers.is_real_review?.noul : undefined;
+  const raw = res.ok ? res.answers?.is_real_review?.noul : undefined;
   const valid = typeof raw === 'number' && raw >= 0 && raw <= 1;
-  const jev = res.ok ? { noul: raw, severity: res.answers.severity?.choice ?? null, model: res.model } : null;
+  const jev = res.ok
+    ? { noul: raw, severity: res.answers?.severity?.choice ?? null, model: res.model }
+    : null;
   const d = decideReview({
     regex,
     jev: valid ? jev : null,
@@ -418,7 +420,7 @@ export function jevMarker(verdict) {
   const payload = {
     mode: verdict?.mode ?? 'off',
     decider: verdict?.decider ?? 'regex',
-    noul: verdict?.jev ? Number(verdict.jev.noul.toFixed(3)) : null,
+    noul: typeof verdict?.jev?.noul === 'number' ? Number(verdict.jev.noul.toFixed(3)) : null,
     severity: verdict?.jev?.severity ?? null,
     model: verdict?.jev?.model ?? null,
   };

@@ -128,11 +128,14 @@ async function mapLimit(items, n, fn) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const repos = argv.flatMap((a, i) => (a === '--repo' ? [argv[i + 1]] : []));
+  const repos = argv.flatMap((a, i) =>
+    a === '--repo' && argv[i + 1] && !argv[i + 1].startsWith('--') ? [argv[i + 1]] : []
+  );
   const limitIx = argv.indexOf('--limit');
   const limit = limitIx >= 0 ? Number(argv[limitIx + 1]) : Infinity;
   const outIx = argv.indexOf('--out');
-  if (!repos.length) {
+  const outArg = outIx >= 0 ? argv[outIx + 1] : null;
+  if (!repos.length || (outIx >= 0 && (!outArg || outArg.startsWith('--')))) {
     process.stderr.write(
       'usage: node scripts/jev-backtest.mjs --repo owner/name [--repo …] [--limit N] [--out path]\n'
     );
@@ -178,13 +181,16 @@ async function main() {
     };
   });
   const date = new Date().toISOString().slice(0, 10);
-  const out = outIx >= 0 ? resolve(argv[outIx + 1]) : join(root, '.jev', `backtest-${date}.md`);
+  const out = outIx >= 0 ? resolve(outArg) : join(root, '.jev', `backtest-${date}.md`);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(
     out,
     renderReport({ rows, date, thresholds: config.rails.review.thresholds, model: config.model, repos })
   );
-  writeFileSync(out.replace(/\.md$/, '.json'), `${JSON.stringify(rows, null, 2)}\n`);
+  writeFileSync(
+    /\.md$/.test(out) ? out.replace(/\.md$/, '.json') : `${out}.json`,
+    `${JSON.stringify(rows, null, 2)}\n`
+  );
   process.stdout.write(`${out}\n`);
 }
 
