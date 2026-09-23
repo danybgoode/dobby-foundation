@@ -1,15 +1,25 @@
 # Golden Frijoles skills
 
-Portable ways-of-work for the `~/dobby/` sibling-repo workspace (`medusa-bonsai`, `golden-beans`, and
-future isolated projects). Two layers, built in strict order:
+Paste this into your agent, in an empty repo or an existing one:
+
+> Install the golden-frijoles plugin. If you're in Claude Code, run `claude plugin marketplace add golden-frijoles/skills`, then `claude plugin install golden-frijoles@golden-frijoles`. If you're in another agent, run `npx skills add golden-frijoles/skills --skill golden-frijoles` and select your agent. Use one installation method. You can read the skill directly at https://github.com/golden-frijoles/skills/blob/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md (raw: https://raw.githubusercontent.com/golden-frijoles/skills/main/plugins/golden-frijoles/skills/golden-frijoles/SKILL.md). Then use the golden-frijoles skill when working on this project, and start with its setup.
+
+That last skill — `golden-frijoles` — is the front door: it detects what's already here (is
+`Roadmap/` present, is the kit reachable, which channel you're on), offers `gf-kit init` to adopt a
+bare repo, and routes you to the right named skill below. Golden Frijoles is a planning-and-operating
+system for shipping software with an agent — shape a raw idea into sliced work (`groom`), verify what
+you built against a real rendered page (`live-smoke`), and run the operate rails (standups, weekly
+recaps, PMO reports, PR watch, doc hygiene, stale-preview cleanup) — without your project carrying any
+of that tooling itself. Two layers, built in strict order:
 
 1. **A Claude Code plugin marketplace** (`.claude-plugin/marketplace.json` + `plugins/golden-frijoles/`)
-   — the *living* skills, listed below. Installed once per project, updated from this one place — a
-   groom improvement lands here and reaches every consuming project, no fork drift.
-2. **A project template** (`template/`, story 1.3) — the *copy-once* skeleton a new project spawns
-   from: generalized `Roadmap/` (WAYS-OF-WORKING, LEARNINGS, `00-ideas` funnel), an `AGENTS.md`
-   skeleton with a per-project rules slot, CI workflows, `scripts/`, and the Playwright `api` harness
-   shape.
+   — the *living* skills, listed below. Installed once per project, updated from this one place — an
+   improvement lands here and reaches every consuming project, no fork drift.
+2. **A project template** (`template/`) — the *copy-once* skeleton a brand-new project spawns from:
+   generalized `Roadmap/` (WAYS-OF-WORKING, LEARNINGS, `00-ideas` funnel), an `AGENTS.md` skeleton with
+   a per-project rules slot, CI workflows, `scripts/`, and the Playwright `api` harness shape. An
+   **existing** repo doesn't need the whole template — `gf-kit init` (below) writes just the
+   `Roadmap/` skeleton the skills need to have somewhere to plan.
 
 ## The skills
 
@@ -25,6 +35,7 @@ list anywhere in this repo.
 | `babysit-pr` | Advisory PR watch — retries flaky CI and flags merge conflicts; never merges, never gates. |
 | `build-order-sync` | Regenerates BUILD-ORDER.md when it has drifted from the epic READMEs and opens a PR for it. |
 | `doc-hygiene` | Measures the always-read session-start docs and writes a dated report of bloat and duplication. |
+| `golden-frijoles` | The umbrella skill: detects what's here, sets up a bare repo, and routes to the right named skill. |
 | `groom` | The planning front door: shapes a raw ask into a seed, an appetite, and a scaffolded epic. |
 | `live-smoke` | Verifies rendered behavior in a real headless browser, with a screenshot and a JSON report. |
 | `pmo-report` | Posts the weekly PMO report (throughput, DORA-style delivery, doc-ops) with optional deck links. |
@@ -68,9 +79,14 @@ runs the resolver on `turn.start`, caches the view in `$.store` against branch +
 
 ## Consume the marketplace
 
+The prompt at the top does this for you — an agent that reads it runs the right one of the two
+methods below on its own. To run either by hand:
+
+**Claude Code:**
+
 ```
-/plugin marketplace add golden-frijoles/skills
-/plugin install golden-frijoles@golden-frijoles
+claude plugin marketplace add golden-frijoles/skills
+claude plugin install golden-frijoles@golden-frijoles
 ```
 
 Or checked into a project's `.claude/settings.json` (team-shared, zero manual step per session):
@@ -83,6 +99,27 @@ Or checked into a project's `.claude/settings.json` (team-shared, zero manual st
   "enabledPlugins": { "golden-frijoles@golden-frijoles": true }
 }
 ```
+
+**Any other agent `npx skills` supports** (Codex and others):
+
+```
+npx skills add golden-frijoles/skills --skill golden-frijoles
+```
+
+This installs `SKILL.md` folders only — no hooks, no agents directory. The umbrella skill says so the
+first time it detects that channel; don't assume parity with the Claude Code plugin install above.
+
+### Adopt an existing repo — `gf-kit init`
+
+A repo with no `Roadmap/` yet has nowhere for `groom` to write. One command adds just that:
+
+```
+npx -y @golden-frijoles/kit@<version> init
+```
+
+It writes the `Roadmap/` skeleton (`README.md`, `WAYS-OF-WORKING.md`, `LEARNINGS.md`, the `00-ideas/`
+funnel), **never overwrites** a file that's already there — it prints `skipped <path> (exists)` — and
+writes nothing outside `Roadmap/`. Safe to run again later; it's idempotent.
 
 ### Cowork needs a separate install — `.claude/settings.json` does NOT reach it
 

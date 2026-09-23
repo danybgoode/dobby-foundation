@@ -60,14 +60,16 @@
 // Zero deps — Node 18+.
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CLI_BIN,
   CLI_GLOBAL_INSTALL,
   CLI_NPX_INIT,
+  INSTALL_PROMPT,
   CLI_NPX_LOGIN,
   ENV_KEYS,
   KILL_SWITCH_STORY,
@@ -86,8 +88,20 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SURFACES = [
   {
     file: 'README.md',
-    why: 'the front door: how a consumer wires the provider after installing the plugin',
-    must: [CLI_NPX_LOGIN, CLI_NPX_INIT, CLI_GLOBAL_INSTALL, 'node scripts/preflight.mjs', ...KILL_SWITCH_STORY],
+    why: 'the front door: how a consumer wires the provider after installing the plugin, and the install prompt itself',
+    must: [
+      CLI_NPX_LOGIN,
+      CLI_NPX_INIT,
+      CLI_GLOBAL_INSTALL,
+      'node scripts/preflight.mjs',
+      ...KILL_SWITCH_STORY,
+      INSTALL_PROMPT,
+    ],
+  },
+  {
+    file: 'plugins/golden-frijoles/skills/golden-frijoles/SKILL.md',
+    why: 'the umbrella skill: the first thing a stranger’s agent reads must carry the same install prompt it just ran',
+    must: [INSTALL_PROMPT],
   },
   {
     file: 'template/README.md',
@@ -166,6 +180,148 @@ function probeCommand(cliPath, command, scrubbedEnv) {
   return { ok: true, why: 'unauthorized (parsed, then refused for want of a credential)' };
 }
 
+const CLAUDE_BIN = 'claude';
+
+/**
+ * Same vocabulary as the kit's own run rule (render-skill-adverts.mjs's kit block): the signs of a
+ * network/registry problem rather than a real defect. Used to decide SKIP vs FAIL for the install-
+ * prompt probes below — they hit the real network (npm's registry, GitHub), so "could not look" has
+ * to be a real, checked outcome here, not just for a missing binary (LEARNINGS: "could not look is
+ * its own exit code, never the failure one").
+ */
+function looksLikeNetworkTrouble(text) {
+  return /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ECONNRESET|EAI_AGAIN|E404|proxy|network error|could not resolve/i.test(
+    text || ''
+  );
+}
+
+/** sha256 of a file, or the literal 'absent' when it doesn't exist — the negative control's baseline. */
+function fingerprint(path) {
+  if (!existsSync(path)) return 'absent';
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
+/**
+ * The three install-prompt `--exec` probes (S3.4, D8): does `npx skills` actually list
+ * `golden-frijoles`, and does the two-command Claude Code install actually install it — in an
+ * ISOLATED config, proven isolated by a negative control against the real one.
+ *
+ * ⚠️ Same discipline as `probeCommand` above: `claude plugin marketplace add` / `plugin install` are
+ * WRITE verbs against local config state, so they run with `HOME`, `XDG_CONFIG_HOME` and
+ * `CLAUDE_CONFIG_DIR` all pointed at one empty temp dir (D8's addition to the onboarding-parity
+ * shape), and the negative control — the REAL `~/.claude/plugins/installed_plugins.json`'s hash
+ * unchanged — is asserted, not assumed, exactly as `check-onboarding-parity.mjs`'s original `gf`
+ * probe asserts `unauthorized` rather than merely accepting it.
+ *
+ * Each binary that cannot be resolved, and each command whose output looks like a network/registry
+ * problem, SKIPS with a `::warning::` — never fails for that. A real "not listed yet" (the live repo
+ * pre-merge, still under the old marketplace name) is NOT a skip: it is reported as a failure, because
+ * that is exactly the state the contract says this check must be honest about, not paper over.
+ */
+function installPromptExecChecks() {
+  let failed = false;
+
+  // ── 1. `npx skills add golden-frijoles/skills --list` lists `golden-frijoles` ─────────────────
+  const npxProbe = spawnSync('npx', ['--version'], { encoding: 'utf8', timeout: 20_000 });
+  if (npxProbe.error) {
+    console.log('::warning::check-onboarding-parity --exec: `npx skills --list` SKIPPED — no `npx` resolvable.');
+  } else {
+    const list = spawnSync('npx', ['-y', 'skills@1.7.0', 'add', 'golden-frijoles/skills', '--list'], {
+      encoding: 'utf8',
+      timeout: 90_000,
+    });
+    const output = `${list.stdout || ''}${list.stderr || ''}`;
+    // Strip the repo argument ("golden-frijoles/skills", echoed in the CLI's own "Source: …" banner)
+    // before testing — a naive substring match on `output` was caught passing on THAT echo alone,
+    // with zero skills actually listed under the name. Presence of the repo name is not presence of
+    // the skill (LEARNINGS: presence is not execution) — only a SEPARATE "golden-frijoles" token,
+    // the skill's own list entry, counts.
+    const withoutRepoArg = output.replace(/golden-frijoles\/skills/g, '');
+    if (list.error || (list.status !== 0 && looksLikeNetworkTrouble(output))) {
+      console.log(
+        `::warning::check-onboarding-parity --exec: \`npx skills --list\` SKIPPED — could not look: ` +
+          `${(list.error?.message ?? output).slice(0, 200)}`
+      );
+    } else if (!/\bgolden-frijoles\b/.test(withoutRepoArg)) {
+      console.error(
+        '  ❌ npx skills add golden-frijoles/skills --list  →  "golden-frijoles" is not in the listed skills:\n' +
+          `     ${output.trim().split('\n').slice(0, 8).join('\n     ')}`
+      );
+      failed = true;
+    } else {
+      console.log('  ✅ npx skills add golden-frijoles/skills --list  →  golden-frijoles listed');
+    }
+  }
+
+  // ── 2 & 3. claude plugin marketplace add + install, isolated, with a negative control ─────────
+  const claudeProbe = spawnSync(CLAUDE_BIN, ['--version'], { encoding: 'utf8', timeout: 20_000 });
+  if (claudeProbe.error) {
+    console.log(
+      `::warning::check-onboarding-parity --exec: the \`claude plugin …\` probe SKIPPED — no \`${CLAUDE_BIN}\` resolvable.`
+    );
+    return failed ? 1 : 0;
+  }
+
+  const realInstalledPlugins = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  const before = fingerprint(realInstalledPlugins);
+
+  const isolatedHome = mkdtempSync(join(tmpdir(), 'gf-parity-claude-plugin-'));
+  const isolatedEnv = { ...process.env, HOME: isolatedHome, XDG_CONFIG_HOME: isolatedHome, CLAUDE_CONFIG_DIR: isolatedHome };
+
+  const addMarketplace = spawnSync(CLAUDE_BIN, ['plugin', 'marketplace', 'add', 'golden-frijoles/skills'], {
+    encoding: 'utf8',
+    timeout: 90_000,
+    env: isolatedEnv,
+  });
+  const install = spawnSync(CLAUDE_BIN, ['plugin', 'install', 'golden-frijoles@golden-frijoles'], {
+    encoding: 'utf8',
+    timeout: 90_000,
+    env: isolatedEnv,
+  });
+  const addOutput = `${addMarketplace.stdout || ''}${addMarketplace.stderr || ''}`;
+  const installOutput = `${install.stdout || ''}${install.stderr || ''}`;
+
+  // The negative control runs REGARDLESS of the outcome above — it is what proves the isolation
+  // held, and a leak here is the worst possible outcome of this whole mode: a documentation parity
+  // check that mutated the operator's real plugin config.
+  const after = fingerprint(realInstalledPlugins);
+  if (before !== after) {
+    console.error(
+      '  ❌ NEGATIVE CONTROL FAILED — the isolated claude-plugin probe touched the REAL ' +
+        `${realInstalledPlugins} (was ${before}, now ${after}). Do not re-run until the env scrub above is fixed.`
+    );
+    return 1; // overrides everything else: a real leak is reported on its own, nothing else matters here
+  }
+  console.log(`  ✅ negative control — ${realInstalledPlugins} unchanged (${before})`);
+
+  if (
+    (addMarketplace.error || (addMarketplace.status !== 0 && looksLikeNetworkTrouble(addOutput))) ||
+    (install.error || (install.status !== 0 && looksLikeNetworkTrouble(installOutput)))
+  ) {
+    console.log(
+      '::warning::check-onboarding-parity --exec: the `claude plugin …` probe SKIPPED — could not look: ' +
+        `${(addMarketplace.error?.message ?? install.error?.message ?? `${addOutput}${installOutput}`).slice(0, 200)}`
+    );
+    return failed ? 1 : 0;
+  }
+
+  const isolatedInstalledPlugins = join(isolatedHome, 'plugins', 'installed_plugins.json');
+  const listsIt = existsSync(isolatedInstalledPlugins) && readFileSync(isolatedInstalledPlugins, 'utf8').includes('golden-frijoles');
+  if (!listsIt) {
+    console.error(
+      '  ❌ claude plugin marketplace add golden-frijoles/skills && claude plugin install golden-frijoles@golden-frijoles\n' +
+        `     → golden-frijoles is not listed in the isolated config afterwards.\n` +
+        `     marketplace add: ${addOutput.trim().slice(0, 300)}\n` +
+        `     install:         ${installOutput.trim().slice(0, 300)}`
+    );
+    failed = true;
+  } else {
+    console.log('  ✅ claude plugin marketplace add + install  →  golden-frijoles listed in the isolated config');
+  }
+
+  return failed ? 1 : 0;
+}
+
 function execCheck() {
   const candidates = [CLI_BIN, join(repoRoot, 'node_modules', '.bin', CLI_BIN)];
   const cliPath = candidates.find((candidate) => {
@@ -216,7 +372,12 @@ function execCheck() {
   return 1;
 }
 
-if (process.argv.includes('--exec')) process.exit(execCheck());
+if (process.argv.includes('--exec')) {
+  const gfExit = execCheck();
+  console.log('\n  — the install prompt itself (npx skills --list, claude plugin marketplace add + install) —\n');
+  const installPromptExit = installPromptExecChecks();
+  process.exit(gfExit || installPromptExit ? 1 : 0);
+}
 
 const problems = [];
 for (const surface of SURFACES) {

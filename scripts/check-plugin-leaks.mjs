@@ -102,11 +102,10 @@ export const RULES = [
 // moving is fine and a line being reworded is not — that is on purpose. If you rewrite one of these,
 // update the entry; if you delete one, delete the entry (a stale entry fails too, below).
 export const ALLOW = [
-  {
-    file: 'README.md',
-    line: 'Portable ways-of-work for the `~/dobby/` sibling-repo workspace (`medusa-bonsai`, `golden-beans`, and',
-    why: 'Names the concrete workspace THIS repo serves. Not something a consumer must read around.',
-  },
+  // REMOVED 2026-09-23 (golden-frijoles-plugin S3.4). This entry allowed the README's OLD intro
+  // ("Portable ways-of-work for the `~/dobby/` sibling-repo workspace…"), written for Daniel, not for
+  // a stranger. The S3.4 rewrite replaced the whole intro with the install prompt + a plain
+  // description, and that sentence no longer exists anywhere in the file — so the allowance goes too.
   {
     file: 'README.md',
     line: 'Extracted from `medusa-bonsai` (`danybgoode/miyagi-product-management`) as the S0 workstream of the',
