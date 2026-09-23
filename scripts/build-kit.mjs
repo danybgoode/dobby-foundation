@@ -20,10 +20,12 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listSkills, parseRequiresScripts } from './check-skill-scripts.mjs';
+import { SKELETON } from '../template/scripts/init.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const SKILLS_DIR = join(repoRoot, 'plugins', 'golden-frijoles', 'skills');
 export const SOURCE_DIR = join(repoRoot, 'template', 'scripts');
+export const TEMPLATE_DIR = join(repoRoot, 'template');
 export const KIT_DIR = join(repoRoot, 'kit');
 // Shipped beside the scripts so the package carries its own license terms (npm also reads the root LICENSE of
 // the package dir, which for kit/ is this copy).
@@ -39,19 +41,32 @@ export function kitManifest({ skillsDir = SKILLS_DIR, read = readFileSync } = {}
   return [...files].sort();
 }
 
-/** Build dist/. Throws, naming every absent file, before writing anything. */
+/**
+ * Build dist/. Throws, naming every absent file, before writing anything.
+ *
+ * Alongside the script closure, it copies the S3.2 Roadmap skeleton (`init.mjs`'s own `SKELETON`
+ * export — one list, read here and by `gf-kit init` itself) from `template/<rel>` into
+ * `kit/dist/skeleton/<rel>`, which is where `skeletonRoot()` looks for it in installed mode.
+ */
 export function buildKit({
   manifest = kitManifest(),
   sourceDir = SOURCE_DIR,
+  templateDir = TEMPLATE_DIR,
+  skeleton = SKELETON,
   kitDir = KIT_DIR,
   legalDir = repoRoot,
   exists = existsSync,
 } = {}) {
   const missing = manifest.filter((rel) => !exists(join(sourceDir, rel)));
   const missingLegal = LEGAL_FILES.filter((f) => !exists(join(legalDir, f)));
-  if (missing.length || missingLegal.length) {
+  const missingSkeleton = skeleton.filter((rel) => !exists(join(templateDir, rel)));
+  if (missing.length || missingLegal.length || missingSkeleton.length) {
     throw new Error(
-      `build-kit: declared but absent — ${[...missing.map((m) => `template/scripts/${m}`), ...missingLegal].join(', ')}`
+      `build-kit: declared but absent — ${[
+        ...missing.map((m) => `template/scripts/${m}`),
+        ...missingLegal,
+        ...missingSkeleton.map((m) => `template/${m}`),
+      ].join(', ')}`
     );
   }
   const dist = join(kitDir, 'dist');
@@ -61,7 +76,12 @@ export function buildKit({
     copyFileSync(join(sourceDir, rel), join(dist, rel));
   }
   for (const f of LEGAL_FILES) copyFileSync(join(legalDir, f), join(dist, f));
-  return { dist, files: manifest };
+  for (const rel of skeleton) {
+    const dest = join(dist, 'skeleton', rel);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(join(templateDir, rel), dest);
+  }
+  return { dist, files: manifest, skeleton };
 }
 
 /**
@@ -81,8 +101,10 @@ function main(argv) {
     return 0;
   }
   try {
-    const { dist, files } = buildKit();
-    console.log(`build-kit: ${files.length} file(s) + ${LEGAL_FILES.join(', ')} → ${dist}`);
+    const { dist, files, skeleton } = buildKit();
+    console.log(
+      `build-kit: ${files.length} file(s) + ${LEGAL_FILES.join(', ')} + ${skeleton.length} skeleton file(s) → ${dist}`
+    );
     return 0;
   } catch (err) {
     console.error(err.message);
