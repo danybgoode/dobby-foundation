@@ -211,6 +211,11 @@ async function main() {
   }
   for (const repo of all('--repo')) rows.push(...markerRows(harvest(repo)));
   rows = dedupe(rows);
+  // No decisions is not a report: a missing log must never read as a completed, all-clear one (codex, PR #39).
+  if (!rows.length) {
+    process.stderr.write('jev-report: no decisions found in any --log or --repo — nothing to report.\n');
+    process.exit(1);
+  }
   const thresholds = { review: config.rails.review.thresholds, prose: config.rails.prose.thresholds };
   const report = summarize(rows, thresholds);
   process.stdout.write(`${render(report)}\n`);
