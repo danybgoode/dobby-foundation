@@ -52,7 +52,7 @@ Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declare
 
 Cites the epic README's D1, D2, D3, D4, D5, D7, D8 and deviations X1–X4, X6. **Builder:** the orchestrator (Opus),
 per the routing table. **Branch:** `feat/golden-frijoles-plugin-s2`, cut from the S1 branch. One PR in this repo,
-plus one golden-beans PR for S2.5.
+plus one golden-beans PR for S2.5 (danybgoode/golden-beans#162).
 
 **S2.1: `template/scripts/lib/project-root.mjs` (D2).** It exports `kitRoot`, `projectRoot`, `projectAsset` and
 `isInstalled`, with no side effects at import. *(Amended in review of #45: it also exports `KIT_PACKAGE_NAME` and
@@ -232,8 +232,12 @@ rest runs after it merges.
    → It prints the 14 scripts the kit carries, and `ls` shows nothing new in `demo/`.
 8. Same folder: `npx -y @golden-frijoles/kit@0.2.0 build-order && ls Roadmap/00-ideas`
    → `BUILD-ORDER.md` appears in *this* folder's `Roadmap/00-ideas/`, and there's still no `scripts/` folder.
-9. In `~/dobby/golden-beans` after its S2.5 PR merges: ask Claude Code to "sync the build order"
-   → The transcript shows the run rule. If the skill moved to the kit, `npx -y @golden-frijoles/kit@0.2.0 build-order-sync`
-     ran; if not, `node scripts/build-order-sync.mjs` did. It reports no drift, or opens its PR as before.
+9. In `~/dobby/golden-beans` after its S2.5 PR (danybgoode/golden-beans#162) merges: ask Claude Code to "check doc hygiene"
+   → The transcript shows the run rule taking the kit branch: `npx -y @golden-frijoles/kit@0.2.0 doc-hygiene --check`
+     (golden-beans no longer has `scripts/doc-hygiene.mjs`), and it prints the same report as before.
+10. Same repo: ask it to "sync the build order"
+   → This one stays **local** (`node scripts/build-order-sync.mjs`). golden-beans' extractor is a fork, and through the
+     kit the board would differ (measured in S2.5, see golden-beans `scripts/README.md`). It reports no drift, or opens
+     its PR as before.
 
 If any step fails, note the step number + what you saw — that's the bug report.
