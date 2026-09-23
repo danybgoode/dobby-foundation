@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 1
 title: "Identity, license, releases"
 risk: high
-phase: In review
+phase: Shipped
 stories_total: 5
 stories:
   - id: S1.1
@@ -12,7 +12,7 @@ stories:
     i_want: "an Apache-2.0 license and a NOTICE"
     so_that: "I'm allowed to use what I install"
     risk: low
-    status: in-progress
+    status: done
   - id: S1.2
     title: "Create the org and transfer the repo (owed to Daniel)"
     as_a: "Daniel"
@@ -26,25 +26,25 @@ stories:
     i_want: "`claude plugin install golden-frijoles@golden-frijoles`"
     so_that: "the install line is the product's name"
     risk: high
-    status: in-progress
+    status: done
   - id: S1.4
     title: "Switch both consumers in the same sprint"
     as_a: "Daniel"
     i_want: "golden-beans and medusa-bonsai to load `golden-frijoles@golden-frijoles`"
     so_that: "no session in either repo loses its skills on the day the rename lands"
     risk: high
-    status: in-progress
+    status: done
   - id: S1.5
     title: "Tagged releases a user can pin"
     as_a: "a stranger"
     i_want: "versioned releases with a changelog"
     so_that: "I can pin a release and roll back from a bad one"
     risk: low
-    status: in-progress
+    status: done
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 1: Identity, license, releases
 
-**Status:** 🟡 in review. S1.2 done by Daniel 2026-09-23 (`git ls-remote` on both URLs → `12fcc06`) · **Wave:** 1
+**Status:** ✅ shipped 2026-09-23. golden-frijoles/skills#44 (`0c33e53`, release `v0.1.0` cut by CI), danybgoode/golden-beans#161 (`a8aec53`, Vercel production ✅), danybgoode/miyagi-product-management#194 (`ac450c1`), all merged within 8 s · **Wave:** 1
 
 The skateboard: the plugin anyone can already install gets the product's name, a license that permits using it, and releases people can pin and roll back to.
 
@@ -178,5 +178,7 @@ Env: production (GitHub). Nothing here is pre-merge: run it after the S1 PR **an
    → The installed list shows **golden-frijoles**, not ways-of-work, with groom and the other skills under it. If it still shows ways-of-work, use `/plugin` → refresh (team memory: the project-scope cache is refreshed interactively).
 7. Same in `~/dobby/medusa-bonsai` (**owed to Daniel**)
    → Same result: `golden-frijoles:groom` is available.
+
+**Run by the orchestrator, 2026-09-23 after the merges:** step 1 ✅ (the API reports license `Apache-2.0`) · step 2 ✅ (`git ls-remote` on both URLs → the same SHA) · step 3 ✅ (`v0.1.0` → `0c33e53`, created by the `Release` run 35932042074) · step 6 ✅, run in an isolated `CLAUDE_CONFIG_DIR` against golden-beans' merged settings: `golden-frijoles@golden-frijoles` Version 0.1.0, enabled, all ten skills. **Still owed to Daniel: step 7** (medusa-bonsai, private repo). Steps 4–5 are covered by S3.4's `--exec`, re-run after the S3 merge.
 
 If any step fails, note the step number + what you saw — that's the bug report.

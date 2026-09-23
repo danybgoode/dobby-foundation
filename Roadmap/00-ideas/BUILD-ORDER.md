@@ -12,7 +12,7 @@
 
 ## 🏗️ Building now (1)
 
-- [One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo](../../09-platform-infra/golden-frijoles-plugin/README.md) — 09 Platform-infra · 0/23 stories · risk: High
+- [One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo](../../09-platform-infra/golden-frijoles-plugin/README.md) — 09 Platform-infra · 5/23 stories · risk: High
 
 ## 📋 Ready to build (scaffolded, not started) (0)
 
