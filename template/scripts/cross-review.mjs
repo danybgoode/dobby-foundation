@@ -62,11 +62,12 @@ import {
   shortSha,
 } from './lib/cross-agent-cli.mjs';
 import {
-  assertReviewOutput,
   changedFileCount,
   cliVersionNote,
   decideSecurityPass,
   isReReview,
+  jevMarker,
+  judgeReviewOutput,
   parseReviewConfig,
   postReviewStatus,
   reviewMarker,
@@ -303,7 +304,7 @@ function postComment(pr, repo, body) {
   return (r.stdout || '').trim(); // gh prints the comment URL
 }
 
-function main() {
+async function main() {
   let { pr, agent, repo, force, dryRun, skipTrivial, minLines, includeLockfiles, lens, help } = parseArgs(
     process.argv.slice(2)
   );
@@ -424,9 +425,13 @@ function main() {
   const { findings, fellBack } = runReview(agent, prompt, diff);
 
   // THE GUARD (D9). With one external pass, a CLI that exits 0 with nothing to say reads exactly like a
-  // clean review and nothing contradicts it. So a structureless reply FAILS the run loudly and fails the
-  // PR's `cross-review/<lens>` status, rather than posting a comment that looks like a pass.
-  const verdict = assertReviewOutput(findings);
+  // clean review and nothing contradicts it. So a reply that is not a review FAILS the run loudly and fails
+  // the PR's `cross-review/<lens>` status, rather than posting a comment that looks like a pass.
+  // jev-semantic-guards D5: Jev decides "is this a real review?" by jev.config.json → rails.review.mode;
+  // `assertReviewOutput` is the fallback when Jev cannot look or is unsure, and the whole of it when `off`.
+  // The reason always names who decided.
+  const verdict = await judgeReviewOutput(findings, { sha: reviewedSha });
+  process.stderr.write(`review guard: ${verdict.reason}\n`);
   if (!verdict.ok) {
     const who = fellBack ? AGENTS.antigravity : AGENTS[agent];
     if (!dryRun) {
@@ -458,7 +463,9 @@ function main() {
       version: cliVersionNote(fellBack ? 'antigravity' : agent),
       reReview,
       securityOwed,
-    }) + reviewMarker({ lens, sha: reviewedSha });
+    }) +
+    reviewMarker({ lens, sha: reviewedSha }) +
+    jevMarker(verdict);
   if (dryRun) {
     process.stdout.write(body);
     process.stderr.write('\n(dry-run — no comment posted)\n');
@@ -483,4 +490,8 @@ function main() {
 
 // Guarded so importing this module for its pure helpers does not run a review.
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) main();
+if (isMain)
+  main().catch((e) => {
+    process.stderr.write(`cross-review: ${e?.message || e}\n`);
+    process.exit(1);
+  });
