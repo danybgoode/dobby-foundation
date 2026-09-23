@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 1
 title: "Identity, license, releases"
 risk: high
-phase: Building
+phase: In review
 stories_total: 5
 stories:
   - id: S1.1
@@ -12,39 +12,39 @@ stories:
     i_want: "an Apache-2.0 license and a NOTICE"
     so_that: "I'm allowed to use what I install"
     risk: low
-    status: planned
+    status: in-progress
   - id: S1.2
     title: "Create the org and transfer the repo (owed to Daniel)"
     as_a: "Daniel"
     i_want: "the `golden-frijoles` org to own the repo as `golden-frijoles/skills`"
     so_that: "the install line names the product, not a person"
     risk: high
-    status: planned
+    status: done
   - id: S1.3
     title: "Rename the marketplace and plugin to golden-frijoles"
     as_a: "a Claude Code user"
     i_want: "`claude plugin install golden-frijoles@golden-frijoles`"
     so_that: "the install line is the product's name"
     risk: high
-    status: planned
+    status: in-progress
   - id: S1.4
     title: "Switch both consumers in the same sprint"
     as_a: "Daniel"
     i_want: "golden-beans and medusa-bonsai to load `golden-frijoles@golden-frijoles`"
     so_that: "no session in either repo loses its skills on the day the rename lands"
     risk: high
-    status: planned
+    status: in-progress
   - id: S1.5
     title: "Tagged releases a user can pin"
     as_a: "a stranger"
     i_want: "versioned releases with a changelog"
     so_that: "I can pin a release and roll back from a bad one"
     risk: low
-    status: planned
+    status: in-progress
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 1: Identity, license, releases
 
-**Status:** ⬜ not started · **Wave:** 1
+**Status:** 🟡 in review. S1.2 done by Daniel 2026-09-23 (`git ls-remote` on both URLs → `12fcc06`) · **Wave:** 1
 
 The skateboard: the plugin anyone can already install gets the product's name, a license that permits using it, and releases people can pin and roll back to.
 
@@ -162,17 +162,21 @@ carries open PRs with it.
 - **deterministic gate:** every CI check green before merge; high-risk stories → Daniel merges
 
 ## Sprint 1 — Smoke walkthrough (do these in order)
-Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview URL for golden-beans changes while pre-merge.
+Env: production (GitHub). Nothing here is pre-merge: run it after the S1 PR **and** both S1.4 consumer PRs have merged.
 
 1. Open https://github.com/golden-frijoles/skills
-   → The repo loads, and the sidebar says **Apache-2.0**.
+   → The repo loads. The sidebar says **Apache-2.0**, and `NOTICE` is at the root.
 2. Open https://github.com/danybgoode/dobby-foundation
-   → GitHub redirects you to golden-frijoles/skills.
-3. In a terminal in `~/dobby/golden-beans`, start `claude` and type `/plugin`
-   → The installed list shows **golden-frijoles** (not ways-of-work), with groom and the other skills under it.
-4. Same in `~/dobby/medusa-bonsai` (owed to Daniel: private repo)
+   → GitHub redirects you to `golden-frijoles/skills`.
+3. Open https://github.com/golden-frijoles/skills/releases
+   → A **v0.1.0** release exists, created by the `Release` workflow (not by hand). Its notes are CHANGELOG.md's `0.1.0` section.
+4. In any terminal: `npx -y skills@1.7.0 add golden-frijoles/skills --list`
+   → It lists the ten skills (babysit-pr … weekly-recap).
+5. In a throwaway shell: `export CLAUDE_CONFIG_DIR=$(mktemp -d)`, then `claude plugin marketplace add golden-frijoles/skills@v0.1.0` and `claude plugin install golden-frijoles@golden-frijoles`
+   → Both succeed. This is the **pinned** install a stranger uses to hold a release.
+6. In `~/dobby/golden-beans` (on `main`, after its S1.4 PR merged): start `claude`, type `/plugin`
+   → The installed list shows **golden-frijoles**, not ways-of-work, with groom and the other skills under it. If it still shows ways-of-work, use `/plugin` → refresh (team memory: the project-scope cache is refreshed interactively).
+7. Same in `~/dobby/medusa-bonsai` (**owed to Daniel**)
    → Same result: `golden-frijoles:groom` is available.
-5. Open https://github.com/golden-frijoles/skills/releases
-   → A **v0.1.0** release/tag exists, and CHANGELOG.md has a 0.1.0 entry.
 
 If any step fails, note the step number + what you saw — that's the bug report.
