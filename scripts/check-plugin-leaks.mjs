@@ -88,7 +88,7 @@ export const RULES = [
     // Roadmap/ history — so this rule is deliberately narrow (the retired MARKETPLACE/PLUGIN identity),
     // not a bare `ways-of-work` sweep, which would also fire on the process name and a past epic's slug.
     name: 'retired plugin identity',
-    pattern: /ways-of-work@|plugins\/ways-of-work|`ways-of-work` plugin|dobby-foundation marketplace|danybgoode\/dobby-foundation/,
+    pattern: /ways-of-work@|@dobby-foundation\b|"dobby-foundation"\s*:|\bways-of-work:[a-z]|plugins\/ways-of-work|`ways-of-work` plugin|dobby-foundation marketplace|danybgoode\/dobby-foundation/,
     why: 'Names the retired marketplace/plugin identity (`ways-of-work@dobby-foundation`, '
        + '`plugins/ways-of-work`, "the `ways-of-work` plugin", "dobby-foundation marketplace", '
        + '`danybgoode/dobby-foundation`). The product is `golden-frijoles`, installed from '
