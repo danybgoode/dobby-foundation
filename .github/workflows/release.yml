@@ -15,6 +15,11 @@ on:
 permissions:
   contents: write
 
+# Two pushes close together must not race `gh release create` for the same tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -26,6 +31,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # The print modes below skip every consistency check, so run the full check first: plugin.json,
+      # the newest CHANGELOG heading (and kit/package.json once it exists) agree, and the version is not
+      # below a release that already exists. A direct push to main must not cut an inconsistent release.
+      - name: Release is consistent (plugin.json = CHANGELOG, not below the newest tag, bumped if shipped)
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # `before` is all zeros on a branch's first push; there is no base to compare then.
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/check-release.mjs --against-tags --base "$BEFORE"
+          else
+            node scripts/check-release.mjs --against-tags
+          fi
 
       - name: Read the version plugin.json ships
         id: version

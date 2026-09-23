@@ -41,7 +41,9 @@ jobs:
       # schedule) there is no base to diff against, so this step only runs for `pull_request`.
       - name: Release version bump (PRs only)
         if: github.event_name == 'pull_request'
-        run: node scripts/check-release.mjs --base "origin/${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/check-release.mjs --base "origin/$BASE_REF"
 
       # Every skill declares the repo-local scripts it wraps (`requires_scripts:` in its SKILL.md
       # frontmatter); this asserts template/scripts/ actually supplies them. Before it existed the

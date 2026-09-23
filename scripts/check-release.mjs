@@ -49,10 +49,15 @@ export function compareVersions(a, b) {
   return 0;
 }
 
-/** Pure — plugin.json's version field. Throws if absent (an unversioned shipped plugin is a bug). */
+/**
+ * Pure — plugin.json's version field. Throws if absent (an unversioned shipped plugin is a bug) and if it is
+ * anything but a strict `x.y.z`: this value becomes a git tag, a release title and a RegExp, so it is validated
+ * where it is read rather than escaped at each use (security lens on #44).
+ */
 export function pluginVersion(pluginJsonText) {
   const v = JSON.parse(pluginJsonText).version;
   if (!v) throw new Error('plugin.json: no version field');
+  parseVersion(v); // throws on anything but x.y.z
   return v;
 }
 
@@ -69,6 +74,7 @@ export function newestChangelogVersion(changelogText) {
  * GitHub Release body, so the release notes are never hand-typed a second time.
  */
 export function changelogSection(changelogText, version) {
+  parseVersion(version); // strict x.y.z — nothing but digits and dots ever reaches the RegExp below
   const re = new RegExp(`^##\\s*\\[${version.replace(/\./g, '\\.')}\\][^\\n]*\\n`, 'm');
   const start = changelogText.search(re);
   if (start === -1) throw new Error(`CHANGELOG.md: no "## [${version}]" heading found`);
@@ -95,6 +101,15 @@ export function kitClosureFiles({ skillsDir = SKILLS_DIR, read = readFileSync } 
 /** Pure — does this changed-file list touch anything a version bump must cover? */
 export function touchesShippedSurface(changedFiles, closureFiles) {
   return changedFiles.some((f) => f.startsWith('plugins/') || f.startsWith('kit/') || closureFiles.has(f));
+}
+
+/** Pure — the highest `vX.Y.Z` among git tag names; null when there is none. */
+export function highestTagVersion(tagNames) {
+  const versions = tagNames
+    .map((t) => t.trim().match(/^v(\d+\.\d+\.\d+)$/))
+    .filter(Boolean)
+    .map((m) => m[1]);
+  return versions.reduce((max, v) => (max === null || compareVersions(v, max) > 0 ? v : max), null);
 }
 
 function gitDiffNames(base) {
@@ -144,6 +159,17 @@ function main(argv) {
     const kitVersion = JSON.parse(readFileSync(KIT_PACKAGE, 'utf8')).version;
     if (kitVersion !== current) {
       console.error(`check-release: kit/package.json version "${kitVersion}" != plugin.json version "${current}".`);
+      failed = true;
+    }
+  }
+
+  // ── At release time (release.yml): never cut a version BELOW one already released. Equal is fine —
+  // that is a push that did not bump, and the workflow's own tag check turns it into a no-op.
+  if (argv.includes('--against-tags')) {
+    const tags = execFileSync('git', ['tag', '-l', 'v*'], { cwd: repoRoot, encoding: 'utf8' }).split('\n');
+    const highest = highestTagVersion(tags);
+    if (highest !== null && compareVersions(current, highest) < 0) {
+      console.error(`check-release: plugin.json version "${current}" is below the newest release tag v${highest}.`);
       failed = true;
     }
   }

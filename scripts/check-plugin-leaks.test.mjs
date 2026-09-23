@@ -76,6 +76,10 @@ test('the retired plugin identity rule fires on each spelling of the old marketp
     'the `ways-of-work` plugin advertises ten skills',
     'listed in the dobby-foundation marketplace',
     '/plugin marketplace add danybgoode/dobby-foundation',
+    // Fresh review of #44: three spellings the first pattern missed.
+    '"dobby-foundation": { "source": { "source": "github" } }',
+    '"golden-frijoles@dobby-foundation": true',
+    'invoke ways-of-work:groom to plan it',
   ]) {
     const result = scan(file(leak, 'plugins/golden-frijoles/skills/groom/SKILL.md'), { allow: [] });
     assert.ok(names(result).includes('retired plugin identity'), `expected a leak for: ${leak}`);
@@ -91,6 +95,10 @@ test('the retired plugin identity rule does NOT fire on the process name or the 
     'the golden-frijoles marketplace',
     'the `golden-frijoles` plugin',
     'plugins/golden-frijoles/skills/groom',
+    // Provenance D6 keeps: past PRs and the epic that extracted this repo.
+    'found by codex on dobby-foundation#17',
+    '(`Roadmap/09-platform-infra/dobby-foundation/`), so a second project',
+    'golden-frijoles@golden-frijoles',
   ];
   const result = scan(file(legitimate.join('\n')), { allow: [] });
   assert.deepEqual(names(result), [], JSON.stringify(result.violations));

@@ -103,7 +103,10 @@ transcription is never edited by hand without the source changing first.
 - A browser smoke on `/` and `/install`. The signed-in onboarding smoke is owed to Daniel.
 - The gate is golden-beans' own.
 
-**S3.4: Parity that runs (D8, X10).** `check-onboarding-parity.mjs`:
+**S3.4: Parity that runs (D8, X10).** Carried in from S1 review (#44): the repo `README.md` is the
+stranger's front door on `golden-frijoles/skills`, and S1 retitled it without rewriting it. The intro and the *Consume the
+marketplace* section are rewritten here for a stranger, around `INSTALL_PROMPT`. The `## Origin` provenance stays.
+`check-onboarding-parity.mjs`:
 - `INSTALL_PROMPT` must appear verbatim in the repo `README.md`, the umbrella SKILL.md, and the golden-onboarding
   transcription. Fixtures fire on a one-word drift.
 - `--exec` adds three probes:
