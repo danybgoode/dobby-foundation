@@ -1,4 +1,4 @@
-# dobby-foundation
+# Golden Frijoles skills
 
 Portable ways-of-work for the `~/dobby/` sibling-repo workspace (`medusa-bonsai`, `golden-beans`, and
 future isolated projects). Two layers, built in strict order:

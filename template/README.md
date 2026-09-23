@@ -1,4 +1,4 @@
-# dobby-foundation project template
+# Golden Frijoles project template
 
 The copy-once skeleton for a new `~/dobby/` sibling project: a generalized `Roadmap/` (ways-of-work,
 learnings, session kickoffs, the idea funnel), an `AGENTS.md` skeleton with a per-project rules slot,

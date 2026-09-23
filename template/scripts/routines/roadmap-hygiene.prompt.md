@@ -63,7 +63,7 @@ one-line reason.
 `node scripts/build-order.mjs --check` is already clean, say so (the board was current).
 
 **4. Doc hygiene pass.** Invoke the `doc-hygiene` skill (`golden-frijoles` plugin, golden-frijoles
-marketplace, as of dobby-foundation Sprint 1 Story 1.2 — no longer a repo-local `skills/doc-hygiene/`
+marketplace — no longer a repo-local `skills/doc-hygiene/`
 path) — run
 `node scripts/doc-hygiene.mjs`, review any flagged candidates per its Stage 2 (verify before reporting;
 its heuristics are deliberately cheap and can false-positive), and note the always-read set's current
