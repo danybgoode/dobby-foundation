@@ -1,6 +1,6 @@
 ---
-status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
-phase: Shaping       # the executive ladder — Shaping | Locking architecture | Building | Verifying | In review | Shipped.
+status: in-progress  # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+phase: Building      # the executive ladder — Shaping | Locking architecture | Building | Verifying | In review | Shipped.
                      # WRITTEN at each cadence event, never inferred. Shipped = merged AND deployed.
 slug: golden-frijoles-plugin
 title: "One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo"
@@ -47,22 +47,152 @@ architecture decision is about roots, not about packaging.
 - golden-beans: `lib/cli-install.ts` and `lib/landing-prompts.ts` (the one-module pattern), `CopyPromptCard`, `/install`, `/app/onboarding/[projectSlug]`, `packages/cli` (`doctor`, `init`, exit codes, golden help tests)
 - LEARNINGS rules this epic leans on: *presence is not execution*, *construct the harmless state and assert it*, *could not look is its own exit code*, *run the consumer's OLD tests against the NEW code*, *rewrite, don't allowlist*
 
-## Architecture decisions: lock these against live code before any builder starts
+## Architecture lock: D1–D8, verified 2026-09-23 against live code and live state
 
-*(Numbered for this epic. Not the same as the audit's D1–D8.)*
+*(Numbered for this epic. Not the same as the audit's D1–D8.)* **Builders cite these. They never re-derive or
+paraphrase them.** Everything below was checked against `origin/main` `12fcc06`, golden-beans `4db2b73`,
+medusa-bonsai `ccd5c3f`, GitHub, npm and the Claude Code and npm docs on the lock date. Each decision says where its
+evidence came from. **Wave 1 only:** D9 and D10 stay as drafted under *Wave 2* below and are locked when wave 2 is bet.
 
-- **D1: The kit is built, not committed.** `template/scripts/` stays the single source. `scripts/build-kit.mjs` copies the union of every skill's declared closure into `kit/dist/` (gitignored), so no second copy of a script is ever committed.
-- **D2: Two roots.** `projectRoot()` walks up from `cwd` to the nearest dir holding `Roadmap/` or `.git` (`--root` / `GF_PROJECT_ROOT` override). `kitRoot()` is the package's own dir. Project files go through the first and bundled assets through the second. **The same code runs in copied mode and installed mode.**
-- **D3: Local wins.** A skill runs `scripts/<x>.mjs` if the project has it, and otherwise `npx -y @golden-frijoles/kit@<pinned> <x>`. Forks are a feature, and this is how strangers and customized consumers share one plugin.
-- **D4: One version, in lockstep.** `plugin.json` `version` = `kit/package.json` `version` = the git tag. The stamped kit version in every SKILL.md is generated, and CI fails if it points at a version that isn't published or being released by the same tag.
-- **D5: Releases come from a tag, via OIDC trusted publishing,** with `--provenance` and no stored token. If npm needs the package to exist first, the one manual `0.1.0` publish is recorded as owed to Daniel.
-- **D6: Names.** Marketplace `golden-frijoles`; plugin dir `plugins/golden-frijoles/`; umbrella skill `golden-frijoles`; bin `gf-kit`; repo `golden-frijoles/skills`. **No alias** for `ways-of-work@dobby-foundation`.
-- **D7: The repo root stays zero-install.** No root `package.json`. The kit has its own under `kit/`, with zero dependencies.
-- **D8: Executing checks run in a constructed harmless state.** Temp `HOME` / `XDG_CONFIG_HOME` / `CLAUDE_CONFIG_DIR`, asserted by a negative control. A missing binary skips loudly and never fails.
-- **D9 (wave 2): Config precedence.** The new file wins per key, legacy files fill gaps, and a duplicate is reported. A malformed file is a *configuration* failure and an absent one is a fallback. After S4.2 no rail parses a config file itself.
-- **D10 (wave 2): One config core.** The CLI (`gf setup` / `gf config`) imports the kit's config module. The kit ships `.d.ts` for it, and the CLI never re-implements precedence.
+### Live state the lock was taken against
 
-**Rabbit holes the lock must close** (from the pitch): the 14 `__dirname` sites plus asset reads (D2), rename vs consumer keys (S1.3 + S1.4 same day), whether trusted publishing needs an existing package (D5), npx offline behaviour (S2.4), runtime deps the kit can't carry (`@playwright/test`, second-family CLIs: check and print the install line), the `version` field's update semantics (S1.5), and leak-guard residue (rewrite, don't allowlist).
+| Fact | Value on 2026-09-23 | How it was checked |
+|---|---|---|
+| GitHub org `golden-frijoles` | **does not exist** (`gh api users/golden-frijoles` → 404); `golden-frijoles/skills` → 404 | `gh api` |
+| `@golden-frijoles/kit` on npm | **never published** (E404) | `npm view` |
+| npm scope `@golden-frijoles` | owned by `danybgoode`. `cli@0.1.0` and `sdk@0.5.0` were **published by hand**: no publish workflow exists in any repo | `npm view … maintainers`, golden-beans `.github/workflows/` |
+| This machine's npm login | none (`npm whoami` → E401). No agent can publish from here | `npm whoami` |
+| The kit's closure | **45 files** (the union of all ten skills' `requires_scripts`) | `parseRequiresScripts` over every SKILL.md |
+| `npx skills` | `skills@1.7.0` lists all ten skills from `danybgoode/dobby-foundation` today | ran `npx -y skills add … --list` |
+| Claude Code | `2.1.280` local, `2.1.278` pinned in CI | `claude --version`, `ci.yml` |
+| golden-beans vs template (the 45 files) | 41 byte-identical, 4 differ: `roadmap-extract.mjs` (delegates to its Notion sync), `cross-panel.mjs` + `lib/cross-agent-cli.mjs` (the documented review-rail fork), `prose-lessons.md` (its own lessons) | `cmp` loop |
+| medusa-bonsai vs template | 35 identical, 10 differ | `cmp` loop (medusa doesn't adopt the kit, so this is for the record only) |
+
+### The decisions
+
+- **D1: The kit is built, not committed.** *Confirmed.* `template/scripts/` stays the one source. `scripts/build-kit.mjs`
+  copies the 45-file closure (plus `lib/project-root.mjs`, which D2 adds to every converted file's closure, and the S3.2
+  skeleton) into `kit/dist/`. `kit/dist/` is **already gitignored** by the existing `dist/` line, so nothing new goes in
+  `.gitignore`. Committed under `kit/`: `package.json`, `bin.mjs`, `README.md`, and nothing that is a copy.
+- **D2: Three path classes, one module, and copied mode is byte-for-byte unchanged.** *Corrected: the draft had two
+  roots and "14 sites".* The live count in the closure is **18 files that derive a root from their own location, plus
+  5 hidden subprocess sites that a `__dirname` grep never finds**: `build-order-sync.mjs:68,73`, `pmo-report.mjs:66`,
+  `standup.mjs:176,184`. Each spawns `node scripts/<x>.mjs` with `cwd` set to the project, so in installed mode it would
+  run the *project's* copy, or fail. The closure also holds **four project-owned assets** that the draft counted as kit
+  assets: `cross-panel.prompt.md` and `prose/cpo-persona.md` are `TEMPLATE FILL-IN`s, `prose-lessons.md` grows per
+  project, and `doc-format.enforced.json` is per-project policy. So `template/scripts/lib/project-root.mjs` exports:
+  - `kitRoot()`: the directory holding the script set. It's `dirname(this file)/..`, which is the project's `scripts/`
+    in copied mode and `kit/dist/` when installed. **Kit assets** (`pmo/*`, `standup/templates/*`, `prose/*.task.md`,
+    prompts that aren't fill-ins) and **sibling scripts a script spawns** resolve here. Spawns become
+    `spawnSync(process.execPath, [join(kitRoot(), '<x>.mjs'), …], { cwd: projectRoot() })`.
+  - `projectRoot()`: `GF_PROJECT_ROOT` if set; otherwise, **in copied mode, exactly today's `dirname(kitRoot())`**;
+    otherwise (installed) walk up from `process.cwd()` to the nearest dir holding `Roadmap/` or `.git`, falling back to
+    `cwd`. "Installed" = `join(kitRoot(), '..', 'package.json')` names `@golden-frijoles/kit`. **Why copied mode doesn't
+    walk:** this repo's CI runs `node template/scripts/…` from the repo root, and consumers' tests pass explicit roots.
+    Walking up from `cwd` would silently retarget both. One function, one branch on a detected fact. That's the "same
+    code in both modes" D2 asked for.
+  - `projectAsset(rel)`: `<projectRoot>/scripts/<rel>` if the file exists, else `<kitRoot>/<rel>`. Used for exactly the
+    four project-owned assets above. In copied mode both paths are the same file.
+  - `--root <dir>` is parsed **only by `kit/bin.mjs`**, which exports it as `GF_PROJECT_ROOT` and strips it. The
+    scripts' own arg parsers never see a new flag.
+- **D3: Local wins, per skill, and a run never mixes the two sets.** *Sharpened.* A skill runs `node scripts/<entry>.mjs`
+  when the project has `scripts/<entry>.mjs`. Otherwise it runs `npx -y @golden-frijoles/kit@<stamped> <entry>`. The
+  kit is self-contained: it **never** loads a `.mjs` from the project, only the four project-owned *assets* through
+  `projectAsset()`. The consequence is that a deliberate fork only survives through its entry script. This decides S2.5
+  (see its contract): a project deletes a copy only when that copy is byte-identical to the kit *and* nothing it keeps
+  locally still reaches it.
+- **D4: One version, in lockstep, and the version bump is the release.** *Confirmed, and its consequence locked.* The
+  Claude Code docs say: *"Setting [`version`] pins the plugin to that version string, so users only receive updates
+  when you bump it."* `plugin.json` wins over a marketplace-entry `version`. So from S1.5 on, **a change to anything a
+  user receives that doesn't bump the version never reaches them.** "Anything a user receives" means `plugins/**`,
+  `kit/**` and the 45 closure files, which is exactly what `check-release.mjs` guards. `plugin.json` `version` =
+  `kit/package.json` `version` = newest `CHANGELOG.md` heading = the tag. The kit version stamped in each SKILL.md is
+  rendered from `plugin.json` by `render-skill-adverts.mjs` and is never hand-typed. Users pin a release with the
+  marketplace ref: `claude plugin marketplace add golden-frijoles/skills@v0.1.0` (docs: *"Git-based marketplace sources
+  support `ref` (branch/tag)"*).
+- **D5: A version bump merged to `main` publishes, and CI creates the tag.** *Deviation from the draft's "a pushed tag
+  publishes".* Consumers and strangers track `main` (no ref). With D4, the version on `main` is live the moment it
+  merges, and a tag pushed before a squash-merge can't point at the commit that ships. So `.github/workflows/release.yml`
+  runs on push to `main`. If `v<version>` has no tag yet, it builds the kit, publishes it (OIDC trusted publishing,
+  provenance, no token), checks `npm view @golden-frijoles/kit@<version>`, **then** creates the tag and GitHub Release
+  from the CHANGELOG section. The tag is the record of a release. Nobody pushes it by hand. **npm facts (docs, checked
+  on the lock date):** a trusted publisher can only be attached to a package that **already exists** (`npm trust` too:
+  *"Package must exist"*). It needs npm ≥ 11.5.1 and Node ≥ 22.14 (CI runs Node 20, so the publish job pins 22). It
+  needs `id-token: write`, and `repository.url` must **exactly** match the GitHub repo. So the attach can only happen
+  after S1.2. **The bootstrap owed to Daniel is a `0.0.0` placeholder, not a real `0.1.0`** (a README-only package,
+  then `npm deprecate`d). That way every real kit version carries provenance, and the lockstep numbering isn't broken
+  by a hand-published release. Versions: S1 merge → `v0.1.0` (plugin only, since there's no kit yet), S2 → `v0.2.0`
+  (first kit), S3 → `v0.3.0`. *(The draft said "release v0.2.0" after S3. One release per merged sprint is what D4
+  makes true.)* **Window, stated:** between a merge and its publish (~1–2 min) a SKILL.md pins a kit version that isn't
+  on npm yet. The D3 instruction reports that as *could not look* and names the local-copy escape hatch.
+- **D6: Names.** *Confirmed, and one rename scope-limited.* Marketplace `golden-frijoles`; plugin dir
+  `plugins/golden-frijoles/`; umbrella skill `golden-frijoles`; bin `gf-kit`; repo `golden-frijoles/skills`. **No
+  alias** for `ways-of-work@dobby-foundation` (this overrides the audit's one-release alias, as the epic already
+  decided). **"ways-of-work" is also the name of the process and of a past epic** (`ways-of-work-lean-pass`,
+  `render-ways-of-working`). The rename touches **identifiers only**: `ways-of-work@…`, `plugins/ways-of-work`, "the
+  `ways-of-work` plugin", "dobby-foundation marketplace", `danybgoode/dobby-foundation`. It doesn't touch epic slugs
+  in provenance comments, and it doesn't touch the process name.
+- **D7: The repo root stays zero-install.** *Confirmed.* No root `package.json`. `kit/package.json` has zero
+  dependencies, and that's possible: **the closure has no bare-package import** (grepped). `live-smoke` already spawns
+  `npx playwright` inside the project's own app dir, so it resolves the *user's* Playwright. The second-family CLIs
+  (`codex`, `agy`, `vibe`) are spawned with a presence check that prints their install line
+  (`lib/cross-agent-cli.mjs` `ensureCmd`). **The draft's rabbit hole "runtime deps the kit can't carry" doesn't exist
+  for the kit.** Disproved, with nothing to build.
+- **D8: Executing checks run in a constructed harmless state, and assert it.** *Confirmed and extended to Claude Code.*
+  Same shape as `check-onboarding-parity.mjs --exec` (a blank `GOLDEN_FRIJOLES_TOKEN`, `HOME` and `XDG_CONFIG_HOME` at
+  an empty temp dir, `unauthorized` *required*). The `claude plugin …` probe adds `CLAUDE_CONFIG_DIR` at the same temp
+  dir. Its **negative control** hashes the real `~/.claude/plugins/installed_plugins.json` before and after and fails
+  if it changed. A missing binary skips with a `::warning::` and never fails. Pinned: `skills@1.7.0`, Claude Code
+  `2.1.278` (the CI pin).
+
+### Deviations from the scaffolded docs, decided here
+
+| # | The doc said | The live system says | Decided |
+|---|---|---|---|
+| X1 | "14 `__dirname` sites" (D2, S2.1) | 18 self-rooted files + 5 hidden subprocess sites + 4 project-owned assets | D2's three classes; the S2.1 contract lists every site |
+| X2 | `projectRoot()` walks up from `cwd` | Walking up retargets this repo's CI and consumers' tests in copied mode | walk only when installed (D2) |
+| X3 | "a pushed `v*` tag publishes" (D5, S2.3) | `version` gates updates; users track `main`; a pre-merge tag can't name the shipped commit | a bump merged to `main` publishes; CI tags (D5) |
+| X4 | "first manual `0.1.0` publish" | Trusted publishing *requires* an existing package | the bootstrap is a deprecated `0.0.0` placeholder (D5) |
+| X5 | "release `v0.2.0`" after S3 | One release per merged sprint (D4) | S1 `0.1.0`, S2 `0.2.0`, S3 `0.3.0` |
+| X6 | S2.5: "`build-order-sync` and `standup` run through the kit" | golden-beans forks `roadmap-extract.mjs` and `cross-agent-cli.mjs`, and CI + `.githooks/pre-push` call `build-order.mjs` | the S2.5 deletion rule decides mechanically; the PR lists what moved and why the rest didn't |
+| X7 | "runtime deps the kit can't carry (`@playwright/test` …)" | No bare import in the closure | disproved, nothing to build (D7) |
+| X8 | S1.3 renames every `ways-of-work` | It's also the process name and a past epic's slug | identifiers only (D6) |
+| X9 | S3.3: "state contract … updated, not bypassed" | `/install` is approved state `public-install`, hash-pinned in `APPROVED.md`; an onboarding state isn't among the 33 | measure `public-install`'s signature first; if it changes, the prototype edit needs a new approval line **owed to Daniel** |
+| X10 | S3.4: "the plugin README" | There's no plugin README, only the repo README | the repo `README.md` is the surface |
+| X11 | S1.4: medusa-bonsai + golden-beans, "the old entries removed" | Both consumers carry byte-shared rails that name the old identity (`doc-format.mjs`, `doc-hygiene.mjs`, the vendored `WAYS-OF-WORKING.template.md`) | the S1.4 PRs carry those byte copies too (shared-rails rule), plus `scripts/epic-dod.exemptions.json` |
+
+### Model routing (auditable)
+
+| Work | Model | Why |
+|---|---|---|
+| The lock, **S2** (roots, kit build, release/publish, the local-wins seam, the dogfood) | **Opus 5.5 (the orchestrator), built directly** | S2 defines the contract every later sprint imports: a package boundary, a publish rail and a cross-repo deletion |
+| **S1** (license, rename, consumer switch, release check) | Sonnet 5 builder, in its own worktree | mechanical over D4/D6 |
+| **S3** (umbrella skill, `gf-kit init`, the prompt module, parity `--exec`) | Sonnet 5 builder, in its own worktree | mechanical over D2/D3/D8 |
+| Fresh reviewer on each PR | a fresh Opus 5.5 agent given `plugins/*/agents/pr-reviewer.md` | the plugin isn't loaded in this session (its cache is empty, see team memory), so its subagent type isn't available. Same prompt, fresh context |
+| External general pass + security lens | `review-route.mjs` from `~/dobby/medusa-bonsai` with `--repo`, per team memory | this repo carries no review rail of its own |
+
+Findings route back to the builder that wrote the code. The orchestrator verifies every builder's report by
+re-deriving repo state (`git diff`, the gate) before trusting it.
+
+### Owed to Daniel in wave 1, in the order they're reached
+
+1. **S1.2**: create the `golden-frijoles` org and transfer + rename the repo. **Blocks the S1 merge** (S1.4's settings
+   point at `golden-frijoles/skills`) and the S2.3 attach (`repository.url` must match).
+2. **S2.3**: the `0.0.0` bootstrap publish, `npm deprecate` it, attach the trusted publisher. Before the S2 merge.
+3. **S1.4**: the medusa-bonsai session check, after the rename merges.
+4. **S3.3**: the signed-in onboarding smoke, and the `public-install` approval line **if** X9's measurement shows a
+   structural change.
+5. **S3.5**: both stranger walkthroughs.
+
+## Build contracts (locked by the architect before the builder started)
+
+The full per-sprint contract lives in each sprint file under **"Build contract (locked by the architect before the
+builder started)"**. It cites D1–D8 above and restates none of them.
+
+## Wave 2 (not locked; re-bet at the boundary)
+
+- **D9 (draft): Config precedence.** The new file wins per key, legacy files fill gaps, and a duplicate is reported. A malformed file is a *configuration* failure and an absent one is a fallback. After S4.2 no rail parses a config file itself.
+- **D10 (draft): One config core.** The CLI (`gf setup` / `gf config`) imports the kit's config module. The kit ships `.d.ts` for it, and the CLI never re-implements precedence.
 
 ## Scope — stories
 
@@ -98,13 +228,14 @@ unchanged beyond the install-prompt module/pages and the CLI's `setup` / `config
 
 ## Deploy order
 
-1. **S1.1** license → **S1.2** org + transfer (Daniel) → **S1.3 + S1.4 merge the same day** (the rename and both consumers) → **S1.5** tag `v0.1.0`.
-2. **S2.1 → S2.2 → S2.3** (the first kit publish; a manual publish is owed if D5 requires it) → **S2.4** (skills may only pin a version that's published) → **S2.5** golden-beans.
-3. **S3.1–S3.4** in any order, then **S3.5** walkthroughs → release `v0.2.0` → **wave boundary: re-bet wave 2.**
+1. **S1.2** org + transfer (Daniel) must be done first. Then the S1 PR (S1.1, S1.3, S1.5) merges, and the release workflow creates `v0.1.0` (D5). **Within minutes, the two S1.4 consumer PRs merge.** Between those merges, a consumer that still names `ways-of-work@dobby-foundation` resolves nothing, so the gap stays short on purpose.
+2. **S2.3's bootstrap** (Daniel: a `0.0.0` placeholder, deprecated, plus the trusted-publisher attach) → the S2 PR merges → the release workflow publishes kit `0.2.0` with provenance and tags `v0.2.0` → **S2.5** golden-beans PR (it may only pin a published version).
+3. **S3.1–S3.4** in any order → the S3 PR merges → `v0.3.0` → the golden-beans S3.3 PR → **S3.5** walkthroughs (Daniel) → **wave boundary: re-bet wave 2.**
 4. **S4.1 → S4.2 → S4.3**, then **S5.1–S5.4**, then **S5.5** → release.
 
-Rollback at every step comes from the release rails: pin the previous plugin `version` / kit version, deprecate a bad npm
-version, `git revert` the landing card. The repo transfer is reversible.
+Rollback at every step comes from the release rails: `git revert` plus a version bump (a revert that doesn't bump
+never reaches anyone, per D4), pin a previous release with the marketplace ref (`golden-frijoles/skills@v0.1.0`),
+deprecate a bad npm version, `git revert` the landing card. The repo transfer is reversible.
 
 ## Kill-switch (Stage 6b)
 

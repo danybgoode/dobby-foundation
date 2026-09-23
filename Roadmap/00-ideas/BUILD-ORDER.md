@@ -10,13 +10,13 @@
 > funnel), then run `node scripts/build-order.mjs`. This board and the Notion "Marketplace Roadmap"
 > DB are both *derived views* — never hand-edit the board.
 
-## 🏗️ Building now (0)
-
-_None._
-
-## 📋 Ready to build (scaffolded, not started) (1)
+## 🏗️ Building now (1)
 
 - [One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo](../../09-platform-infra/golden-frijoles-plugin/README.md) — 09 Platform-infra · 0/23 stories · risk: High
+
+## 📋 Ready to build (scaffolded, not started) (0)
+
+_None._
 
 ## ✅ Shipped (5)
 
@@ -32,5 +32,15 @@ _None._
 - [Verify module: the verification depth ladder as a product (after the spike)](seeds/verify-module.md) — Raw · Feature · appetite L · audit-wave-D
 - [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
 
+## ⚠️ Status drift — README frontmatter vs sprint/retro-derived (1)
+
+These epics’ authoritative README-frontmatter `status:` disagrees with what the sprint/retro
+derivation infers. The board trusts the **frontmatter**; a mismatch usually means a close-out
+forgot to set `status:` (or the README is stale). Reconcile the README, then this advisory clears.
+
+| Epic | frontmatter (used) | sprint/retro-derived |
+|---|---|---|
+| One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo | In progress | Scaffolded |
+
 ---
-_Epics: 6 · seeds in funnel: 3 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 6 · seeds in funnel: 3 · status drift: 1. Regenerate with `node scripts/build-order.mjs`._

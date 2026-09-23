@@ -48,11 +48,110 @@ stories:
 
 Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declared closure, learns to tell the project apart from itself, and is published by a tag. golden-beans proves it by deleting its copies.
 
+## Build contract (locked by the architect before the builder started)
+
+Cites the epic README's D1, D2, D3, D4, D5, D7, D8 and deviations X1–X4, X6. **Builder:** the orchestrator (Opus),
+per the routing table. **Branch:** `feat/golden-frijoles-plugin-s2`, cut from the S1 branch. One PR in this repo,
+plus one golden-beans PR for S2.5.
+
+**S2.1: `template/scripts/lib/project-root.mjs` (D2).** It exports `kitRoot`, `projectRoot`, `projectAsset` and
+`isInstalled`, with no other exports and no side effects at import. Convert **exactly these sites** in the closure, and
+leave nothing outside it changed:
+
+| Class | Sites |
+|---|---|
+| project → `projectRoot()` | `build-order-sync.mjs:27` · `build-order.mjs:20` · `doc-format.mjs:44` · `doc-hygiene.mjs:21` · `lib/jev.mjs:38` (`repoRoot`) · `lib/reporting-config.mjs:34` · `live-smoke.mjs:39` · `pmo-report.mjs:35` · `preflight.mjs:80` · `prose-draft.mjs:31` · `roadmap-extract.mjs:48` · `standup.mjs:59` · `weekly-recap.mjs:54` |
+| kit asset / sibling script → `kitRoot()` | `build-order.mjs:22` · `doc-format.mjs:45` · `doc-hygiene.mjs:75` · `lib/pmo-benchmarks.mjs:6-7` · `lib/pmo-templates.mjs:8-9` · `lib/standup-deck.mjs:12-13` · `lib/prose-writer.mjs:75,112` (task files) · `prose-draft.mjs:118` · `standup.mjs:527` / `weekly-recap.mjs:450` (`scriptsDir`) |
+| hidden subprocess → `process.execPath` + `join(kitRoot(), …)`, `cwd: projectRoot()` | `build-order-sync.mjs:68,73` · `pmo-report.mjs:66` · `standup.mjs:176,184` |
+| project-owned asset → `projectAsset()` | `cross-panel.mjs:34` (`cross-panel.prompt.md`) · `lib/prose-writer.mjs:74,76` + `prose-draft.mjs:117` + `lib/prose-brief.mjs:136` (`cpo-persona.md`, `prose-lessons.md`) · `doc-format.mjs:46` (`doc-format.enforced.json`) |
+
+- Every converted file adds `lib/project-root.mjs` to its skills' `requires_scripts`. `check-skill-scripts` forces
+  that.
+- **Copied mode must behave identically.** Every existing `template/scripts` test stays green without edits to its
+  assertions.
+- Unit tests for all three functions: the copied vs installed branch, the `GF_PROJECT_ROOT` override, walking up to
+  `Roadmap/` or `.git`, the `cwd` fallback, and `projectAsset`'s override vs fallback.
+- The tarball spec (`scripts/kit-tarball.test.mjs`): `npm pack` the built kit, install it into a temp repo with
+  `Roadmap/` and a nested subdir, and run `gf-kit build-order` from the subdir. Assert that repo's
+  `Roadmap/00-ideas/BUILD-ORDER.md` was written, and that nothing was written inside the installed package.
+  Git fixtures use `sealedEnv()`. Skip loudly if `npm` is absent.
+
+**S2.2: `kit/` (D1, D7).**
+- `kit/package.json`: `name @golden-frijoles/kit`, `version` = `plugin.json`, `type: module`,
+  `bin: { "gf-kit": "bin.mjs" }`, `files: ["bin.mjs", "dist/", "README.md"]`, `license: Apache-2.0`,
+  `repository: { type: git, url: "git+https://github.com/golden-frijoles/skills.git", directory: "kit" }` (it must
+  match exactly for OIDC), `engines.node >=20`, `publishConfig.access public`. **No `dependencies` key.**
+- `kit/bin.mjs`:
+  - It dispatches `gf-kit <name> …` by **spawning** `process.execPath dist/<name>.mjs …` with inherited stdio, and it
+    propagates the exit code and signal. A spawn keeps every entry's `isMain` guard and `process.exit` semantics
+    intact, where an `import()` would silently skip `main()`.
+  - It parses `--root` into `GF_PROJECT_ROOT`.
+  - `--list` prints the dist's top-level `.mjs` names.
+  - An unknown name exits 2 and prints the list.
+  - `--version` works.
+- `scripts/build-kit.mjs` (zero deps):
+  - It wipes `kit/dist/`, then copies the union of every skill's declared `requires_scripts` from `template/scripts/`,
+    preserving relative paths.
+  - It also copies `LICENSE` and `NOTICE` into `kit/dist/`.
+  - It fails when a declared file is absent.
+- `check-skill-scripts.mjs --kit`: audit with `scriptsDir = kit/dist`, so every declared file must be present and its
+  closure must be whole. CI builds the kit, then runs it.
+- `build-kit.test.mjs`: a missing declared file fails the build (watch it fail once by mutation).
+
+**S2.3: The publish job (D5).**
+- `release.yml`: a `publish` job before the S1 tag job, on Node `22.14+`, running `npm i -g npm@^11.5.1`, with
+  `permissions: id-token: write, contents: read`.
+  - It runs only when the `v<version>` tag is absent and `npm view @golden-frijoles/kit@<version>` 404s.
+  - Its steps: `node scripts/build-kit.mjs`, then `cd kit && npm publish --provenance --access public`, then
+    `npm view` to confirm.
+  - The tag job `needs: publish`.
+- A `kit dry-run` CI step on PRs: build, then `npm publish --dry-run` in `kit/` (it needs no credential).
+- **Owed to Daniel before the S2 merge (one focused question):**
+  1. In an empty temp dir, publish a README-only `@golden-frijoles/kit@0.0.0` by hand.
+  2. `npm deprecate @golden-frijoles/kit@0.0.0 "bootstrap placeholder — use ≥0.2.0"`.
+  3. On npmjs.com → the package → Settings → Trusted publisher: GitHub Actions, org `golden-frijoles`, repo
+     `skills`, workflow `release.yml`, no environment.
+
+  The builder writes the exact commands into this sprint's walkthrough.
+
+**S2.4: The run rule (D3).**
+- `render-skill-adverts.mjs` stamps a generated block between `<!-- kit:start -->` / `<!-- kit:end -->` in every
+  SKILL.md whose `requires_scripts` is non-empty. It says:
+  - Every `node scripts/<x>.mjs …` in this skill means: if `scripts/<x>.mjs` exists at the project root, run it;
+    otherwise run `npx -y @golden-frijoles/kit@<version> <x> …`.
+  - If npx can't reach the registry, report **could not look (kit unreachable)**, name the escape hatch (copy the
+    script into `scripts/`, or retry online), and never say the project is broken.
+- The version comes from `plugin.json`. `--check` covers the stamp.
+- The rule's text lives **once**, in the renderer.
+- Measure npx offline behaviour with a warm cache before adding `--prefer-offline`, and record the measurement.
+- `groom`'s generator lookup gains the `npx skills` install paths (measured, not guessed).
+- Spec: running an entry through the rule with a fake local `scripts/<x>.mjs` present runs the local one, and with it
+  absent runs `kit/bin.mjs`.
+- `check-skill-scripts --repo-root` learns the same rule. A skill whose entry is absent locally reports
+  `kit` (passing). A skill whose entry is present must have its whole closure present, which is today's rule.
+
+**S2.5: golden-beans on the kit (D3, X6).** A mechanical rule decides which files go, applied after `0.2.0` is on npm:
+- **Deletable** = byte-identical to `kit/dist/<f>` at `0.2.0` **and** not reached from anything golden-beans keeps.
+  "Reached" means an import closure, a `scripts/<f>` path in `.github/`, `.githooks/`, `package.json` or a kept
+  script, or a kept test.
+- A skill runs from the kit iff its entry was deleted.
+- The PR body carries:
+  - the `cmp` table for all 45 files;
+  - the deleted list, and the kept list with each reason (fork / CI-invoked / reached-by-kept);
+  - for each moved skill, a before (local, `main`) / after (kit) run in its dry mode, `diff`ed.
+- golden-beans' OLD tests for each deleted script run against `kit/dist` (import paths rewritten in a temp copy)
+  before deletion, and the output is pasted.
+- golden-beans' gate: `tsc`, ESLint over `scripts/`, format-changed, the Playwright `api` project, and its
+  `scripts-guard` (update it to the S2.4 `--repo-root` rule if it runs `check-skill-scripts`).
+
+**Stop and escalate** on any trigger in WAYS-OF-WORKING → *Escalate, don't guess*: any npm credential, token or
+secret handling, and anything S2.3 would need beyond the steps above.
+
 ## Stories
 
 ### Story 2.1 — Two roots: the project and the kit
 **As** a script running from node_modules, **I want** to find the user's project and my own templates separately, **so that** I work the same whether I was copied into `scripts/` or installed as a package.
-**Acceptance:** `template/scripts/lib/project-root.mjs` exports `projectRoot()` (walk up from `process.cwd()` to the nearest dir with `Roadmap/` or `.git`; `--root` / `GF_PROJECT_ROOT` override) and `kitRoot()` (this package's own dir). All 14 `join(__dirname, '..')`-style sites are converted: project paths via `projectRoot()`, asset paths (`pmo/templates`, `prose/*.task.md`, `standup/templates`, `pmo/benchmarks.json`) via `kitRoot()`. Copied mode keeps working unchanged.
+**Acceptance:** `template/scripts/lib/project-root.mjs` exports `projectRoot()` (walk up from `process.cwd()` to the nearest dir with `Roadmap/` or `.git`; `--root` / `GF_PROJECT_ROOT` override) and `kitRoot()` (this package's own dir). Every site the build contract lists is converted (*lock X1: the live count was 18 self-rooted files, 5 hidden subprocess sites and 4 project-owned assets, not "14"*): project paths via `projectRoot()`, kit assets and spawned siblings via `kitRoot()`, project-owned assets via `projectAsset()`. Copied mode keeps working unchanged.
 **QA:** unit tests for both roots; **a tarball spec**: `npm pack` the kit, install it in a temp repo, run `gf-kit build-order` from a subdirectory, and assert it wrote *that* repo's `BUILD-ORDER.md`
 **Risk:** high
 
@@ -64,7 +163,7 @@ Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declare
 
 ### Story 2.3 — Tag publishes the kit with provenance
 **As** Daniel, **I want** a pushed `v*` tag to publish the kit from CI, **so that** a release needs no npm token on any machine.
-**Acceptance:** `.github/workflows/release.yml`: on `v*`, verify tag = `plugin.json` version = `kit/package.json` version (D4), build the kit, `npm publish --provenance --access public` via **trusted publishing (OIDC)**. If npm requires the package to exist before a trusted publisher can be attached, the **first `0.1.0` publish is owed to Daniel by hand** (recorded here once the lock confirms it). The npm page shows provenance.
+**Acceptance:** `.github/workflows/release.yml`: on a version bump merged to `main` (*lock X3/D5: CI creates the tag, it doesn't react to one*), verify = `plugin.json` version = `kit/package.json` version (D4), build the kit, `npm publish --provenance --access public` via **trusted publishing (OIDC)**. npm requires the package to exist before a trusted publisher can be attached (*confirmed by the lock, D5*), so a **`0.0.0` placeholder publish, then deprecate + attach, is owed to Daniel by hand** (lock X4). The npm page shows provenance.
 **QA:** a dry-run job on PRs (`npm publish --dry-run`) so the workflow can't rot between releases
 **Risk:** high
 
@@ -76,7 +175,7 @@ Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declare
 
 ### Story 2.5 — golden-beans runs on the kit (the dogfood)
 **As** Daniel, **I want** golden-beans to run its skills through the kit, **so that** the release is proven in a real repo before a stranger meets it.
-**Acceptance:** In golden-beans: a `cmp` loop of every kit file against its local copy goes in the PR body. **Byte-identical copies are deleted**; every surviving difference is listed with its reason (a deliberate fork stays, and local wins). `build-order-sync` and `standup` run through the kit, and their output matches the pre-change run. golden-beans' OLD tests for the deleted scripts run against the kit build before deletion (LEARNINGS: *Replacing a file with the shared copy? Run the consumer's OLD tests against the NEW code*).
+**Acceptance:** In golden-beans: a `cmp` loop of every kit file against its local copy goes in the PR body. **Byte-identical copies are deleted**; every surviving difference is listed with its reason (a deliberate fork stays, and local wins). The skills whose entries the deletion rule removes run through the kit, and their output matches the pre-change run. (*Lock X6: golden-beans forks `roadmap-extract.mjs` + `cross-agent-cli.mjs`, and its CI calls `build-order.mjs`, so which skills move is computed, not promised.*) golden-beans' OLD tests for the deleted scripts run against the kit build before deletion (LEARNINGS: *Replacing a file with the shared copy? Run the consumer's OLD tests against the NEW code*).
 **QA:** golden-beans CI green; the before/after output diff in the PR
 **Risk:** high
 
