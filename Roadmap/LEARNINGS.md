@@ -157,6 +157,15 @@ accumulate below them, same one-liner + why + date shape.
   silently advancing state a scheduled run depends on — keep on-demand modes explicitly
   non-state-mutating and lock that with a test.
 
+- **Every spec that builds a git fixture must clear `GIT_DIR` and friends.** git exports them into hooks,
+  from a linked worktree they point at the real repo, and they override `cwd`. So a fixture's `git init` /
+  `config` / `commit` rewrites the real repository: `core.bare=true`, identity `t <t@t>`, junk commits on
+  `main`. It happened three times (2026-09-09, -16, -23), each time sealed in one file only.
+  `template/scripts/git-fixtures-sealed.test.mjs` now fails the class. *(2026-09-23)*
+- **Never put markdown in a double-quoted shell string.** The backticks in `node -e "…`codex login`…"` are
+  command substitution: they started an OAuth flow and logged a CLI out. Put data scripts in files
+  (heredoc with a quoted delimiter). *(2026-09-23)*
+
 ## Permissions & guardrails (ways-of-work-lean-pass, 2026-09-16)
 - **A deny rule is text matching, and a per-rule patch cannot close a rule CLASS.** A leading assignment
   whose value contains an expansion (`PATH=/x:$PATH vercel deploy --prod`) was observed LIVE to escape a bare
@@ -297,6 +306,26 @@ accumulate below them, same one-liner + why + date shape.
 - **Pin the CLI version in the check that validates against it.** The first unpinned CI install failed on
   a schema the probed version does not have (`hooks: Invalid input: expected record`). Same discipline as
   the cross-review families' pinned CLIs — bump deliberately, after re-probing. *(2026-09-19)*
+
+## A model as a guard's judge (jev-semantic-guards, 2026-09-23)
+- **Measure the question before trusting the model. The first wording is a guess.** Every first question
+  underperformed the regex it was replacing, or barely beat it: a real review scored 0.73, and liveness
+  scored 48/62. Keep a labelled fixture set **with recorded answers**. Then wording and thresholds become an
+  offline sweep over identical answers instead of an argument, and CI replays the recordings, so a model
+  bump or threshold change goes red instead of silently changing verdicts. *(2026-09-23)*
+- **Three states, never two: "could not look" is its own outcome.** No key, a 429, a timeout or a malformed
+  answer (`"1"`, `true`, `null`) must fall back to the deterministic rule and **say so in the reason**. A
+  coerced `Number(true)` became a model-decided PASS until review caught it. Only a probability in [0,1]
+  counts as a verdict. *(2026-09-23)*
+- **A shadow period can run on history, if the history is decision-shaped.** Replaying 655 posted reviews
+  and 186 retrospectives through the same judge in shadow did in minutes what a calendar shadow does in
+  weeks. Name the corpus bias (posted = accepted) and label the other direction on purpose. *(2026-09-23)*
+- **After a flip, the audit trail must keep the old decider's verdict.** Once the model decides, "posted"
+  no longer means "the old rule accepted it". A marker without the regex's own verdict makes the monitoring
+  report blind to the model's false passes, the one thing it exists to watch. *(2026-09-23)*
+- **Evidence tooling fails closed too.** An empty log, a `{}` line, a marker with no mode, or a forged
+  comment from a stranger on a public repo must never count as evidence. Filter by author provenance and
+  exit non-zero on nothing. *(2026-09-23)*
 
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable

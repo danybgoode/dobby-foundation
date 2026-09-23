@@ -1,12 +1,12 @@
 ---
-status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: shipped   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: jev-semantic-guards
 build_order: 7
 title: "Jev semantic guards — review-guard and prose-guard decide with Jev, not regex"
 area: 09-platform-infra
 risk: high
 type: feature
-phase: Building
+phase: Shipped
 sprints_total: 5
 stories_total: 15
 ---
@@ -218,16 +218,42 @@ Template first (S1–S3), consumers after (S4) — each consumer ships with `mod
 today's behaviour with no key. Wave 2 (S5) flips `mode: jev` in the template and both consumers in one
 coordinated PR set. There is no app deploy; "shipped" = merged to `main` in each repo with the config set.
 
-## Definition of Done (epic)
-- [ ] All sprints merged to `main` + smoke-tested (gaps stated — `node scripts/owed-ledger.mjs` counts what is still owed)
-- [ ] Each `sprint-N.md` has its smoke walkthrough (real URLs)
-- [ ] This README marked ✅; every sprint status ticked with commit refs
-- [ ] `RETROSPECTIVE.md` written
-- [ ] Product poster (`Roadmap/README.md`) updated
-- [ ] Team memory + `MEMORY.md` index updated
-- [ ] Durable learnings promoted to `Roadmap/LEARNINGS.md` (dedupe — sharpen, don't append)
-- [ ] **Kill-switch (Stage 6b):** `jev.config.json → rails.<review|prose>.mode` exists in all three repos,
-      `off` in the template; setting it to `off` restores today's regex-only behaviour (proven by test).
-- [ ] **Promotion done, not deferred:** `mode: jev` live for both rails in all three repos; no rail left
-      in `shadow` (the `shadowExpires` CI check would fail otherwise); the agreement report is linked here.
-- [ ] Feature branch deleted; **this README's frontmatter `status: shipped`** (the SSOT — the board & Notion derive from it; run `node scripts/build-order.mjs`)
+## Definition of Done (epic) — ✅ closed 2026-09-23
+- [x] All sprints merged to `main` and smoke-tested, with the gaps stated. Each sprint file lists its PRs.
+      Two items are owed to the product owner: the routine key, and golden-beans' `.git` repair (below).
+- [x] Each `sprint-N.md` has its smoke walkthrough and recorded results.
+- [x] This README is marked ✅, and every sprint status is ticked with commit refs.
+- [x] `RETROSPECTIVE.md` is written.
+- [x] The product poster (`Roadmap/README.md`) is updated.
+- [x] Team memory and the `MEMORY.md` index are updated.
+- [x] Durable learnings are promoted to `Roadmap/LEARNINGS.md`.
+- [x] **Kill-switch (Stage 6b):**
+  - `jev.config.json → rails.<review|prose>.mode` exists in all three repos.
+  - Setting it to `off` restores today's regex-only behaviour, proven by test: `off: exactly
+    assertReviewOutput` and `off: exactly checkProse`, with no call and no log line.
+  - With no key or `egress:false`, the effective mode is also `off`, and the reason says so.
+  - **Deviation:** the template ships `jev`, not `off`. That is the S5.3 promotion. It takes effect only with
+    a key, and a repo with no config file stays `off` (D15).
+- [x] **Promotion done, not deferred:**
+  - `mode: jev` is live for both rails in all three repos, and no rail is in `shadow`.
+  - The agreement report is [`shadow-report-2026-09-23.md`](shadow-report-2026-09-23.md).
+  - Live production decisions on the promotion PRs read `decided by jev (0.91 / 0.95 / 0.97)`.
+- [x] Feature branches are deleted, and this README's frontmatter reads `status: shipped`.
+
+## Owed to the product owner
+
+1. **Repair golden-beans' local git state.** It was damaged on 2026-09-23 by the unsealed spec fixture that
+   #37 fixed. Nothing reached the remote. The auto-mode classifier (correctly) refused to let the agent move
+   or delete refs. Run these from `~/dobby/golden-beans`:
+   ```
+   git --git-dir=.git config core.bare false
+   git config --unset user.name; git config --unset user.email   # the fixture's "t <t@t>"; your global identity stays
+   git update-ref refs/heads/main a1f2bc4f1b529e372a20a0679f0e15640872bb3a fb2cbbb   # drop 3 "plan: scaffold" commits
+   git update-ref -d refs/heads/claude/session-journal 3711af1                      # created by the fixture
+   git worktree remove --force ../golden-beans-jev-pin                               # the worktree the leak ran in
+   git status   # should show only your own .claude/settings.json change and "Claude outputs/"
+   git pull --ff-only
+   ```
+2. **Give the routines the key when you re-enable them.** They share one environment. Add
+   `TYPESAFE_API_KEY`, and put `api.typesafe.ai` under Network access → Custom. Until then a routine
+   falls back to the regex, and its output says `jev could not look`.

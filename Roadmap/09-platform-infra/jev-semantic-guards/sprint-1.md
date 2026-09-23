@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 1
 title: Client, config, decision log and eval harness
 risk: low
-phase: In review
+phase: Shipped
 stories_total: 4
 stories:
   - id: S1.1
@@ -37,7 +37,7 @@ stories:
 ---
 # Jev semantic guards — Sprint 1: Client, config, decision log and eval harness
 
-**Status:** 🔄 in review — S1.1 `66c0e01` · S1.2 `9013f5d` · S1.3 `0abb092` · S1.4 (see PR)
+**Status:** ✅ Shipped — merged to `main` in [#34](https://github.com/danybgoode/dobby-foundation/pull/34) (`1f2290a`)
 
 ## Stories
 
