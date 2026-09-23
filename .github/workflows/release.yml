@@ -32,12 +32,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Trusted publishing needs npm >= 11.5.1 and Node >= 22.14 (npm docs, checked 2026-09-23).
+      # Trusted publishing needs npm >= 11.5.1 (npm docs). Node 24 bundles npm 11; the explicit upgrade and the
+      # printed version make that a checked fact, not an assumption (the first run started on npm 10.9.2).
+      #
+      # NO `registry-url` here, on purpose. With it, setup-node writes `_authToken=${NODE_AUTH_TOKEN}` into an
+      # .npmrc with a placeholder token, npm authenticates with that bogus token instead of exchanging the
+      # GitHub OIDC token, and the registry answers "403 OIDC permission denied for this action". Observed on
+      # this repo's first publish (run 35932758951); npmjs.org is npm's default registry anyway.
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.14'
-          registry-url: 'https://registry.npmjs.org'
-      - run: npm install -g npm@^11.5.1 --no-audit --no-fund
+          node-version: '24'
+      - run: npm install -g npm@^11.5.1 --no-audit --no-fund && npm --version
 
       - name: Release is consistent before anything is published
         env:
@@ -50,6 +55,8 @@ jobs:
           fi
 
       - name: Publish @golden-frijoles/kit@<version> (only if this version is not on npm yet)
+        env:
+          NODE_AUTH_TOKEN: '' # never a token: the OIDC exchange is the only credential this job has
         run: |
           version="$(node scripts/check-release.mjs --print-version)"
           if [ ! -f kit/package.json ]; then
