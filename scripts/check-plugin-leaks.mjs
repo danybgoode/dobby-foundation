@@ -28,9 +28,10 @@ const repoRoot = join(__dirname, '..');
 
 // Everything a consuming project actually receives: the plugin, the spawn template, the marketplace
 // manifest, and the front-door README. `scripts/` is excluded — it is this repo's own tooling, not
-// shipped, and this file lives there.
+// shipped, and this file lives there. LICENSE + NOTICE ship too (S1.1): a stray project name in either
+// is the same residue as anywhere else.
 const SCAN_ROOTS = ['plugins', 'template', '.claude-plugin'];
-const SCAN_FILES = ['README.md'];
+const SCAN_FILES = ['README.md', 'LICENSE', 'NOTICE'];
 
 // Text formats this repo actually ships. Anything else (an image, a lockfile) is skipped rather than
 // guessed at — every shipped file here is one of these today, and a new format is a deliberate add.
