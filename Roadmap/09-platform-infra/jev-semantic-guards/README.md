@@ -108,7 +108,10 @@ scored the timed-out banner `is_real_review = 0.10`.
   shape `{ ok, findings }` plus `decider`, so the writer loop needs no other change.
   - **Sentences** come from the guard's own `sentences()`, now exported. That export keyword is the only
     other edit to the file, so `checkProse` is byte-unchanged.
-  - **One batched call.** It has one key per `(sentence, family)` and the evidence pack in `state`.
+  - **One batched call.** It has one key per `(sentence, family)`, and the full draft in `state`. The
+    evidence pack is deliberately **not** sent: code applies it (the family gating and the `liveFlags`
+    corroboration), so Jev judges language and never evidence. *(Corrected in review of PR #36; the pitch
+    said "evidence pack as `state`".)*
   - **Only the families the evidence hasn't already allowed are asked.** Fix is skipped under
     `allowsFixClaim` and beneficiary under `allowsBeneficiary`. Liveness and commitment are always asked.
   - **Over 120 questions**, the call splits into parallel chunks.

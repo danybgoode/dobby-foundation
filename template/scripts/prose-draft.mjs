@@ -171,9 +171,10 @@ async function main() {
 
   // Advisory banner: names the writer AND the model that actually ran, plus whether the guard passed
   // clean — so a paste-without-reading stays self-identifying in review.
+  const decided = result.guard?.decider ? ` by ${result.guard.decider}` : '';
   const verdict = result.ok
-    ? 'guard: clean'
-    : `guard: FLAGGED (${result.guard.findings.map((f) => f.code).join(', ')})`;
+    ? `guard: clean${decided}`
+    : `guard: FLAGGED${decided} (${result.guard.findings.map((f) => f.code).join(', ')})`;
   writeSync(
     1,
     `<!-- draft: prose-draft.mjs --kind ${kind} · writer ${result.writer}/${result.model} · ${verdict} · EDIT BEFORE COMMITTING -->\n${result.text}\n`
