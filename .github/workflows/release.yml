@@ -55,8 +55,8 @@ jobs:
           fi
 
       - name: Publish @golden-frijoles/kit@<version> (only if this version is not on npm yet)
-        env:
-          NODE_AUTH_TOKEN: '' # never a token: the OIDC exchange is the only credential this job has
+        # No NODE_AUTH_TOKEN anywhere: without `registry-url` no .npmrc interpolates one, and the OIDC exchange is
+        # the only credential this job has (codex on #46: even an empty one is one thing more to reason about).
         run: |
           version="$(node scripts/check-release.mjs --print-version)"
           if [ ! -f kit/package.json ]; then
