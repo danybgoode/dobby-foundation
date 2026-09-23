@@ -35,10 +35,11 @@ jobs:
       # Trusted publishing needs npm >= 11.5.1 (npm docs). Node 24 bundles npm 11; the explicit upgrade and the
       # printed version make that a checked fact, not an assumption (the first run started on npm 10.9.2).
       #
-      # NO `registry-url` here, on purpose. With it, setup-node writes `_authToken=${NODE_AUTH_TOKEN}` into an
-      # .npmrc with a placeholder token, npm authenticates with that bogus token instead of exchanging the
-      # GitHub OIDC token, and the registry answers "403 OIDC permission denied for this action". Observed on
-      # this repo's first publish (run 35932758951); npmjs.org is npm's default registry anyway.
+      # NO `registry-url` here. SUSPECTED, not proven: with it, setup-node writes a placeholder
+      # `_authToken=${NODE_AUTH_TOKEN}` into .npmrc, and two other projects saw npm use that instead of the OIDC
+      # exchange ("403 OIDC permission denied for this action", which this repo's first publish also got, run
+      # 35932758951). npm's own docs show `registry-url`, though, so if a publish still fails, read the verbose
+      # log below before believing this comment. Without it npm uses its default registry, npmjs.org.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -79,7 +80,8 @@ jobs:
           fi
           node scripts/build-kit.mjs
           node scripts/check-skill-scripts.mjs --kit
-          ( cd kit && npm publish --provenance --access public )
+          # --loglevel verbose: the log then says whether the OIDC exchange ran and why it failed (fresh review, #46).
+          ( cd kit && npm publish --provenance --access public --loglevel verbose )
           # The registry is eventually consistent. Confirm before the tag job records a release.
           for i in 1 2 3 4 5 6; do
             if npm view "@golden-frijoles/kit@${version}" version >/dev/null 2>&1; then
