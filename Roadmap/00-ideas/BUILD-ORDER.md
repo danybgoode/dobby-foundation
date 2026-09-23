@@ -5,18 +5,18 @@
 
 # Build order — generated status board
 
-> **Generated 2026-09-20 — do not hand-edit.** Epic status SSOT = the epic `README.md` frontmatter
+> **Generated 2026-09-23 — do not hand-edit.** Epic status SSOT = the epic `README.md` frontmatter
 > `status:` field (set at epic close). To change what this shows, edit that field (or a seed for the
 > funnel), then run `node scripts/build-order.mjs`. This board and the Notion "Marketplace Roadmap"
 > DB are both *derived views* — never hand-edit the board.
 
-## 🏗️ Building now (0)
-
-_None._
-
-## 📋 Ready to build (scaffolded, not started) (1)
+## 🏗️ Building now (1)
 
 - [Jev semantic guards — review-guard and prose-guard decide with Jev, not regex](../../09-platform-infra/jev-semantic-guards/README.md) — 09 Platform-infra · 0/15 stories · risk: High · wave-2026-09-19
+
+## 📋 Ready to build (scaffolded, not started) (0)
+
+_None._
 
 ## ✅ Shipped (4)
 

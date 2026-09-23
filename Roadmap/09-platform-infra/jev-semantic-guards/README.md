@@ -1,12 +1,12 @@
 ---
-status: scaffolded   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
+status: in-progress   # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
 slug: jev-semantic-guards
 build_order: 7
 title: "Jev semantic guards — review-guard and prose-guard decide with Jev, not regex"
 area: 09-platform-infra
 risk: high
 type: feature
-phase: Shaping
+phase: Building
 sprints_total: 5
 stories_total: 15
 ---
@@ -42,6 +42,150 @@ routines, not app runtime, and `golden-flags-by-default` has not shipped.
 - `scripts/check-skill-scripts.mjs` — enforces the new `lib/jev.mjs` import closure once declared
 - `template/.gitignore` — already ignores `.env.local`; widen to `.env*.local` + `.jev/`
 - The 2026-09-19 probe (audit §1): API contract proven, 0.37–0.48 s, 324–583 input tokens/call
+
+## Architecture — locked 2026-09-22, verified against the live code, the three repos and the live API
+
+**Read before deciding:** `review-guard.mjs`, `prose-guard.mjs`, `prose-writer.mjs`, the one guard call in
+`cross-review.mjs` (template, medusa-bonsai and golden-beans forks), `standup.mjs`, `weekly-recap.mjs`,
+`prose-draft.mjs` and `merge-report.mjs`.
+
+**`cmp` across the three repos:**
+- **Byte-identical everywhere:** `review-guard`, `prose-guard`, `prose-writer`, `standup`, `weekly-recap`,
+  `prose-draft`, and all three guard/writer test files.
+- **Forked in both consumers:** `cross-review.mjs`.
+- **Absent from golden-beans:** `merge-report.mjs`.
+
+**Live API, probed 2026-09-22 with this machine's key:** `jev-1.13.0` returned HTTP 200 in 0.45 s, and
+scored the timed-out banner `is_real_review = 0.10`.
+
+- **D1: the client (`template/scripts/lib/jev.mjs`).** `askJev({ state, questions }, deps)` returns
+  `{ ok: true, answers, usage, model }` or `{ ok: false, state: 'could-not-look', error }`. It never
+  throws, and `fetch`, `env`, the clock and the file reader are all injected. Each of these comes back as
+  could-not-look, with `error` naming which one:
+  - no key
+  - a 401 or a 422
+  - a 429 or 529 after 2 backoff retries
+  - a timeout (default 8 s) or a network error
+  - an unparseable body, or a response missing an answer
+  - a `state` over the size budget
+
+  The key comes from `TYPESAFE_API_KEY` in the environment, then `.env.local` at the repo root, then the
+  cwd. The model comes from config, defaulting to the pinned `jev-1.13.0` and never an alias.
+- **D2: config (`jev.config.json` at the repo root, next to `scripts/`).** It holds `model`, `egress`,
+  and `rails.review` / `rails.prose`. Each rail has `mode: off | shadow | jev`, `thresholds` and
+  `shadowExpires`.
+  - A **missing file** means the built-in defaults, with both rails `off`.
+  - A **malformed file** throws and names the problem, so a bad config never silently means `off`.
+  - `egress: false` or no key makes the *effective* mode `off`, and the reason is reported.
+
+  **Two deviations:**
+  - The template ships a real `template/jev.config.json`, not a `.example.json`. A file a spawned
+    project must rename is a step the spawn forgets, and a missing file already means the defaults.
+  - `mode: shadow` **requires** an explicit `shadowExpires` date, and the loader refuses a shadow rail
+    without one. "21 days after it was set" can't be derived from a file, so whoever sets shadow writes
+    the date.
+- **D3: the decision log.** `logDecision()` appends one JSONL line to `<root>/.jev/decisions.jsonl`:
+  `{rail, mode, decider, regex, jev, confidence, textHash, text (≤4k), sha?, source?, ts}`. If the write
+  fails, it warns on stderr and returns. It never changes a decision and never throws past one. `.jev/`
+  and `.env*.local` are gitignored in the template and in both consumers.
+- **D4: mechanical checks stay in code and run first.** Jev only ever answers the *semantic* questions.
+  - Review: `assertReviewOutput` rejects an empty reply or a raw tool-call transcript before Jev is
+    asked. Those are shapes, not language.
+  - Prose: length, banned phrases, tool names and `unfinished` always come from `checkProse`.
+- **D5: `judgeReviewOutput(text, opts, deps)`, async, in `review-guard.mjs`.** It asks two questions in
+  one call: `is_real_review` (Noul) and `severity` (Choice: `blocking | should_fix | nit | clean`). What
+  decides depends on the effective mode:
+  - **`off`:** the regex verdict, with no call and no log line.
+  - **`shadow`:** the regex verdict, with both verdicts logged.
+  - **`jev`:** Jev decides when `noul ≥ thresholds.real` (0.85) or `noul ≤ thresholds.notReal` (0.15).
+    Between those, or when Jev could not look, the regex decides, and the reason says why (`uncertain`
+    or `jev could not look (…)`).
+
+  `reason` always names the decider, and `assertReviewOutput` is byte-unchanged. The PR marker is
+  `jevMarker(verdict)`, which renders as
+  `<!-- jev:{"mode","decider","noul","severity","model"} -->` and never carries the reply text.
+- **D6: `judgeProse(draft, evidence, deps)`, async, in `prose-guard.mjs`.** It returns the `checkProse`
+  shape `{ ok, findings }` plus `decider`, so the writer loop needs no other change.
+  - **Sentences** come from the guard's own `sentences()`, now exported. That export keyword is the only
+    other edit to the file, so `checkProse` is byte-unchanged.
+  - **One batched call.** It has one key per `(sentence, family)` and the evidence pack in `state`.
+  - **Only the families the evidence hasn't already allowed are asked.** Fix is skipped under
+    `allowsFixClaim` and beneficiary under `allowsBeneficiary`. Liveness and commitment are always asked.
+  - **Over 120 questions**, the call splits into parallel chunks.
+  - **A claim counts** at `noul ≥ thresholds.claim` (0.5). If a family's chunk could not look, that
+    family alone falls back to the regex.
+  - **Findings** use the same codes and notes as `checkProse` (one map, held to `checkProse`'s own text
+    by a test) and quote the offending sentence.
+- **D7: the callers go async.**
+  - **Review:** `cross-review.mjs`'s `main()` becomes `async`. Its guard line becomes one
+    `await judgeReviewOutput(...)`, and the marker is appended after `reviewMarker`.
+  - **Prose:** `writeProse` becomes `async`, with `judgeProse` as its default `guard`. So its two callers
+    change too: `prose-draft.mjs`'s `main()` goes `async` and `merge-report.mjs` gets an `await`.
+    `standup.mjs:555` and `weekly-recap.mjs:472` `await judgeProse`.
+  - **Scope correction:** the epic lists three prose callers, but the live code has **five**.
+  - **Tests:** only `prose-writer.test.mjs` changes, gaining `await`s. The review-guard and prose-guard
+    specs stay byte-identical.
+- **D8: the eval harness (`template/scripts/jev-eval.mjs` + `jev-eval.fixtures.json`).** It is a shared
+  rail, copied to the consumers.
+  - **Offline**, it needs no network and runs in CI in all three repos. It recomputes every fixture's
+    decision from its **recorded** Jev answers through the same decide functions, checks that against the
+    recording, and checks every rail's `shadowExpires` in the repo's `jev.config.json`.
+  - **`--live`** re-asks Jev, rewrites the recordings, and prints per-rail and per-family accuracy
+    against the labels.
+- **D9: shadow traffic is built from history, not waited for (a DEVIATION the product owner directed).**
+  The pitch plans a calendar shadow period (≥50 decisions per rail *or* `shadowExpires`), re-bet at the
+  wave boundary. For this run (2026-09-22) the product owner instructed that done means Jev live in
+  production in this session, with nothing left waiting, and live traffic is low anyway. So wave 2 runs on
+  **recorded history, replayed through the shadow judge**:
+  - the review rail, over every historical cross-review comment in the three repos (the S2.3 backtest);
+  - the prose rail, over real committed prose plus the labelled fixtures.
+
+  Every decision is logged in `shadow` mode exactly as live traffic would be, and that log feeds the S5
+  report. The builder labels the disagreements and commits the labels in `jev-eval.fixtures.json`, where
+  the product owner can overrule them.
+
+  **The honest limit:** the review corpus holds only replies the regex **accepted**, so it can find false
+  passes but not false fails.
+
+  **The flip gate is unchanged:** Jev must be at least as accurate as the regex on the labelled
+  disagreements, per rail. If Jev loses on a rail, that rail doesn't flip, and the result is escalated
+  rather than forced.
+- **D10: rollout (S4).**
+  - **Byte-identical copies** go to both consumers: `lib/jev.mjs`, `lib/review-guard.mjs`,
+    `lib/prose-guard.mjs`, `lib/prose-writer.mjs`, `standup.mjs`, `weekly-recap.mjs`, `prose-draft.mjs`,
+    `merge-report.mjs` (medusa only), `jev-eval.mjs`, `jev-backtest.mjs`, `jev-report.mjs` and the
+    fixtures.
+  - **The forked `cross-review.mjs`** in each consumer gets the same two-line patch by hand, recorded in
+    that consumer's `scripts/README.md` fork notes.
+  - **Each consumer also gets** its own `jev.config.json`, a `jev-eval` CI step and the key in its local
+    `.env.local`.
+  - **Cloud routines** that post reviews or reports need `TYPESAFE_API_KEY` in their environment **and**
+    `api.typesafe.ai` on the environment's network allow-list. Without both, they log could-not-look and
+    behave exactly as they do today.
+- **D11: the kill-switch.** It is `rails.<rail>.mode: off` in `jev.config.json`, a one-line reviewed
+  diff. It falls back to the regex path, which is the unchanged code that runs today. A test proves it:
+  in `off` mode, `judge*` returns exactly what `assertReviewOutput`/`checkProse` return and makes no call.
+
+**Model routing.** One orchestrator session on the strongest model builds every sprint, with no fan-out.
+S2 and S3 import S1's client and config, S4 copies the result, and S5 needs the data S2–S4 produce, so a
+hand-off would cost more than it saves.
+
+**Review.** Each PR gets the fresh `pr-reviewer` subagent. The cross-family layer runs from a consumer
+checkout (`review-route.mjs`, then `cross-review.mjs --repo danybgoode/dobby-foundation`) when a family is
+available. When none is, the PR says the layer is DARK.
+
+### Build contracts (locked by the architect before the builder started)
+
+- **Sprint 1:** D1, D2, D3, D8. `jev.mjs` exports `askJev`, `loadJevConfig`, `effectiveMode`,
+  `logDecision`, `textHash` and `repoRoot`. Specs inject `fetch`, and CI never touches the network.
+- **Sprint 2:** D4, D5, the review half of D7, and the backtest in D9. `assertReviewOutput` and
+  `review-guard.test.mjs` stay byte-identical.
+- **Sprint 3:** D4, D6, and the prose half of D7. `checkProse` and `prose-guard.test.mjs` stay
+  byte-identical.
+- **Sprint 4:** D10. Consumers' old guard tests from `origin/main` pass against the new files, and every
+  copy passes `cmp`.
+- **Sprint 5:** D9, the flip gate, and D11. All three repos end at `mode: jev`, with no rail left in
+  `shadow`.
 
 ## Scope — stories
 | Sprint | Story | Risk |

@@ -23,6 +23,7 @@ on:
       - 'Roadmap/**'
       - 'scripts/**'
       - '.claude/**'
+      - 'jev.config.json'
       - 'apps/*/flags.mjs'
       - 'apps/*/flags.test.mjs'
       # TEMPLATE FILL-IN: add your own infra/**, .github/workflows/** etc. paths as those guards
@@ -91,6 +92,12 @@ jobs:
           files=(apps/*/flags.test.mjs)
           test "${#files[@]}" -gt 0 || { echo "no flag seam tests found" >&2; exit 1; }
           node --test "${files[@]}"
+
+      # Jev semantic guards (jev-semantic-guards D8): replay the labelled fixtures' RECORDED Jev answers
+      # through the real judges (offline — never calls the API), and fail when any rail has sat in `shadow`
+      # past its `shadowExpires`. Unconditional on purpose: expiry is a date, not a diff.
+      - name: jev — eval replay + shadow expiry
+        run: node scripts/jev-eval.mjs
 
       # The committed permission rules: every deny/ask rule cited in .claude/permissions-ledger.json,
       # the allow list made of verb classes, no project-level auto mode. Static only — the behavioural
