@@ -385,7 +385,15 @@ export async function judgeReviewOutput(text, opts = {}, deps = {}) {
   const mechanical = !t || TOOL_TRANSCRIPT.test(t);
   if (ctx.mode === 'off' || mechanical) {
     const d = decideReview({ regex, jev: null, mode: 'off', thresholds: ctx.rail.thresholds });
-    return { ...d, mode: ctx.mode, why: mechanical ? 'mechanical shape' : ctx.why };
+    // Configured for Jev but it cannot be asked (no key, egress:false): say so, so the fallback never reads
+    // like the configured path. The kill-switch itself (`mode: off`) stays exactly assertReviewOutput.
+    const degraded = !mechanical && ctx.configured !== 'off';
+    return {
+      ...d,
+      mode: ctx.mode,
+      why: mechanical ? 'mechanical shape' : ctx.why,
+      ...(degraded ? { reason: `${d.reason} — decided by regex: jev could not look (${ctx.why})` } : {}),
+    };
   }
   const res = await ctx.ask({ state: reviewState(t), questions: REVIEW_QUESTIONS });
   // Only a real probability is a verdict. `Number()` would turn `true`, "1" or 5 into a Jev-decided PASS and
