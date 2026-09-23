@@ -30,7 +30,7 @@ Nobody pushes a release tag by hand — the tag is the *record* of a release CI 
 
 Consumers and strangers who install with no `ref` track `main`, so the version on `main` is live the
 moment the merge lands — a few minutes before the publish job finishes (from S2 on). In that window a
-freshly-rendered SKILL.md can advertise a kit version that isn't on npm yet. `check-onboarding-parity.mjs
---exec` treats that as *could not look*, not a failure, and the local-copy escape hatch (D3: a project
+freshly-rendered SKILL.md can advertise a kit version that isn't on npm yet. The skills' run rule
+(S2.4) reports that as *could not look (kit unreachable)*, not as a broken project, and the local-copy escape hatch (D3: a project
 with its own `scripts/<entry>.mjs` never reaches the kit at all) covers anyone who needs to keep working
 through it.
