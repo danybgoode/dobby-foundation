@@ -382,20 +382,17 @@ export async function judgeReviewOutput(text, opts = {}, deps = {}) {
     return { ...d, mode: ctx.mode, why: mechanical ? 'mechanical shape' : ctx.why };
   }
   const res = await ctx.ask({ state: reviewState(t), questions: REVIEW_QUESTIONS });
-  const jev = res.ok
-    ? {
-        noul: Number(res.answers.is_real_review.noul),
-        severity: res.answers.severity.choice ?? null,
-        model: res.model,
-      }
-    : null;
-  const valid = jev && Number.isFinite(jev.noul);
+  // Only a real probability is a verdict. `Number()` would turn `true`, "1" or 5 into a Jev-decided PASS and
+  // null or "" into a FAIL (fresh review, PR #35) — any other shape is could-not-look and the regex decides.
+  const raw = res.ok ? res.answers.is_real_review?.noul : undefined;
+  const valid = typeof raw === 'number' && raw >= 0 && raw <= 1;
+  const jev = res.ok ? { noul: raw, severity: res.answers.severity?.choice ?? null, model: res.model } : null;
   const d = decideReview({
     regex,
     jev: valid ? jev : null,
     mode: ctx.mode,
     thresholds: ctx.rail.thresholds,
-    error: res.ok ? (valid ? null : 'non-numeric noul') : res.error,
+    error: res.ok ? (valid ? null : `invalid noul (${JSON.stringify(raw)})`) : res.error,
   });
   ctx.log({
     rail: 'review',
@@ -417,6 +414,7 @@ export async function judgeReviewOutput(text, opts = {}, deps = {}) {
  * .jev/ log dies with the session) can be harvested later with `gh api`. Never carries the reply text.
  */
 export function jevMarker(verdict) {
+  // `model` comes from the API response; a `-->` in it would close the comment early (fresh review, PR #35).
   const payload = {
     mode: verdict?.mode ?? 'off',
     decider: verdict?.decider ?? 'regex',
@@ -424,12 +422,17 @@ export function jevMarker(verdict) {
     severity: verdict?.jev?.severity ?? null,
     model: verdict?.jev?.model ?? null,
   };
-  return `\n<!-- jev:${JSON.stringify(payload)} -->`;
+  return `\n<!-- jev:${JSON.stringify(payload).replace(/--/g, '-\\u002d')} -->`;
 }
 
-/** Parse a jev marker back out of a comment body (the S5 report's harvest). null when absent. */
+/**
+ * Parse a jev marker back out of a comment body (the S5 report's harvest). null when absent. The LAST marker
+ * wins: the reviewer's reply comes before the real one, and a reply shaped by the diff could carry a forged
+ * marker (fresh review, PR #35).
+ */
 export function parseJevMarker(body) {
-  const m = /<!-- jev:(\{.*?\}) -->/.exec(String(body ?? ''));
+  const all = [...String(body ?? '').matchAll(/<!-- jev:(\{.*?\}) -->/g)];
+  const m = all[all.length - 1];
   if (!m) return null;
   try {
     return JSON.parse(m[1]);
