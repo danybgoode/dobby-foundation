@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 4
 title: Rollout to both consumers
 risk: high
-phase: Shaping
+phase: Building
 stories_total: 3
 stories:
   - id: S4.1
