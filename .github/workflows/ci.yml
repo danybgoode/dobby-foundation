@@ -152,6 +152,12 @@ jobs:
           test "${#files[@]}" -gt 0 || { echo "no template script tests found — the glob is wrong" >&2; exit 1; }
           node --test "${files[@]}"
 
+      # Jev semantic guards (jev-semantic-guards D8): the template's labelled fixtures replay clean through
+      # the committed judges (recorded answers, no network), and no rail of template/jev.config.json has sat
+      # in `shadow` past its `shadowExpires` — the rot guard that stops shadow becoming permanent.
+      - name: jev — eval replay + shadow expiry
+        run: node template/scripts/jev-eval.mjs
+
       # The template's example app ships the flag seam wired (golden-flags-by-default S1.6). These
       # tests run with NO node_modules and no credentials, which is the point: the epic's DoD says
       # "a Golden outage does not break a build or a test run — proven by a test, not asserted", and
