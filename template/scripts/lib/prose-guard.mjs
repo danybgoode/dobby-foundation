@@ -610,10 +610,15 @@ export function semanticNote(code, { liveFlags = [], sentence = '' } = {}) {
  * (which has no terminal punctuation) is its own unit — the same reason the beneficiary rule splits on `\n`.
  */
 export function proseUnits(text) {
-  return sentences(text)
-    .flatMap((s) => s.split(/\n+/))
-    .map((s) => s.replace(/^\s*(?:[-*+]|\d+\.)\s+/, '').trim())
-    .filter((s) => /[a-z]/i.test(s));
+  return (
+    sentences(text)
+      .flatMap((s) => s.split(/\n+/))
+      // A markdown HEADING is structure, never a claim: "## What shipped" scored 0.50–0.78 as a liveness
+      // claim across the 2026-09-23 retrospective backtest, and no heading can assert anything on its own.
+      .filter((s) => !/^\s*#{1,6}\s/.test(s))
+      .map((s) => s.replace(/^\s*(?:[-*+]|\d+\.)\s+/, '').trim())
+      .filter((s) => /[a-z]/i.test(s))
+  );
 }
 
 /** Is this liveness sentence corroborated by the pack? The same token test `checkProse` applies. */
@@ -733,6 +738,15 @@ export async function judgeProse(draft, evidence = {}, deps = {}) {
     jev: jevCodes,
     confidence: Number(jev.confidence.toFixed(3)),
     text: draft,
+    // What the draft was judged against, so a disagreement can become a labelled fixture (jev-report).
+    evidence: {
+      allowsFixClaim: Boolean(evidence.allowsFixClaim),
+      allowsBeneficiary: Boolean(evidence.allowsBeneficiary),
+      allowsMarkdown: Boolean(evidence.allowsMarkdown),
+      liveFlags: evidence.liveFlags ?? [],
+      ...(evidence.maxWords ? { maxWords: evidence.maxWords } : {}),
+      ...(evidence.minWords ? { minWords: evidence.minWords } : {}),
+    },
     error: errors.length ? errors[0] : null,
   });
   return { ...out, mode: ctx.mode, regexCodes, jevCodes, fallback, errors };

@@ -3,7 +3,7 @@ epic: jev-semantic-guards
 sprint: 5
 title: "Promotion — Jev decides, regex becomes fallback"
 risk: high
-phase: Shaping
+phase: Building
 stories_total: 3
 stories:
   - id: S5.1
