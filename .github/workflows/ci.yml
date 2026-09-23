@@ -57,6 +57,16 @@ jobs:
       - name: Skill script contract
         run: node scripts/check-skill-scripts.mjs
 
+      # @golden-frijoles/kit is BUILT from the skills' declared closure, never committed (golden-frijoles-plugin
+      # D1). Build it the way release.yml will, assert the built package holds every declared file and whole
+      # import closures, and dry-run the publish so the package shape cannot rot between releases. The dry run
+      # needs no credential and uploads nothing.
+      - name: Kit builds from the closure, is whole, and packs
+        run: |
+          node scripts/build-kit.mjs
+          node scripts/check-skill-scripts.mjs --kit
+          ( cd kit && npm publish --dry-run --access public )
+
       # The advertised skill list is GENERATED from plugins/golden-frijoles/skills/ into marketplace.json
       # (twice), plugin.json and the README. It used to be hand-kept in all four and they disagreed.
       - name: Skill adverts are generated, not hand-kept
@@ -133,7 +143,9 @@ jobs:
             scripts/render-skill-adverts.test.mjs \
             scripts/pack-skills.test.mjs \
             scripts/check-plugin-leaks.test.mjs \
-            scripts/check-release.test.mjs
+            scripts/check-release.test.mjs \
+            scripts/build-kit.test.mjs \
+            scripts/kit-tarball.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip

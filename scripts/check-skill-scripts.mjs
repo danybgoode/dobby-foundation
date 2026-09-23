@@ -33,6 +33,7 @@
 //   node scripts/check-skill-scripts.mjs                      # audit template/ (the CI gate)
 //   node scripts/check-skill-scripts.mjs --repo-root ~/dobby/golden-beans
 //   node scripts/check-skill-scripts.mjs --repo-root <path> --json
+//   node scripts/check-skill-scripts.mjs --kit                  # the BUILT kit (after scripts/build-kit.mjs)
 //
 // Exit 0 = no NEW breakage. Exit 1 = a skill is missing a script that isn't recorded debt, a skill
 // declares nothing at all, or a recorded gap has quietly been closed without updating the ledger.
@@ -268,8 +269,13 @@ function closureStatus({ skill, declared, present, scriptsDir, exists, read }) {
   return { skill, status: 'ok', missing: [], present };
 }
 
-export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync, read = readFileSync } = {}) {
-  const scriptsDir = join(target, 'scripts');
+export function audit({
+  target,
+  scriptsDir = join(target, 'scripts'),
+  skillsDir = SKILLS_DIR,
+  exists = existsSync,
+  read = readFileSync,
+} = {}) {
   return listSkills(skillsDir).map((skill) =>
     resolveSkill({
       skill,
@@ -283,7 +289,10 @@ export function audit({ target, skillsDir = SKILLS_DIR, exists = existsSync, rea
 
 function main(argv) {
   const rootIdx = argv.indexOf('--repo-root');
-  const target = rootIdx !== -1 ? argv[rootIdx + 1] : join(repoRoot, 'template');
+  // --kit: audit the BUILT package (kit/dist/ is laid out like a project's scripts/). Run after build-kit.mjs.
+  const kit = argv.includes('--kit');
+  const target = kit ? join(repoRoot, 'kit') : rootIdx !== -1 ? argv[rootIdx + 1] : join(repoRoot, 'template');
+  const scriptsDir = kit ? join(target, 'dist') : join(target, 'scripts');
   const asJson = argv.includes('--json');
 
   if (rootIdx !== -1 && !target) {
@@ -295,7 +304,7 @@ function main(argv) {
     return 2;
   }
 
-  const results = audit({ target });
+  const results = audit({ target, scriptsDir });
   const PASSING = new Set(['ok', 'exempt', 'debt']);
   const bad = results.filter((r) => !PASSING.has(r.status));
   const debt = results.filter((r) => r.status === 'debt');
@@ -306,7 +315,7 @@ function main(argv) {
   }
 
   const label = relative(repoRoot, target) || target;
-  console.log(`check-skill-scripts: ${results.length} skill(s) against ${label}/scripts/\n`);
+  console.log(`check-skill-scripts: ${results.length} skill(s) against ${relative(repoRoot, scriptsDir) || scriptsDir}/\n`);
 
   for (const r of results) {
     if (r.status === 'ok') {
