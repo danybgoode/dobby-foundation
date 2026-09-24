@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 3
 title: "The front door"
 risk: high
-phase: Shaping
+phase: In review
 stories_total: 5
 stories:
   - id: S3.1
@@ -12,35 +12,35 @@ stories:
     i_want: "one `golden-frijoles` skill that knows where to start"
     so_that: "I don't need to know ten skill names before I'm useful"
     risk: low
-    status: planned
+    status: in-progress
   - id: S3.2
     title: "Adopt any repo: `gf-kit init`"
     as_a: "a stranger with an existing repo"
     i_want: "`gf-kit init` to add the Roadmap skeleton"
     so_that: "groom has somewhere to write on day one"
     risk: low
-    status: planned
+    status: in-progress
   - id: S3.3
     title: "The install prompt as one module on three surfaces"
     as_a: "a visitor or a new signup"
     i_want: "the install prompt in a copy box on the landing's closing CTA, `/install` and my onboarding page"
     so_that: "I can paste it into my agent from wherever I am"
     risk: low
-    status: planned
+    status: in-progress
   - id: S3.4
     title: "The prompt is checked by running it"
     as_a: "Daniel"
     i_want: "every surface's install prompt to agree and to execute"
     so_that: "no surface advertises a command that doesn't exist"
     risk: low
-    status: planned
+    status: in-progress
   - id: S3.5
     title: "The two stranger walkthroughs"
     as_a: "a stranger"
     i_want: "to paste one prompt into an empty repo and plan my first idea"
     so_that: "the landing's promise is true"
     risk: low
-    status: planned
+    status: in-progress
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 3: The front door
 
@@ -68,8 +68,10 @@ transcription is never edited by hand without the source changing first.
   - Is `Roadmap/` present?
   - Is `gf` linked? Use `node scripts/preflight.mjs` through the D3 rule.
   - Is the kit reachable? Use `npx -y @golden-frijoles/kit@<v> --version`.
-  - Which channel is this? `${CLAUDE_PLUGIN_ROOT}` set means the Claude Code plugin; otherwise it's `npx skills`
-    or a raw read.
+  - Which channel is this? *(Corrected during the build: `${CLAUDE_PLUGIN_ROOT}` is measured **not**
+    set in a skill's shell — epic README X13.)* Resolve it from where the skill was loaded from
+    instead: a Claude Code plugin cache or `--plugin-dir` → the Claude Code plugin; `.agents/skills/`,
+    `~/.claude/skills/` or a project's own `./.claude/skills/` → `npx skills`; a URL → a raw read.
 - **Route by job:** plan → `groom`; build → `live-smoke` (+ the review rails, with their project-local caveat);
   operate → `standup-post` / `weekly-recap` / `pmo-report` / `babysit-pr` / `doc-hygiene` / `vercel-prune`;
   ship → `gf`.
