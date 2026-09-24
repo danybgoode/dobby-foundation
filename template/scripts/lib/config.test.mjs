@@ -281,3 +281,22 @@ test('looksLikeSecret: Golden Frijoles\' own CLI token and a URL with a password
   assert.equal(looksLikeSecret('deploy.db', 'postgres://host/db'), false);
   assert.equal(looksLikeSecret('smoke.envs.preview', 'https://user@preview.example.com'), false);
 });
+
+test('a config file that is a symlink out of the project is refused, new or legacy (security lens on #49)', async () => {
+  const { mkdtempSync, symlinkSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const outside = mkdtempSync(join(tmpdir(), 'cfg-outside-'));
+  writeFileSync(join(outside, 'creds.json'), JSON.stringify({ review: { token: 'do-not-print-me' } }));
+  const root = mkdtempSync(join(tmpdir(), 'cfg-root-'));
+  symlinkSync(join(outside, 'creds.json'), join(root, 'golden-frijoles.config.json'));
+  assert.throws(() => loadConfig({ root }), /outside the project/);
+  const root2 = mkdtempSync(join(tmpdir(), 'cfg-root-'));
+  symlinkSync(join(outside, 'creds.json'), join(root2, 'jev.config.json'));
+  assert.throws(() => readSection('jev', { root: root2 }), /outside the project/);
+  // an in-project symlink is fine
+  const root3 = mkdtempSync(join(tmpdir(), 'cfg-root-'));
+  writeFileSync(join(root3, 'real.json'), JSON.stringify({ review: { reviewScope: 'every-pr' } }));
+  symlinkSync(join(root3, 'real.json'), join(root3, 'golden-frijoles.config.json'));
+  assert.equal(loadConfig({ root: root3 }).sections.review.reviewScope, 'every-pr');
+});
