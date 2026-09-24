@@ -274,7 +274,13 @@ export const REDACTED = '<redacted: looks like a secret; keep it in .env.local>'
 export function redactSecrets(key, value) {
   if (Array.isArray(value)) return value.map((v, i) => redactSecrets(`${key}.${i}`, v));
   if (isObject(value)) return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactSecrets(`${key}.${k}`, v)]));
-  return looksLikeSecret(key, value) ? REDACTED : value;
+  if (looksLikeSecret(key, value)) return REDACTED;
+  // Stricter than the write guard, because over-redacting a display costs nothing: under a secret-named key, only a
+  // value shaped like an env var NAME with an underscore (TELEGRAM_BOT_TOKEN) is shown. `ABCDEF1234567890` matched
+  // the looser env-name exemption and was printed (review of #53).
+  const leaf = key.split('.').pop();
+  if (typeof value === 'string' && SECRET_KEY.test(leaf) && !/^[A-Z][A-Z0-9]*_[A-Z0-9_]*$/.test(value.trim())) return REDACTED;
+  return value;
 }
 
 /** Pure — every dotted path under `key` whose value looks like a secret, walking nested objects and arrays. */

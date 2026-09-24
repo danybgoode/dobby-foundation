@@ -14,6 +14,7 @@ import {
   findSecrets,
   looksLikeSecret,
   REDACTED,
+  redactSecrets,
   migrate,
   needSetting,
   readSection,
@@ -374,4 +375,10 @@ test('a kit-owned default outside the project is readable (installed mode); othe
   const { kitRoot } = await import('./project-root.mjs');
   const root = mkdtempSync(join(tmpdir(), 'kit-owned-'));
   assert.ok(readSection('review', { root, legacyPath: join(kitRoot(), 'review-config.json') }).present);
+});
+
+test('redactSecrets: under a secret-named key, only an env-var NAME with an underscore is shown (review of #53)', () => {
+  assert.equal(redactSecrets('reporting.telegram.botToken', 'ABCDEF1234567890'), REDACTED);
+  assert.equal(redactSecrets('reporting.telegram.botToken', 'TELEGRAM_BOT_TOKEN'), 'TELEGRAM_BOT_TOKEN');
+  assert.equal(redactSecrets('reporting.chatId', 'ABCDEF1234567890'), 'ABCDEF1234567890', 'not a secret-named key');
 });
