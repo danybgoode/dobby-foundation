@@ -56,7 +56,9 @@ accumulate below them, same one-liner + why + date shape.
 - **A squash-merged sprint branch is a dead end — start the next sprint on a FRESH branch off `main`.**
   A squash-merged PR's individual commits aren't on `main` (only the one squash commit is), so
   continuing that branch for the next sprint re-introduces a messy duplicate diff and can't
-  fast-forward. Branch clean off `origin/main` for each new sprint.
+  fast-forward. Branch clean off `origin/main` for each new sprint. **Corollary: when a PR is STACKED on the
+  one you're merging, merge the base with a merge commit, not a squash.** The stacked branch keeps its ancestry,
+  retargets to `main` with only its own diff, and needs no rebase. *(golden-frijoles-plugin, 2026-09-23)*
 - **To verify "is the prior sprint serving?", reason off `origin/main` — never the working tree — and
   read PR *state*, not branch commits.** Local app checkouts routinely sit on *other* agents'
   branches, so on-disk files lie about `main`, and a squash-merged sprint's individual commits
@@ -240,6 +242,10 @@ accumulate below them, same one-liner + why + date shape.
   "refused for want of a credential" outcome, so a future failure of the isolation is loud instead
   of a silent pass. Prove it with a negative control that shows the credential IS found without the
   scrub.
+- **A guard with no test is a guard nobody has seen fire, and a linter run is a guard.** ESLint pointed at files
+  outside its configured paths lints nothing and prints nothing. That silent run once read as clean over 13
+  orphaned bindings. Plant a violation (an unused variable) beside the files and require it to be reported.
+  *(2026-09-23)*
 - **A guard with no test is a guard nobody has seen fire.** `check-plugin-leaks.mjs` ran green over a
   real leak every day for months: "CI was green" cannot distinguish a working guard from a pattern that
   matches nothing. Give every guard fixtures that assert it **fires**, *and* fixtures that assert it does
@@ -326,6 +332,34 @@ accumulate below them, same one-liner + why + date shape.
 - **Evidence tooling fails closed too.** An empty log, a `{}` line, a marker with no mode, or a forged
   comment from a stranger on a public repo must never count as evidence. Filter by author provenance and
   exit non-zero on nothing. *(2026-09-23)*
+
+## Publishing a package and a plugin (golden-frijoles-plugin, 2026-09-23)
+- **npm trusted publishing has three npm-side gates, and the log names none of them clearly.**
+  1. A trusted publisher can only be attached to a package that already exists (a deprecated `0.0.0` bootstrap
+     by hand).
+  2. A 404 on `PUT` means no publisher matched.
+  3. A 403 "OIDC permission denied for this action" *after* `oidc Successfully retrieved and set token` means the
+     publisher's **Allowed actions** is stage-only. A direct publish then returns **202** and appears minutes
+     later, after asynchronous validation.
+
+  **Run `npm publish --loglevel verbose` before theorising.** The first theory here (setup-node's
+  `registry-url`) was wrong, and the verbose log disproved it in one run.
+- **A CLI's output can depend on whether it thinks an agent is running it.** `npx skills` prints plain names in an
+  agent session and ANSI-coloured ones in CI, so a check was green locally and red on GitHub. Prove a check that
+  parses a tool's output under `env -i PATH=… HOME=<tmp> CI=true`, not inside the session that wrote it.
+- **A required check must not depend on the PR having merged.** A probe of the *published* repo can never pass on
+  the PR that adds what it probes. Run it against the PR's own tree, and keep a `--live` mode for the post-merge
+  record.
+- **Migrating a consumer onto a shared package: byte parity is necessary, output parity decides.** An unmodified
+  copy can still behave differently through the package when it calls a sibling the consumer has forked. Diff each
+  moved command's before/after output. It kept one skill local that byte parity would have moved.
+- **Automatic behaviour must not run repo-supplied code.** "The project's own `scripts/<x>` wins" suits a command
+  the user explicitly invokes. First-contact detection and setup call the trusted package directly: `init.mjs`
+  and `preflight.mjs` are names a stranger's repo can own.
+- **`$CLAUDE_PLUGIN_ROOT` is not set in a skill's shell** (measured, Claude Code 2.1.280). Locate a skill from its
+  own base directory, which the host shows when the skill is invoked.
+- **A local runner that mirrors CI must sandbox CI's global installs.** One `npm i -g <pinned CLI>` step, run
+  locally, downgraded the operator's own tool. Point `NPM_CONFIG_PREFIX` at a temp dir and prepend its `bin/`.
 
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
