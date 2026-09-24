@@ -7,6 +7,24 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-24
+
+### Added
+
+- **One config file.** `golden-frijoles.config.json` holds every non-secret setting, one section per module.
+  The legacy files (`jev.config.json`, `reporting.config.json`, `live-smoke.config.json`,
+  `smoke-triage.config.json`, `perf-probe.config.json`, `scripts/review-config.json`) keep working: the new file
+  wins per key, and legacy fills the gaps. `gf-kit config list | get | set | migrate`. `migrate` never edits a
+  legacy file. Secrets are refused: put the env var's NAME in the file.
+- `@golden-frijoles/kit/config`: the same core for other tools (the `gf` CLI), with types.
+- The settings registry, and the ask protocol: a script that needs an unset setting prints `GF-NEEDS-SETTING`,
+  and the skill asks you once.
+
+### Security
+
+- A project-owned prompt asset (persona, lessons) that is a symlink leaving the project is now refused instead of
+  read. It could otherwise have been sent to an external model.
+
 ## [0.3.0] - 2026-09-23
 
 ### Added
