@@ -26,11 +26,14 @@ _None._
 - [The build view — a machine-readable frontmatter contract, rendered in the CLI as a Claude Mod](../../09-platform-infra/build-visualization-claude-mods/README.md) — 09 Platform-infra · 13/13 stories · risk: Low · wave-2026-09-16
 - [Ways-of-work lean pass — remove the training wheels, close the adoption gap](../../09-platform-infra/ways-of-work-lean-pass/README.md) — 09 Platform-infra · 19/19 stories · risk: High · wave-2026-09-16
 
-## ⬜ Funnel — seeds not yet scaffolded (3)
+## ⬜ Funnel — seeds not yet scaffolded (6)
 
 - [Think skills: PMF Narrative → North Star → Deliberate Risk Validation as real, chained skills](seeds/think-skills.md) — Raw · Feature · appetite M · audit-wave-B
 - [Verify module: the verification depth ladder as a product (after the spike)](seeds/verify-module.md) — Raw · Feature · appetite L · audit-wave-D
+- [perf-probe only requests the hosts a project names](seeds/perf-probe-target-allowlist.md) — Raw · Chore · unranked
 - [Review rail — one implementation, and a doctor the template actually ships](seeds/review-rail-one-implementation.md) — Raw · Chore · unranked
+- [Template scripts run when invoked through a symlinked path](seeds/script-ismain-realpath.md) — Raw · Chore · unranked
+- [This repo lints its template scripts the way its consumers do](seeds/foundation-lint-gate.md) — Raw · Chore · unranked
 
 ---
-_Epics: 6 · seeds in funnel: 3 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
+_Epics: 6 · seeds in funnel: 6 · status drift: 0. Regenerate with `node scripts/build-order.mjs`._
