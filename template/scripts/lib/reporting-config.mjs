@@ -229,7 +229,7 @@ export function loadReportingConfig({
     legacyPath: path,
     onLegacyError: (p, e) => fail(p, `is not valid JSON (${e.message})`),
   });
-  if (section.raw === null) {
+  if (!section.present) {
     throw new ReportingConfigError(
       `${path} not found — the reporting scripts refuse to guess which repos to read or where to post.\n` +
         `  Copy ${EXAMPLE_FILENAME} to ${CONFIG_FILENAME} at the repo root, fill it in, and commit it.`

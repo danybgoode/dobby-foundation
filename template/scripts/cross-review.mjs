@@ -287,8 +287,8 @@ function ghBody(pr, repo) {
 export function loadReviewConfig(path = REVIEW_CONFIG_PATH) {
   try {
     // The `review` section of golden-frijoles.config.json over scripts/review-config.json (D9).
-    const { raw } = readSection('review', { legacyPath: path, onLegacyError: (_p, e) => { throw e; } });
-    if (raw === null) throw new Error(`${path} not found`);
+    const { raw, present } = readSection('review', { legacyPath: path, onLegacyError: (_p, e) => { throw e; } });
+    if (!present) throw new Error(`${path} not found`);
     return parseReviewConfig(raw);
   } catch (e) {
     die(

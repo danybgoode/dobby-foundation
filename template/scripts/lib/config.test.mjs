@@ -11,6 +11,7 @@ import {
   _resetAsked,
   getKey,
   loadConfig,
+  findSecrets,
   looksLikeSecret,
   migrate,
   needSetting,
@@ -28,7 +29,7 @@ const project = (files = {}) => {
 };
 
 test('no file anywhere: the section is null (the rail decides what that means)', () => {
-  assert.deepEqual(readSection('jev', { root: project() }), { raw: null, sources: [], duplicates: [] });
+  assert.deepEqual(readSection('jev', { root: project() }), { raw: null, present: false, sources: [], duplicates: [] });
 });
 
 test('legacy only: handed back exactly as the legacy file had it', () => {
@@ -59,9 +60,11 @@ test('a malformed new file is a CONFIGURATION failure naming the file; an absent
   assert.throws(() => readSection('jev', { root }), (e) => e instanceof ConfigError && e.message.includes(CONFIG_FILENAME));
 });
 
-test('an unknown section in the new file is refused, not silently ignored', () => {
-  const root = project({ [CONFIG_FILENAME]: { reveiw: {} } });
-  assert.throws(() => readSection('review', { root }), /unknown section\(s\) reveiw/);
+test('an unknown section is IGNORED on read (a newer file must not break older rails), reported, refused on write', () => {
+  const root = project({ [CONFIG_FILENAME]: { futureModule: { x: 1 }, jev: { egress: false } } });
+  assert.deepEqual(readSection('jev', { root }).raw, { egress: false });
+  assert.deepEqual(loadConfig({ root }).unknown, ['futureModule']);
+  assert.throws(() => setKey('futureModule.x', 2, { root }), ConfigError);
 });
 
 test("a rail keeps its OWN error for an unparseable legacy file (legacy-only repos behave byte-identically)", () => {
@@ -113,13 +116,14 @@ test('setKey refuses an unknown section and a secret value, and names the fix', 
   const root = project();
   assert.throws(() => setKey('nope.x', 1, { root }), ConfigError);
   assert.throws(() => setKey('reporting.botToken', '123:abcDEF', { root }), /env var NAME/);
-  assert.throws(() => setKey('jev.key', 'sk-live-123', { root }), ConfigError);
+  assert.throws(() => setKey('jev.key', 'sk-live-0123456789abcdefghij', { root }), ConfigError); // a real-length token
   setKey('reporting.botToken', 'TELEGRAM_BOT_TOKEN', { root }); // an env var NAME is the right answer
   assert.equal(existsSync(join(root, CONFIG_FILENAME)), true);
 });
 
 test('looksLikeSecret: token prefixes and secret-named keys with non-env-name values', () => {
-  assert.equal(looksLikeSecret('reporting.chatId', 'ghp_abc'), true);
+  assert.equal(looksLikeSecret('reporting.chatId', 'ghp_0123456789abcdefghijklmn'), true);
+  assert.equal(looksLikeSecret('reporting.chatId', 'ghp_abc'), false, 'too short to be a token: a name');
   assert.equal(looksLikeSecret('deploy.apiKey', 'abc123'), true);
   assert.equal(looksLikeSecret('deploy.apiKey', 'VERCEL_TOKEN'), false);
   assert.equal(looksLikeSecret('review.reviewScope', 'every-pr'), false);
@@ -219,4 +223,54 @@ test('a converted rail sees the new file: jev egress overridden by golden-frijol
   const cfg = loadJevConfig({ root });
   assert.equal(cfg.egress, false, 'the new file wins');
   assert.equal(cfg.rails.review.mode, 'jev', 'the legacy file fills the gap');
+});
+
+// ── Review of #49 ───────────────────────────────────────────────────────────────────────────────
+
+test('#1 null in the new file is UNSET: saving jev.egress null never re-enables what legacy turned off', async () => {
+  const { loadJevConfig } = await import('./jev.mjs');
+  const root = project({ 'jev.config.json': { egress: false } });
+  setKey('jev.egress', null, { root });
+  assert.equal(readSection('jev', { root }).raw.egress, false);
+  assert.equal(loadJevConfig({ root }).egress, false, 'the legacy opt-out survives');
+});
+
+test('#2 a legacy file holding JSON null is PRESENT and malformed: the rail throws, never falls back', async () => {
+  const { loadJevConfig, JevConfigError } = await import('./jev.mjs');
+  const root = project({ 'jev.config.json': 'null' });
+  const r = readSection('jev', { root });
+  assert.equal(r.present, true);
+  assert.throws(() => loadJevConfig({ root }), JevConfigError);
+});
+
+test('#3 a deep set keeps the legacy siblings of what it changes', () => {
+  const root = project({ 'jev.config.json': { rails: { review: { mode: 'jev' }, prose: { mode: 'jev' } } } });
+  setKey('jev.rails.review.mode', 'off', { root });
+  assert.deepEqual(readSection('jev', { root }).raw.rails, { review: { mode: 'off' }, prose: { mode: 'jev' } });
+});
+
+test('#10 the secret guard walks nested values and knows Telegram and Slack; names are not secrets', () => {
+  const root = project();
+  assert.throws(() => setKey('reporting.telegram', { botToken: '123456:AAbbCCddEEffGGhhIIjjKKllMMnnOOppQQ' }, { root }), /reporting\.telegram\.botToken/);
+  assert.throws(() => setKey('reporting.slack', { url: 'https://hooks.slack.com/services/T0/B0/xyz' }, { root }), ConfigError);
+  assert.deepEqual(findSecrets('deploy', { vercelProject: 'sk-shop', name: 'npm_utils' }), []);
+  const m = project({ 'reporting.config.json': { repos: ['a/b'], telegram: { botToken: '123456:AAbbCCddEEffGGhhIIjjKKllMMnnOOppQQ' } } });
+  const r = migrate({ root: m, dryRun: true });
+  assert.deepEqual(r.skipped, ['reporting.telegram.botToken']);
+  assert.equal('telegram' in r.config.reporting, false, 'the credentials block stays behind whole');
+});
+
+test('#12 REPORTING_CONFIG is honoured by list and migrate, not only by the rail', () => {
+  const root = project({ 'cfg/rep.json': { repos: ['a/b'] } });
+  const env = { REPORTING_CONFIG: 'cfg/rep.json' };
+  assert.deepEqual(readSection('reporting', { root, env }).raw, { repos: ['a/b'] });
+  assert.deepEqual(migrate({ root, env, dryRun: true }).folded, ['reporting.repos']);
+});
+
+test('#14 __proto__ / constructor / prototype segments are refused (no prototype pollution)', () => {
+  const root = project();
+  for (const k of ['review.__proto__.x', 'review.constructor.prototype.x', 'review..x']) {
+    assert.throws(() => setKey(k, 1, { root }), ConfigError, k);
+  }
+  assert.equal({}.x, undefined);
 });

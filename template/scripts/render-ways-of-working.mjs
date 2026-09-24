@@ -23,7 +23,7 @@
 // Zero deps — Node 18+.
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSection } from './lib/config.mjs';
 
@@ -32,9 +32,15 @@ const REPO = resolve(__dirname, '..');
 export const TEMPLATE_PATH = join(REPO, 'Roadmap', 'WAYS-OF-WORKING.template.md');
 export const FILLINS_PATH = join(REPO, 'Roadmap', 'fill-ins.yml');
 // `ways.fillIns` in golden-frijoles.config.json may move the prose file (X15); the file itself stays the prose's home.
+// It must stay inside the project: this file's lines are echoed in parse errors, so `../.env.local` would leak.
 const fillInsPath = () => {
   const moved = readSection('ways', { root: REPO }).raw?.fillIns;
-  return moved ? join(REPO, moved) : FILLINS_PATH;
+  if (!moved) return FILLINS_PATH;
+  const abs = resolve(REPO, moved);
+  if (!abs.startsWith(REPO + sep)) {
+    throw new Error(`ways.fillIns "${moved}" resolves outside the project; refusing to read it.`);
+  }
+  return abs;
 };
 export const OUT_PATH = join(REPO, 'Roadmap', 'WAYS-OF-WORKING.md');
 

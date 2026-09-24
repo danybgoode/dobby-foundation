@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { scan } from './check-config-reads.mjs';
+import { missingLoader, scan } from './check-config-reads.mjs';
 
 test('fires on the direct reads S4.2 retired', () => {
   for (const line of [
@@ -33,4 +33,14 @@ test('does NOT fire on the owner, on data files, or on comments', () => {
 test('reports the file and the 1-based line', () => {
   const hits = scan('x.mjs', "a\nconst c = JSON.parse(readFileSync('review-config.json'));\n");
   assert.deepEqual(hits.map((h) => h.line), [2]);
+});
+
+test('a converted rail that stops calling the loader fires, whatever form its read takes (review of #49)', () => {
+  // The pre-conversion perf-probe read its file through a `path` VARIABLE, which no filename pattern can see.
+  const reverted = "export function loadProbeConfig({ path = CONFIG_PATH, exists = existsSync, read = readFileSync } = {}) {\n" +
+    "  if (!exists(path)) throw new Error('nope')\n  const raw = JSON.parse(read(path, 'utf8'))\n}";
+  assert.equal(scan('perf-probe.mjs', reverted).length, 0, 'the patterns alone miss it');
+  assert.ok(missingLoader('perf-probe.mjs', reverted), 'the rail table catches it');
+  assert.equal(missingLoader('perf-probe.mjs', "const { raw } = readSection('smoke.perf', { legacyPath: path })"), null);
+  assert.equal(missingLoader('not-a-rail.mjs', 'anything'), null);
 });

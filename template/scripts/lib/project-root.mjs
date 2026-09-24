@@ -93,5 +93,6 @@ export function projectAsset(
   if (realOwn !== realProject && !realOwn.startsWith(realProject + sep)) {
     throw new ProjectAssetError(`${own} resolves outside the project (${realOwn}); refusing to read it.`);
   }
-  return own;
+  // The REAL path, already checked: returning the symlink would let it be swapped between this check and the read.
+  return realOwn;
 }

@@ -146,5 +146,5 @@ test('projectAsset allows a symlink that stays inside the project', () => {
   mkdirSync(join(project, 'docs'));
   writeFileSync(join(project, 'docs', 'persona.md'), 'ours');
   symlinkSync(join(project, 'docs', 'persona.md'), join(project, 'scripts', 'prose', 'cpo-persona.md'));
-  assert.equal(projectAsset('prose/cpo-persona.md', { project, root: fakeKit() }), join(project, 'scripts', 'prose', 'cpo-persona.md'));
+  assert.equal(projectAsset('prose/cpo-persona.md', { project, root: fakeKit() }), join(project, 'docs', 'persona.md'), 'the REAL path is returned (#9: nothing to swap between check and read)');
 });

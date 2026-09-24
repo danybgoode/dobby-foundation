@@ -104,11 +104,12 @@ export const REGISTRY = Object.freeze([
     question: 'Send PR review text and report drafts to TypeSafe (Jev) to judge their quality? Nothing is sent until you say yes.',
   },
   {
-    key: 'smoke.envs',
+    // NOT `smoke.envs`: that is live-smoke's own {name: url} map, and a list saved there broke it (review of #49).
+    key: 'smoke.defaultEnv',
     module: 'Build',
     askWhen: 'first-smoke',
-    default: ['local'],
-    question: 'Which environments should live-smoke check (local, preview, production)?',
+    default: 'local',
+    question: 'Which environment should live-smoke check when you don\'t name one (local, preview, production)?',
   },
   {
     key: 'reporting.destination',

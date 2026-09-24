@@ -27,8 +27,8 @@ requires_scripts:
 > `scripts/`. This covers the scripts the kit carries (`gf-kit --list`). Any other `scripts/` command here is
 > project tooling: if the project lacks it, say so and stop. Never re-implement a script's logic inline.
 > If a script prints `GF-NEEDS-SETTING {"key",…}`, ask the user that question once, save the answer with
-> `gf-kit config set <key> <value>`, tell them they can change it later with `gf config set <key>`, and run the
-> script again if it exited 7.
+> `node scripts/config.mjs set <key> <value>` (the rule above runs it), tell them they can change it later the
+> same way, and run the script again if it exited 7.
 <!-- kit:end -->
 
 > **This skill's scheduled/default action is ALWAYS a dry-run report.** `--apply` is a distinct,

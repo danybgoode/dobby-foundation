@@ -37,6 +37,29 @@ export const RULES = [
   new RegExp(`\\b(readFileSync|read)\\(\\s*(?:${PATH_CONSTANTS.join('|')})\\b`),
 ];
 
+/**
+ * Each converted rail and the loader call it must make. The patterns above catch a literal filename or a known
+ * constant; this catches the REST of the ways a rail could go back to reading its file (a `path` variable, a
+ * helper): if the call to the loader is gone, the rail is reading its config some other way (review of #49 —
+ * the patterns alone missed 6 of the 8 original reads).
+ */
+export const RAILS = Object.freeze({
+  'lib/jev.mjs': "readSection('jev'",
+  'lib/reporting-config.mjs': "readSection('reporting'",
+  'live-smoke.mjs': "readSection('smoke'",
+  'smoke-triage-scope.mjs': "readSection('smoke.triage'",
+  'perf-probe.mjs': "readSection('smoke.perf'",
+  'review-route.mjs': "readSection('review'",
+  'cross-review.mjs': "readSection('review'",
+  'render-ways-of-working.mjs': "readSection('ways'",
+});
+
+/** Pure — a registered rail that no longer calls the loader, as a finding (or null). */
+export function missingLoader(rel, text) {
+  const call = RAILS[rel];
+  return call && !text.includes(call) ? { rel, line: 0, text: `does not call ${call}…) any more` } : null;
+}
+
 /** Pure — the offending lines of one file (1-based), skipping comments. */
 export function scan(rel, text) {
   if (rel === OWNER) return [];
@@ -59,7 +82,20 @@ function walk(dir, out = []) {
 }
 
 function main() {
-  const hits = walk(SCAN_ROOT).flatMap((abs) => scan(relative(SCAN_ROOT, abs), readFileSync(abs, 'utf8')));
+  const hits = walk(SCAN_ROOT).flatMap((abs) => {
+    const rel = relative(SCAN_ROOT, abs);
+    const text = readFileSync(abs, 'utf8');
+    const gone = missingLoader(rel, text);
+    return gone ? [gone, ...scan(rel, text)] : scan(rel, text);
+  });
+  // A registered rail that was deleted or renamed is a finding too: the table must keep describing the tree.
+  for (const rel of Object.keys(RAILS)) {
+    try {
+      statSync(join(SCAN_ROOT, rel));
+    } catch {
+      hits.push({ rel, line: 0, text: 'is registered in RAILS but does not exist' });
+    }
+  }
   if (!hits.length) {
     console.log('check-config-reads: clean. Every template rail reads its config through lib/config.mjs.');
     return 0;

@@ -56,6 +56,12 @@ export const LEGACY = Object.freeze({
   review: 'scripts/review-config.json',
 });
 
+/** The legacy file for a section, absolute. The one place REPORTING_CONFIG is honoured, for every caller. */
+export function legacyPathFor(name, { root = projectRoot(), env = process.env } = {}) {
+  if (name === 'reporting' && env.REPORTING_CONFIG) return resolve(root, env.REPORTING_CONFIG);
+  return LEGACY[name] ? resolve(root, LEGACY[name]) : null;
+}
+
 /** Sub-sections carved out of a parent: reading `smoke` for live-smoke must not hand it the triage/perf policies. */
 const CARVED = Object.freeze({ smoke: ['triage', 'perf'] });
 
@@ -92,11 +98,14 @@ export function readConfigFile({ root = projectRoot(), read = readFileSync, exis
   if (!exists(path)) return null;
   const json = parseJsonFile(path, { read, onError: configFail });
   if (!isObject(json)) throw new ConfigError(`${path}: must be a JSON object of sections`);
-  const unknown = Object.keys(json).filter((k) => !k.startsWith('$') && !SECTIONS.includes(k));
-  if (unknown.length) {
-    throw new ConfigError(`${path}: unknown section(s) ${unknown.join(', ')} — known: ${SECTIONS.join(', ')}`);
-  }
+  // An unknown section is IGNORED here, never thrown: a file written by a newer kit or CLI must not break the
+  // older rails a consumer copied. `loadConfig` reports it, and `setKey` refuses to write one (typos on write).
   return json;
+}
+
+/** Pure — sections a config object names that this version doesn't know. */
+export function unknownSections(json) {
+  return Object.keys(json ?? {}).filter((k) => !k.startsWith('$') && !SECTIONS.includes(k));
 }
 
 /** Walk a dotted path into an object; undefined when any step is missing. */
@@ -125,6 +134,7 @@ export function readSection(
     read = readFileSync,
     exists = existsSync,
     legacyPath,
+    env = process.env,
     onLegacyError = configFail,
     // A rail's injected IO has always meant "my legacy file", and its tests rely on that, so it answers ONLY for
     // the legacy file. The new file is looked up with `read`/`exists` (the real filesystem unless a test injects
@@ -141,22 +151,26 @@ export function readSection(
   if (fromNew && CARVED[name]) {
     fromNew = Object.fromEntries(Object.entries(fromNew).filter(([k]) => !CARVED[name].includes(k)));
   }
+  // `null` in the new file means "unset", never "override the legacy value with null": saving a registry default
+  // of null (jev.egress) must not re-enable something a legacy file had turned off.
+  if (fromNew) fromNew = Object.fromEntries(Object.entries(fromNew).filter(([, v]) => v !== null));
 
-  const rel = legacyPath ?? LEGACY[name];
-  const legacyAbs = rel ? resolve(root, rel) : null;
+  const legacyAbs = legacyPath ? resolve(root, legacyPath) : legacyPathFor(name, { root, env });
   let fromLegacy;
   if (legacyAbs && legacyExists(legacyAbs)) fromLegacy = parseJsonFile(legacyAbs, { read: legacyRead, onError: onLegacyError });
 
   const sources = [];
   if (fromLegacy !== undefined) sources.push(legacyAbs);
   if (fromNew !== undefined) sources.push(join(root, CONFIG_FILENAME));
-  if (fromLegacy === undefined && fromNew === undefined) return { raw: null, sources, duplicates: [] };
-
-  // A legacy file that isn't an object is handed to the rail as-is: its parser owns that error message.
-  if (fromNew === undefined) return { raw: fromLegacy, sources, duplicates: [] };
-  if (fromLegacy === undefined || !isObject(fromLegacy)) return { raw: { ...fromNew }, sources, duplicates: [] };
+  // `present` is the rail's absence test, never `raw === null`: a legacy file holding JSON null is PRESENT and
+  // malformed, and must reach the rail's own parser (which throws), not fall back to defaults.
+  if (fromLegacy === undefined && fromNew === undefined) return { raw: null, present: false, sources, duplicates: [] };
+  if (fromNew === undefined) return { raw: fromLegacy, present: true, sources, duplicates: [] };
+  if (fromLegacy === undefined) return { raw: { ...fromNew }, present: true, sources, duplicates: [] };
+  // A legacy file that isn't an object is the rail's parser's error to report, even when the new file has keys.
+  if (!isObject(fromLegacy)) return { raw: fromLegacy, present: true, sources, duplicates: [] };
   const duplicates = Object.keys(fromNew).filter((k) => k in fromLegacy && !k.startsWith('$'));
-  return { raw: { ...fromLegacy, ...fromNew }, sources, duplicates };
+  return { raw: { ...fromLegacy, ...fromNew }, present: true, sources, duplicates };
 }
 
 /** Every section's effective value, for `list`/`doctor`. Never throws for an absent file. */
@@ -164,6 +178,7 @@ export function loadConfig({ root = projectRoot(), read = readFileSync, exists =
   const sections = {};
   const sources = {};
   const duplicates = [];
+  const unknown = unknownSections(readConfigFile({ root, read, exists }));
   for (const name of [...SECTIONS, ...Object.keys(LEGACY).filter((k) => k.includes('.'))]) {
     const r = readSection(name, { root, read, exists });
     if (r.raw === null) continue;
@@ -171,7 +186,7 @@ export function loadConfig({ root = projectRoot(), read = readFileSync, exists =
     sources[name] = r.sources;
     for (const k of r.duplicates) duplicates.push(`${name}.${k}`);
   }
-  return { sections, sources, duplicates };
+  return { sections, sources, duplicates, unknown };
 }
 
 /** The effective value of a dotted key (`review.reviewScope`), falling back to the registry default. */
@@ -189,16 +204,31 @@ export function getKey(key, opts = {}) {
 // ── Writing ─────────────────────────────────────────────────────────────────────────────────────
 
 const TOKEN_PREFIXES = /^(sk-|sk_|ghp_|gho_|ghs_|github_pat_|xox[abpr]-|AKIA|eyJ|npm_|glpat-|tsk_)/;
-const SECRET_KEY = /(token|secret|password|apikey|api_key|privatekey)$/i;
+const TELEGRAM_BOT_TOKEN = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
+const SLACK_WEBHOOK = /^https:\/\/hooks\.slack\.com\//;
+const SECRET_KEY = /(token|secret|password|apikey|api_key|privatekey|webhook)$/i;
 const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
 
-/** Pure — does this key/value pair look like a credential rather than the NAME of an env var? */
+/**
+ * Pure — does this key/value pair look like a credential rather than the NAME of an env var? A token prefix only
+ * counts on a value long enough to be a token (`sk-shop` or `npm_utils` is a name, not a key).
+ */
 export function looksLikeSecret(key, value) {
   if (typeof value !== 'string') return false;
-  if (TOKEN_PREFIXES.test(value)) return true;
+  if (TOKEN_PREFIXES.test(value) && value.length >= 20) return true;
+  if (TELEGRAM_BOT_TOKEN.test(value) || SLACK_WEBHOOK.test(value)) return true;
   const leaf = key.split('.').pop();
   return SECRET_KEY.test(leaf) && !ENV_NAME.test(value);
 }
+
+/** Pure — every dotted path under `key` whose value looks like a secret, walking nested objects and arrays. */
+export function findSecrets(key, value) {
+  if (Array.isArray(value)) return value.flatMap((v, i) => findSecrets(`${key}.${i}`, v));
+  if (isObject(value)) return Object.entries(value).flatMap(([k, v]) => findSecrets(`${key}.${k}`, v));
+  return looksLikeSecret(key, value) ? [key] : [];
+}
+
+const FORBIDDEN_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function writeAtomic(path, obj) {
   const tmp = `${path}.${process.pid}.tmp`;
@@ -215,13 +245,28 @@ export function setKey(key, value, { root = projectRoot(), read = readFileSync, 
   if (parts.length < 2 || !SECTIONS.includes(parts[0])) {
     throw new ConfigError(`"${key}": a key is <section>.<name>, with section one of ${SECTIONS.join(', ')}`);
   }
-  if (looksLikeSecret(key, value)) {
+  if (parts.some((p) => FORBIDDEN_SEGMENTS.has(p) || p === '')) throw new ConfigError(`"${key}": not a valid key`);
+  const secrets = findSecrets(key, value);
+  if (secrets.length) {
     throw new ConfigError(
-      `"${key}" looks like a secret. Secrets never go in ${CONFIG_FILENAME}: keep the value in .env.local ` +
+      `"${secrets[0]}" looks like a secret. Secrets never go in ${CONFIG_FILENAME}: keep the value in .env.local ` +
         'and put the env var NAME here (e.g. "TYPESAFE_API_KEY").'
     );
   }
   const file = readConfigFile({ root, read, exists }) ?? {};
+  // A write deeper than <section>.<name> must not WIPE the legacy siblings of what it changes: the new file's
+  // top-level key replaces the legacy one wholesale (D9), so seed it from the effective merged value first.
+  if (parts.length > 2) {
+    const [section, top] = parts;
+    const own = file[section]?.[top];
+    if (own === undefined) {
+      const effective = readSection(section, { root, read, exists }).raw?.[top];
+      if (isObject(effective)) {
+        file[section] = isObject(file[section]) ? file[section] : {};
+        file[section][top] = structuredClone(effective);
+      }
+    }
+  }
   let cur = file;
   for (const part of parts.slice(0, -1)) {
     if (!isObject(cur[part])) cur[part] = {};
@@ -237,12 +282,19 @@ export function setKey(key, value, { root = projectRoot(), read = readFileSync, 
  * they keep working as fallbacks. Keys that look like secrets are skipped and reported, never copied.
  * Returns `{ config, folded, skipped }`; `dryRun` writes nothing.
  */
-export function migrate({ root = projectRoot(), read = readFileSync, exists = existsSync, write = writeAtomic, dryRun = false } = {}) {
+export function migrate({
+  root = projectRoot(),
+  read = readFileSync,
+  exists = existsSync,
+  write = writeAtomic,
+  env = process.env,
+  dryRun = false,
+} = {}) {
   const config = readConfigFile({ root, read, exists }) ?? {};
   const folded = [];
   const skipped = [];
-  for (const [name, rel] of Object.entries(LEGACY)) {
-    const abs = resolve(root, rel);
+  for (const name of Object.keys(LEGACY)) {
+    const abs = legacyPathFor(name, { root, env });
     if (!exists(abs)) continue;
     const legacy = parseJsonFile(abs, { read, onError: configFail });
     if (!isObject(legacy)) continue;
@@ -252,8 +304,9 @@ export function migrate({ root = projectRoot(), read = readFileSync, exists = ex
     for (const [k, v] of Object.entries(legacy)) {
       if (k.startsWith('$') || k.startsWith('_')) continue; // comments/notes stay with the legacy file
       if (k in target) continue; // the new file wins
-      if (looksLikeSecret(`${name}.${k}`, v)) {
-        skipped.push(`${name}.${k}`);
+      const secrets = findSecrets(`${name}.${k}`, v);
+      if (secrets.length) {
+        skipped.push(...secrets); // the whole key stays behind: a partial copy of a credentials block helps nobody
         continue;
       }
       target[k] = v;

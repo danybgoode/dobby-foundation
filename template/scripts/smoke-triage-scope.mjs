@@ -121,8 +121,9 @@ export function loadPolicy({ path = POLICY_PATH, exists = existsSync, read = rea
   // `smoke.triage` in golden-frijoles.config.json over the legacy policy file (D9). This rail answers, never
   // throws, so a malformed legacy file is still an { ok: false } verdict, and validation stays here.
   let raw;
+  let present;
   try {
-    ({ raw } = readSection('smoke.triage', {
+    ({ raw, present } = readSection('smoke.triage', {
       legacyExists: exists,
       legacyRead: read,
       legacyPath: path,
@@ -133,7 +134,7 @@ export function loadPolicy({ path = POLICY_PATH, exists = existsSync, read = rea
   } catch (e) {
     return { ok: false, reason: e.legacyInvalid ? `${path} is not valid JSON (${e.message})` : e.message };
   }
-  if (raw === null)
+  if (!present)
     return {
       ok: false,
       reason: `${path} not found — the merge gate has no policy, so it cannot allow anything`,

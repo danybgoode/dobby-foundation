@@ -114,7 +114,7 @@ export function parseJevConfig(json) {
 /** Read `<root>/jev.config.json`. Missing ⇒ defaults; unreadable or malformed ⇒ throws. */
 export function loadJevConfig({ root = repoRoot(), read = readFileSync, exists = existsSync } = {}) {
   // The `jev` section of golden-frijoles.config.json over the legacy jev.config.json (D9); validation stays here.
-  const { raw } = readSection('jev', {
+  const { raw, present } = readSection('jev', {
     root,
     legacyRead: read,
     legacyExists: exists,
@@ -122,7 +122,8 @@ export function loadJevConfig({ root = repoRoot(), read = readFileSync, exists =
       throw new JevConfigError(`jev.config.json: unparseable (${e.message})`);
     },
   });
-  return parseJevConfig(raw ?? {});
+  // Absent everywhere → the defaults. A PRESENT legacy file holding JSON null is malformed: the parser throws.
+  return parseJevConfig(present ? raw : {});
 }
 
 /** Parse `KEY=value` lines. Enough for .env.local; quotes stripped. */

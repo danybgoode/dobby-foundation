@@ -211,13 +211,13 @@ export function planRun({ args, config, env = {}, dotenv = {} }) {
 export function loadConfig({ root = REPO_ROOT } = {}) {
   const path = join(root, CONFIG_FILENAME);
   // The `smoke` section of golden-frijoles.config.json over the legacy file (D9); validation stays here.
-  const { raw } = readSection('smoke', {
+  const { raw, present } = readSection('smoke', {
     root,
     onLegacyError: (_p, e) => {
       throw e;
     },
   });
-  if (raw === null) {
+  if (!present) {
     throw new Error(
       `${path} not found — live-smoke refuses to guess which app and which URLs to smoke.\n` +
         `  Copy live-smoke.config.example.json to ${CONFIG_FILENAME}, fill it in, and commit it.`

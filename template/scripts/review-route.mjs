@@ -155,13 +155,13 @@ function main() {
   if (!BUILDERS.includes(builder)) die(`unknown --builder '${builder}' (expected: ${BUILDERS.join(' | ')})`);
 
   // The `review` section of golden-frijoles.config.json over scripts/review-config.json (D9).
-  const { raw: reviewRaw } = readSection('review', {
+  const { raw: reviewRaw, present: reviewPresent } = readSection('review', {
     legacyPath: join(__dirname, 'review-config.json'),
     onLegacyError: (_p, e) => {
       throw e;
     },
   });
-  if (reviewRaw === null) die('scripts/review-config.json not found, and golden-frijoles.config.json has no review section');
+  if (!reviewPresent) die('scripts/review-config.json not found, and golden-frijoles.config.json has no review section');
   const config = parseReviewConfig(reviewRaw);
   let securityPass = forceSecurity;
   let trigger = forceSecurity ? 'forced with --security' : null;
