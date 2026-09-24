@@ -53,16 +53,40 @@ A command that can't run (offline npx, no network) is **could not look**, not "b
 escape hatch (retry online, or copy the script into `scripts/`) and move on; never claim the project
 is broken because a network probe failed.
 
-## Stage 2 — No `Roadmap/`? Offer setup
+## Stage 2 — No `Roadmap/` or no `golden-frijoles.config.json`? Setup: at most three questions, only the first required (wave 2, X18)
 
-Wave 1's whole setup is **`gf-kit init`**: run `init` **directly against the kit**, pinned to the
-version stamped in the run rule above — never through that rule's "local wins" fallback.
-`scripts/init.mjs` is a generic filename a stranger's existing repo may already own for something
-unrelated (a database seed script, for example); running local-wins here could silently execute a
-stranger's own unrelated script instead of adopting the repo. It writes the `Roadmap/` skeleton,
-never overwrites anything, and writes nothing outside `Roadmap/`. Then offer `groom` to plan the
-first idea.
-There is no interview yet — that's wave 2, and it is not referenced here.
+Ask these, in order, through the conversation — never by having a script prompt on stdin (D11:
+scripts never read stdin). Each one states its default; skipping it takes the default. Write every
+answer with the kit's `config set <key> <value>`, called **directly** with the run rule's pinned
+`npx -y @golden-frijoles/kit@…` prefix (never local-wins, for the reason `init` gives below) — the
+one config core. Never hand-edit `golden-frijoles.config.json`.
+
+| # | Ask | Registry key | Choices (default first) |
+|---|---|---|---|
+| Q1 (required) | What are we working on: an existing repo (adds `Roadmap/`, keeps everything else), a new project, or planning only (no repo changes)? | `project.mode` | `existing` · `new` · `planning-only` |
+| Q2 | Where are you starting: an idea, you know what to build, or you are already building? | `project.startPoint` | `idea` · `plan` · `building` |
+| Q4 | Connect a Golden Frijoles account now (`gf login` + `gf init`), or later? | `project.account` | `later` · `now` |
+
+(Q3 "board" and Q5 "proof depth" are in the registry as `askWhen: 'never-yet'` — their modules are
+epic no-gos this wave, so they are never asked.)
+
+Q4 "now" does **not** write the config file: run `gf login` then `gf init`, which write
+`.env.local`. Every other answer is that direct kit call: `config set project.<name> <value>`.
+
+**Next steps, decided by the answers:**
+- Q1 `existing` or `new` → run `gf-kit init` **directly against the kit**, pinned to the version
+  stamped in the run rule above — never through that rule's "local wins" fallback.
+  `scripts/init.mjs` is a generic filename a stranger's existing repo may already own for something
+  unrelated (a database seed script, for example); running local-wins here could silently execute a
+  stranger's own unrelated script instead of adopting the repo. It writes the `Roadmap/` skeleton,
+  never overwrites anything, and writes nothing outside `Roadmap/`.
+- Q1 `planning-only` → write nothing but the config file. No `gf-kit init`.
+- Then, by Q2: `idea` or `plan` → offer `groom` (a deeper "Think" planning chain is a related, out-
+  of-scope idea for this epic — say so, and start with `groom` regardless); `building` → offer
+  `live-smoke`.
+
+Keep this stage to the table above plus the two next-step rules — don't re-explain the registry or
+restate `lib/config-registry.mjs` here.
 
 ## Stage 3 — Route by job
 

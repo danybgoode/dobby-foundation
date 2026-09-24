@@ -71,6 +71,7 @@ import {
   CLI_NPX_INIT,
   INSTALL_PROMPT,
   CLI_NPX_LOGIN,
+  compareVersions,
   ENV_KEYS,
   KILL_SWITCH_STORY,
 } from '../template/scripts/lib/golden-onboarding.mjs';
@@ -430,11 +431,51 @@ function installPromptCodexInstallCheck() {
   return 0;
 }
 
+/** The CLI version that first carries `gf config` (golden-frijoles-plugin S5.2, D10). */
+export const LOCAL_CONFIG_SINCE = '0.2.0';
+const LOCAL_CONFIG_COMMAND = 'gf config list --json';
+
+/**
+ * The local-command probe (S5.2): `gf config` reads and writes only the project's
+ * golden-frijoles.config.json, so unlike the kill-switch story it must SUCCEED without a credential —
+ * exit 0 and parseable JSON, in an empty temp project under the same scrubbed HOME. It SKIPS (a
+ * `::warning::`, returns null) when the resolved `gf` predates the command: the docs and the CLI ship
+ * separately (D14), and an older CLI on PATH is "could not look", not a defect.
+ */
+function localConfigProbe(cliPath, version, scrubbedEnv) {
+  const cmp = version ? compareVersions(version, LOCAL_CONFIG_SINCE) : null;
+  if (cmp === null || cmp < 0) {
+    console.log(
+      `::warning::check-onboarding-parity --exec: \`${LOCAL_CONFIG_COMMAND}\` SKIPPED — the resolved \`${CLI_BIN}\` ` +
+        `is ${version ?? 'of an unknown version'}, and the command ships in ${LOCAL_CONFIG_SINCE}.`
+    );
+    return null;
+  }
+  const project = mkdtempSync(join(tmpdir(), 'gf-parity-config-'));
+  const run = spawnSync(cliPath, ['config', 'list', '--json'], {
+    cwd: project,
+    encoding: 'utf8',
+    timeout: 30_000,
+    env: scrubbedEnv,
+  });
+  if (run.error) return { ok: false, why: `could not run: ${run.error.message}` };
+  if (run.status !== 0) return { ok: false, why: `exit ${run.status}: ${(run.stderr || run.stdout || '').trim().slice(0, 160)}` };
+  try {
+    JSON.parse(run.stdout);
+  } catch {
+    return { ok: false, why: `unparseable --json output: ${(run.stdout || '').slice(0, 120)}` };
+  }
+  return { ok: true, why: 'exit 0 and parseable JSON, with no credential (a local command)' };
+}
+
 function execCheck() {
   const candidates = [CLI_BIN, join(repoRoot, 'node_modules', '.bin', CLI_BIN)];
+  let cliVersion = null;
   const cliPath = candidates.find((candidate) => {
     const probe = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 20_000 });
-    return !probe.error && probe.status === 0;
+    if (probe.error || probe.status !== 0) return false;
+    cliVersion = (/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/.exec(probe.stdout || '') ?? [null])[0];
+    return true;
   });
   if (!cliPath) {
     // `::warning::` so a SKIP is visible in the one place people read — the checks list. Printing
@@ -465,6 +506,11 @@ function execCheck() {
     const result = probeCommand(cliPath, command, scrubbedEnv);
     console.log(`  ${result.ok ? '✅' : '❌'} ${command.replace(/\s+#.*$/, '')}  →  ${result.why}`);
     if (!result.ok) failures.push({ command, why: result.why });
+  }
+  const local = localConfigProbe(cliPath, cliVersion, scrubbedEnv);
+  if (local) {
+    console.log(`  ${local.ok ? '✅' : '❌'} ${LOCAL_CONFIG_COMMAND}  →  ${local.why}`);
+    if (!local.ok) failures.push({ command: LOCAL_CONFIG_COMMAND, why: local.why });
   }
   if (!failures.length) {
     console.log(
