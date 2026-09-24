@@ -274,3 +274,10 @@ test('#14 __proto__ / constructor / prototype segments are refused (no prototype
   }
   assert.equal({}.x, undefined);
 });
+
+test('looksLikeSecret: Golden Frijoles\' own CLI token and a URL with a password (review of the S5 diff)', () => {
+  assert.equal(looksLikeSecret('review.reviewers', 'gf_pat_abcdefghijklmnopqrstuvwxyz0123'), true);
+  assert.equal(looksLikeSecret('deploy.db', 'postgres://user:pa55word@host/db'), true);
+  assert.equal(looksLikeSecret('deploy.db', 'postgres://host/db'), false);
+  assert.equal(looksLikeSecret('smoke.envs.preview', 'https://user@preview.example.com'), false);
+});
