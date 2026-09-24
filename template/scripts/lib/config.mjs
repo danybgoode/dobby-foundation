@@ -24,6 +24,8 @@ import { REGISTRY } from './config-registry.mjs';
 
 // One import for every front end (D10): the CLI's doctor and setup read the registry through this module too.
 export { REGISTRY, MODULES } from './config-registry.mjs';
+// The project root this core reads and writes under, exported so the `gf` CLI resolves the SAME directory (D10).
+export { projectRoot } from './project-root.mjs';
 
 export const CONFIG_FILENAME = 'golden-frijoles.config.json';
 

@@ -17,10 +17,14 @@ export interface IoOptions {
 
 export interface Section {
   raw: Record<string, unknown> | null;
+  /** True when either file has the section, even when its value is `null` in the legacy file. */
+  present: boolean;
   sources: string[];
   duplicates: string[];
 }
 
+/** The project root: GF_PROJECT_ROOT, else (installed) the nearest ancestor of `cwd` with Roadmap/ or .git, else `cwd`. */
+export declare function projectRoot(opts?: { env?: Record<string, string | undefined>; cwd?: string }): string;
 export declare function readConfigFile(opts?: IoOptions): Record<string, unknown> | null;
 export declare function readSection(
   name: string,
@@ -35,6 +39,8 @@ export declare function loadConfig(opts?: IoOptions): {
   sections: Record<string, Record<string, unknown>>;
   sources: Record<string, string[]>;
   duplicates: string[];
+  /** Top-level keys of golden-frijoles.config.json that are not a known section (ignored on read). */
+  unknown: string[];
 };
 export declare function getKey(key: string, opts?: IoOptions): unknown;
 export declare function setKey(
