@@ -205,7 +205,9 @@ export function getKey(key, opts = {}) {
 
 // ── Writing ─────────────────────────────────────────────────────────────────────────────────────
 
-const TOKEN_PREFIXES = /^(sk-|sk_|ghp_|gho_|ghs_|github_pat_|xox[abpr]-|AKIA|eyJ|npm_|glpat-|tsk_)/;
+const TOKEN_PREFIXES = /^(sk-|sk_|ghp_|gho_|ghs_|github_pat_|xox[abpr]-|AKIA|eyJ|npm_|glpat-|tsk_|gf_pat_)/;
+// A URL carrying a password in its userinfo (postgres://user:pass@host/db).
+const URL_WITH_PASSWORD = /^[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/i;
 const TELEGRAM_BOT_TOKEN = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
 const SLACK_WEBHOOK = /^https:\/\/hooks\.slack\.com\//;
 const SECRET_KEY = /(token|secret|password|apikey|api_key|privatekey|webhook)$/i;
@@ -218,7 +220,7 @@ const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
 export function looksLikeSecret(key, value) {
   if (typeof value !== 'string') return false;
   if (TOKEN_PREFIXES.test(value) && value.length >= 20) return true;
-  if (TELEGRAM_BOT_TOKEN.test(value) || SLACK_WEBHOOK.test(value)) return true;
+  if (TELEGRAM_BOT_TOKEN.test(value) || SLACK_WEBHOOK.test(value) || URL_WITH_PASSWORD.test(value)) return true;
   const leaf = key.split('.').pop();
   return SECRET_KEY.test(leaf) && !ENV_NAME.test(value);
 }
