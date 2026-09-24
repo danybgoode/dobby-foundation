@@ -44,7 +44,7 @@ stories:
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 3: The front door
 
-**Status:** ✅ S3.1–S3.4 shipped 2026-09-23. golden-frijoles/skills#47 (`3a06aa0`, release `v0.3.0` + kit 0.3.0 with provenance), danybgoode/golden-beans#163 (`d32fde9`, Vercel production ✅). 🟡 S3.5: both stranger walkthroughs owed to Daniel · **Wave:** 1
+**Status:** 🟦 in review: S3.1–S3.4 are merged and deployed (golden-frijoles/skills#47 `3a06aa0`, release `v0.3.0` + kit 0.3.0 with provenance; danybgoode/golden-beans#163 `d32fde9`, Vercel production). S3.5, both stranger walkthroughs, is owed to Daniel, so the sprint isn't closed · **Wave:** 1
 
 One name to start from, a way to adopt any repo, and the install prompt, from one module and checked by running it, on the landing's closing CTA, `/install` and signed-in onboarding. It ends with the two stranger walkthroughs.
 
@@ -136,25 +136,25 @@ marketplace* section are rewritten here for a stranger, around `INSTALL_PROMPT`.
 
 ## Stories
 
-### Story 3.1 — The golden-frijoles umbrella skill
+### Story 3.1 — The golden-frijoles umbrella skill ✅
 **As** a stranger's agent, **I want** one `golden-frijoles` skill that knows where to start, **so that** I don't need to know ten skill names before I'm useful.
 **Acceptance:** `plugins/golden-frijoles/skills/golden-frijoles/SKILL.md`: detects state (Roadmap present? `gf` linked? kit reachable? which channel?), routes by job (plan → groom; build → live-smoke; operate → reports; ship → `gf`), **says what the `npx skills` channel lacks** (no build-view hook, no `pr-reviewer` agent), and offers setup (S3.2 in wave 1, the interview in wave 2). It's listed by `npx skills add golden-frijoles/skills --list`.
 **QA:** `claude plugin validate`; the `--list` check in S3.4
 **Risk:** low
 
-### Story 3.2 — Adopt any repo: `gf-kit init`
+### Story 3.2 — Adopt any repo: `gf-kit init` ✅
 **As** a stranger with an existing repo, **I want** `gf-kit init` to add the Roadmap skeleton, **so that** groom has somewhere to write on day one.
 **Acceptance:** Writes `Roadmap/` (README, WAYS-OF-WORKING, LEARNINGS, `00-ideas/` with seeds/audits) from the template. **Never overwrites** an existing file (it says which it skipped). Idempotent. Adds nothing else to the repo.
 **QA:** unit test on a temp repo: fresh, partially present, and fully present
 **Risk:** low
 
-### Story 3.3 — The install prompt as one module on three surfaces
+### Story 3.3 — The install prompt as one module on three surfaces ✅
 **As** a visitor or a new signup, **I want** the install prompt in a copy box on the landing's closing CTA, `/install` and my onboarding page, **so that** I can paste it into my agent from wherever I am.
 **Acceptance:** golden-beans `apps/web/lib/install-prompt.ts` holds the prompt (audit §3.1 text, using `golden-frijoles/skills` and `golden-frijoles@golden-frijoles`). Rendered through `CopyPromptCard` in the **closing CTA** (the hero keeps its workshop prompt), on `/install` and on `/app/onboarding/[projectSlug]`. The design-system state contract for those routes is **updated, not bypassed**.
 **QA:** api spec that each route serves the exact string; **browser smoke** on `/` and `/install`; the signed-in onboarding smoke **owed to Daniel**
 **Risk:** low
 
-### Story 3.4 — The prompt is checked by running it
+### Story 3.4 — The prompt is checked by running it ✅
 **As** Daniel, **I want** every surface's install prompt to agree and to execute, **so that** no surface advertises a command that doesn't exist.
 **Acceptance:** `check-onboarding-parity.mjs` asserts the identical string in the repo `README.md` (*lock X10: there's no plugin README*), the umbrella SKILL.md and a transcription of golden-beans' module (with the source file named, as `golden-onboarding.mjs` does). `--exec`: runs `npx skills add golden-frijoles/skills --list` and asserts `golden-frijoles` is listed; runs `claude plugin marketplace add golden-frijoles/skills` + `claude plugin install golden-frijoles@golden-frijoles` in a **scrubbed `HOME` / `XDG_CONFIG_HOME` / `CLAUDE_CONFIG_DIR`**, asserting the isolation with a negative control (D8). It skips loudly when a binary is missing and never fails for that.
 **QA:** parity fixtures that fire on a one-word drift; the exec mode in CI

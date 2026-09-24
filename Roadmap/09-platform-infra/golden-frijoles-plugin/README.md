@@ -17,9 +17,9 @@ build_order: 8       # integer position in the ONE global build sequence
 > **Area:** 09-platform-infra · **Risk:** high · **Class:** Feature · **Scope seed:** [`00-ideas/seeds/golden-frijoles-plugin.md`](../../00-ideas/seeds/golden-frijoles-plugin.md)
 > **Appetite:** L, two waves (S1–S3 = wave 1 "install", S4–S5 = wave 2 "configure"), **re-bet at the boundary**.
 > **Origin:** Seed 1 + Seed 4 of golden-beans `Roadmap/00-ideas/audits/golden-frijoles-unification-2026-09-23.md` (audit decisions D1–D8, approved 2026-09-23).
-> **Repos touched:** this repo (to become `golden-frijoles/skills`), golden-beans (S1.4, S2.5, S3.3, S5.2), medusa-bonsai (S1.4 only).
+> **Repos touched:** this repo (renamed `golden-frijoles/skills` in S1.2, formerly `danybgoode/dobby-foundation`), golden-beans (S1.4, S2.5, S3.3, S5.2), medusa-bonsai (S1.4 only).
 
-> **Wave 1 ("install") shipped 2026-09-23**: releases `v0.1.0`–`v0.3.0`, `@golden-frijoles/kit@0.3.0` on npm with
+> **Wave 1 ("install") shipped 2026-09-23; its closing verification (S3.5) is owed**: releases `v0.1.0`–`v0.3.0`, `@golden-frijoles/kit@0.3.0` on npm with
 > verified provenance, and the install prompt live on goldenfrijoles.com and proven by running it. See
 > [`WAVE-1-RETROSPECTIVE.md`](WAVE-1-RETROSPECTIVE.md). **Wave 2 ("configure", S4–S5) is NOT started**: it's re-bet
 > at the boundary. Still owed to Daniel: the stranger walkthroughs (S3.5), the signed-in onboarding smoke, and the

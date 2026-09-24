@@ -1,6 +1,7 @@
-# golden-frijoles-plugin: wave 1 ("install", S1–S3) retrospective
+# golden-frijoles-plugin: wave 1 ("install", S1–S3) retrospective, written at ship time
 
-Wave 1 closed 2026-09-23. The epic is **not** closed: wave 2 ("configure", S4–S5) is re-bet at the boundary, and the
+Wave 1 was built and shipped 2026-09-23 (S1, S2 and S3.1–S3.4 merged and deployed). Its closing verification is
+**still owed**: S3.5's two stranger walkthroughs on a clean machine (Daniel). The epic is **not** closed: wave 2 ("configure", S4–S5) is re-bet at the boundary, and the
 epic's own `RETROSPECTIVE.md` is written at epic close. It will fold this file in.
 
 ## What shipped
