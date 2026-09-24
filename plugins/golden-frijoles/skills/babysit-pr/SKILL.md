@@ -29,8 +29,9 @@ requires_scripts:
 > `scripts/`. This covers the scripts the kit carries (`gf-kit --list`). Any other `scripts/` command here is
 > project tooling: if the project lacks it, say so and stop. Never re-implement a script's logic inline.
 > If a script prints `GF-NEEDS-SETTING {"key",…}`, ask the user that question once, save the answer with
-> `node scripts/config.mjs set <key> <value>` (the rule above runs it), tell them they can change it later the
-> same way, and run the script again if it exited 7.
+> `npx -y @golden-frijoles/kit@0.4.0 config set <key> <value>` (always the kit, never local-wins: a project
+> may own an unrelated `scripts/config.mjs`), tell them they can change it later the same way, and run the
+> script again if it exited 7.
 <!-- kit:end -->
 
 > This skill's only writes are: re-running an already-FAILED workflow run (`gh run rerun --failed`)
