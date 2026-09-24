@@ -25,11 +25,17 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSection } from './lib/config.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(__dirname, '..');
 export const TEMPLATE_PATH = join(REPO, 'Roadmap', 'WAYS-OF-WORKING.template.md');
 export const FILLINS_PATH = join(REPO, 'Roadmap', 'fill-ins.yml');
+// `ways.fillIns` in golden-frijoles.config.json may move the prose file (X15); the file itself stays the prose's home.
+const fillInsPath = () => {
+  const moved = readSection('ways', { root: REPO }).raw?.fillIns;
+  return moved ? join(REPO, moved) : FILLINS_PATH;
+};
 export const OUT_PATH = join(REPO, 'Roadmap', 'WAYS-OF-WORKING.md');
 
 const BANNER =
@@ -171,7 +177,7 @@ function main() {
     process.exit(1);
   }
   try {
-    values = parseFillIns(readFileSync(FILLINS_PATH, 'utf8'));
+    values = parseFillIns(readFileSync(fillInsPath(), 'utf8'));
   } catch (e) {
     process.stderr.write(`✗ ${e.message}\n`);
     process.exit(1);

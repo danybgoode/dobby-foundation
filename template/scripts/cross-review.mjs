@@ -74,6 +74,7 @@ import {
   RE_REVIEW_NOTE,
 } from './lib/review-guard.mjs';
 import { jevContext } from './lib/jev.mjs';
+import { readSection } from './lib/config.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = join(__dirname, 'cross-review.prompt.md');
@@ -285,7 +286,10 @@ function ghBody(pr, repo) {
 /** The project's review config. A missing/invalid file is FATAL: defaulting it would silently mean "never run the security lens". */
 export function loadReviewConfig(path = REVIEW_CONFIG_PATH) {
   try {
-    return parseReviewConfig(JSON.parse(readFileSync(path, 'utf8')));
+    // The `review` section of golden-frijoles.config.json over scripts/review-config.json (D9).
+    const { raw } = readSection('review', { legacyPath: path, onLegacyError: (_p, e) => { throw e; } });
+    if (raw === null) throw new Error(`${path} not found`);
+    return parseReviewConfig(raw);
   } catch (e) {
     die(
       `scripts/review-config.json is missing or invalid (${e.message}). It decides which PRs get the security lens — a default would silently mean "never".`
