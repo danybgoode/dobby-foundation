@@ -14,6 +14,13 @@
 //   3. ONE COMMITTED SWITCH. `jev.config.json → rails.<rail>.mode: off | shadow | jev`. A missing file is
 //      the defaults (everything off); a MALFORMED file throws, so a typo never silently means "off".
 //      `egress:false` or no key makes the effective mode `off`, with the reason.
+//   4. EGRESS IS A TRI-STATE, AND UNANSWERED BEHAVES AS NO (golden-frijoles-plugin D12, S5.4). `egress`
+//      is `true | false | null`. The template ships `null`: a stranger's diffs never leave their machine
+//      until they say so. `null` and `false` both make the effective mode `off`; `null` ADDITIONALLY
+//      emits the D11 ask (`needSetting('jev.egress', { blocking: false })`) once per process, so an agent
+//      asks the question instead of the guard silently staying off forever. The fallback reason for `null`
+//      is `egress not answered`, which `review-guard.mjs` / `prose-guard.mjs` wrap into the exact sentence
+//      `jev could not look (egress not answered)`. Existing consumers keep their committed `egress: true`.
 //
 // Zero deps — Node 18+ (global fetch). Everything with I/O takes injectable deps, so specs never touch the
 // network.
@@ -22,7 +29,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { projectRoot } from './project-root.mjs';
-import { readSection } from './config.mjs';
+import { needSetting, readSection } from './config.mjs';
 
 export const JEV_ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const DEFAULT_MODEL = 'jev-1.13.0';
@@ -75,8 +82,13 @@ export function parseJevConfig(json) {
     throw new JevConfigError(
       `jev.config.json: model "${model}" is an alias — pin a version such as ${DEFAULT_MODEL}`
     );
-  const egress = json.egress ?? true;
-  if (typeof egress !== 'boolean') throw new JevConfigError('jev.config.json: egress must be true or false');
+  // Tri-state (D12): `true | false | null`. An explicit `null` must survive as `null` — `??` would
+  // silently turn it back into `true`, which is exactly the "unanswered defaults to send" bug this
+  // decision exists to close. Only an ABSENT key falls back to `true` (today's behaviour for a
+  // consumer's committed config that never mentions egress at all).
+  const egress = Object.prototype.hasOwnProperty.call(json, 'egress') ? json.egress : true;
+  if (egress !== true && egress !== false && egress !== null)
+    throw new JevConfigError('jev.config.json: egress must be true, false or null');
   if (json.rails !== undefined && !isObj(json.rails))
     throw new JevConfigError('jev.config.json: rails must be an object');
   const rails = {};
@@ -164,6 +176,9 @@ export function readApiKey({
 export function effectiveMode(config, rail, { key } = {}) {
   const configured = config.rails[rail].mode;
   if (configured === 'off') return { mode: 'off', configured, why: 'configured off' };
+  // Unanswered (D12): distinct from a deliberate `false` so the caller can ask once instead of
+  // staying silently off forever. `unanswered: true` is jevContext's cue to fire the D11 protocol.
+  if (config.egress === null) return { mode: 'off', configured, why: 'egress not answered', unanswered: true };
   if (!config.egress) return { mode: 'off', configured, why: 'egress disabled in jev.config.json' };
   if (!key) return { mode: 'off', configured, why: 'no TYPESAFE_API_KEY' };
   return { mode: configured, configured, why: `configured ${configured}` };
@@ -325,6 +340,18 @@ export function jevContext(rail, deps = {}) {
   const config = deps.config ?? loadJevConfig({ root });
   const key = 'key' in deps ? deps.key : readApiKey({ root });
   const eff = effectiveMode(config, rail, { key });
+  // D11's ask protocol, fired exactly once (needSetting's own dedup): egress was never answered, so
+  // tell the agent to ask instead of leaving the guard silently off forever. Non-blocking — a judge
+  // still returns a decision this run, via the regex fallback the caller already has for `mode:'off'`.
+  if (eff.unanswered) {
+    (deps.needSetting ?? needSetting)('jev.egress', {
+      blocking: false,
+      root,
+      ...(deps.read ? { read: deps.read } : {}),
+      ...(deps.exists ? { exists: deps.exists } : {}),
+      ...(deps.write ? { write: deps.write } : {}),
+    });
+  }
   return {
     root,
     config,

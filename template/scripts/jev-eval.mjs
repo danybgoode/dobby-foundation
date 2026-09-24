@@ -142,11 +142,21 @@ export async function loadRails() {
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-/** Jev config for evaluation: the rail forced to `jev` so Jev's answer — not the regex — is what is scored. */
+/**
+ * Jev config for evaluation: the rail forced to `jev` so Jev's answer — not the regex — is what is scored.
+ *
+ * `egress` is forced to `true` too, for the same reason `mode` is forced (golden-frijoles-plugin D12,
+ * S5.4): this harness measures what Jev WOULD decide against a replayed or live answer, never gated by
+ * whether this checkout's OWN `jev.config.json` has answered the egress question yet. `projectRoot()`
+ * resolves to `template/` for a script run as `node template/scripts/…` (D2's documented copied-mode
+ * root for this repo's own dogfooding), so `template/jev.config.json`'s tri-state `egress` IS this
+ * process's live config — and its new default (`null`, unanswered) would otherwise score every fixture
+ * as if the rail were off, which is a fact about this repo's own config, not about Jev's accuracy.
+ */
 const evalConfig = (base, rail) =>
   parseJevConfig({
     model: base.model,
-    egress: base.egress,
+    egress: true,
     rails: { ...base.rails, [rail]: { ...base.rails[rail], mode: 'jev', shadowExpires: null } },
   });
 
