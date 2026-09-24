@@ -89,3 +89,24 @@ test('every REQUIRED_FILLS key is a slot the real template actually asks for', (
   const slots = slotsIn(readFileSync(TEMPLATE_PATH, 'utf8'));
   for (const k of REQUIRED_FILLS) assert.ok(slots.includes(k), `REQUIRED_FILLS names a missing slot: ${k}`);
 });
+
+test('ways.fillIns: an in-project symlink to a file outside the project is refused (security lens on #49)', async () => {
+  const { cpSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const { spawnSync } = await import('node:child_process');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const outside = mkdtempSync(join(tmpdir(), 'ways-outside-'));
+  writeFileSync(join(outside, '.env.local'), 'SECRET_TOKEN=do-not-print-me\n');
+  const project = mkdtempSync(join(tmpdir(), 'ways-project-'));
+  cpSync(here, join(project, 'scripts'), { recursive: true });
+  mkdirSync(join(project, 'Roadmap'));
+  writeFileSync(join(project, 'Roadmap', 'WAYS-OF-WORKING.template.md'), '# Doc\n');
+  symlinkSync(join(outside, '.env.local'), join(project, 'Roadmap', 'fill.yml'));
+  writeFileSync(join(project, 'golden-frijoles.config.json'), JSON.stringify({ ways: { fillIns: 'Roadmap/fill.yml' } }));
+  const run = spawnSync(process.execPath, [join(project, 'scripts', 'render-ways-of-working.mjs')], { encoding: 'utf8' });
+  assert.notEqual(run.status, 0);
+  assert.match(run.stderr, /outside the project/);
+  assert.doesNotMatch(run.stdout + run.stderr, /do-not-print-me/);
+});
