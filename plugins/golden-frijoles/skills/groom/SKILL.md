@@ -125,9 +125,11 @@ measured 2026-09-23). Resolve it rather than hardcoding one. A wrong path is how
 
 ```bash
 GROOM=""
-for c in "${CLAUDE_PLUGIN_ROOT:-}/skills/groom" "$HOME"/.claude/plugins/cache/golden-frijoles/golden-frijoles/*/skills/groom \
-         ./.agents/skills/groom "$HOME/.agents/skills/groom" \
-         "$HOME/.claude/skills/groom" "$HOME/mnt/.claude/skills/groom" ./skills/groom; do
+# sort -V, not the glob's own lexical order — "0.10.0" can sort either side of "0.9.0".
+CACHE_BASE="$HOME/.claude/plugins/cache/golden-frijoles/golden-frijoles"
+NEWEST_CACHE=$([ -d "$CACHE_BASE" ] && ls "$CACHE_BASE" 2>/dev/null | sort -V | tail -1)
+for c in "${CLAUDE_PLUGIN_ROOT:-}/skills/groom" ${NEWEST_CACHE:+"$CACHE_BASE/$NEWEST_CACHE/skills/groom"} \
+         ./.agents/skills/groom "$HOME/.agents/skills/groom" "$HOME/.claude/skills/groom" "$HOME/mnt/.claude/skills/groom" ./skills/groom; do
   [ -f "$c/scaffold-epic.mjs" ] && { GROOM="$c"; break; }
 done
 [ -n "$GROOM" ] || GROOM=$(find ~ /sessions -maxdepth 8 -type d -name groom \

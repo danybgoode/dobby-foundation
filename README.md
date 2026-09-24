@@ -114,8 +114,13 @@ first time it detects that channel; don't assume parity with the Claude Code plu
 A repo with no `Roadmap/` yet has nowhere for `groom` to write. One command adds just that:
 
 ```
-npx -y @golden-frijoles/kit@<version> init
+npx -y @golden-frijoles/kit@latest init
 ```
+
+(`@latest`, not a literal `<version>` placeholder — this line is hand-maintained prose for a human
+to paste once, not the auto-stamped run rule every SKILL.md carries, so pinning it here would only
+go stale at the next release. A literal `<version>` would also be read by a shell as an input
+redirection from a file named `version`, not as a placeholder to fill in.)
 
 It writes the `Roadmap/` skeleton (`README.md`, `WAYS-OF-WORKING.md`, `LEARNINGS.md`, the `00-ideas/`
 funnel), **never overwrites** a file that's already there — it prints `skipped <path> (exists)` — and

@@ -37,9 +37,9 @@ Run each of these and read its exit/output; don't infer from what the repo "look
 | Question | Command |
 |---|---|
 | Is `Roadmap/` present? | `test -d Roadmap` (or an equivalent file check) |
-| Is `gf` linked to a Golden Frijoles project? | run `preflight.mjs` through the run rule above: `node scripts/preflight.mjs` if the project has it, else `npx -y @golden-frijoles/kit@<version> preflight` |
-| Is the kit reachable at all? | `npx -y @golden-frijoles/kit@<version> --version` |
-| Which channel is this? | Where THIS skill was loaded from (its base directory, shown when the skill is invoked): under a Claude Code plugin cache (`…/.claude/plugins/cache/golden-frijoles/…`) or a `--plugin-dir` → the **Claude Code plugin**. Under `.agents/skills/` or `~/.claude/skills/` → **`npx skills`** (no hooks, no agents). Read from a URL → a raw read (no execution: say so and stop before claiming to run anything). Don't use `$CLAUDE_PLUGIN_ROOT`: it is **not** set in a skill's shell (measured 2026-09-23) |
+| Is `gf` linked to a Golden Frijoles project? | run `preflight` through the run rule above — the project's own `node scripts/preflight.mjs` if it has one, otherwise the kit's `preflight`, pinned to the version stamped in that rule |
+| Is the kit reachable at all? | run `--version` through the run rule above — the kit's own version check, pinned to the version stamped there |
+| Which channel is this? | Where THIS skill was loaded from (its base directory, shown when the skill is invoked): under a Claude Code plugin cache (`…/.claude/plugins/cache/golden-frijoles/…`) or a `--plugin-dir` → the **Claude Code plugin**. Under `.agents/skills/`, `~/.claude/skills/` or a project's own `./.claude/skills/` (measured: `npx skills add … -a claude-code -y` installs there, project-scoped, distinct from the global `-g` form) → **`npx skills`** (no hooks, no agents). Read from a URL → a raw read (no execution: say so and stop before claiming to run anything). Don't use `$CLAUDE_PLUGIN_ROOT`: it is **not** set in a skill's shell (measured 2026-09-23) |
 
 A command that can't run (offline npx, no network) is **could not look**, not "broken" — name the
 escape hatch (retry online, or copy the script into `scripts/`) and move on; never claim the project
@@ -47,9 +47,13 @@ is broken because a network probe failed.
 
 ## Stage 2 — No `Roadmap/`? Offer setup
 
-Wave 1's whole setup is **`gf-kit init`**, run through the rule above (`npx -y @golden-frijoles/kit@<the version in
-the run rule> init`, or `node scripts/init.mjs` if the project has it). It adopts the repo — writes the `Roadmap/` skeleton, never
-overwrites anything, writes nothing outside `Roadmap/`), then offer `groom` to plan the first idea.
+Wave 1's whole setup is **`gf-kit init`**: run `init` **directly against the kit**, pinned to the
+version stamped in the run rule above — never through that rule's "local wins" fallback.
+`scripts/init.mjs` is a generic filename a stranger's existing repo may already own for something
+unrelated (a database seed script, for example); running local-wins here could silently execute a
+stranger's own unrelated script instead of adopting the repo. It writes the `Roadmap/` skeleton,
+never overwrites anything, and writes nothing outside `Roadmap/`. Then offer `groom` to plan the
+first idea.
 There is no interview yet — that's wave 2, and it is not referenced here.
 
 ## Stage 3 — Route by job
@@ -65,8 +69,9 @@ Say which skill you're handing off to and why, in one line, before switching.
 
 ## What the `npx skills` channel lacks
 
-State this plainly the first time you detect that channel (unset `CLAUDE_PLUGIN_ROOT`, installed via
-`npx skills add`), never assume parity with the Claude Code plugin install:
+State this plainly the first time you detect that channel (this skill's base directory under
+`.agents/skills/`, `~/.claude/skills/` or `./.claude/skills/` — see the detection rule above, never
+`$CLAUDE_PLUGIN_ROOT`), never assume parity with the Claude Code plugin install:
 
 - **No build-view hook** — the "Currently building" status line is a Claude Code function-hook mod
   (`plugins/golden-frijoles/hooks/`); `npx skills` installs `SKILL.md` folders only, no hooks.
