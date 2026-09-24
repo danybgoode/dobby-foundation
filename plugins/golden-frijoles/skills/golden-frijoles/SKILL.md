@@ -37,8 +37,8 @@ Run each of these and read its exit/output; don't infer from what the repo "look
 | Question | Command |
 |---|---|
 | Is `Roadmap/` present? | `test -d Roadmap` (or an equivalent file check) |
-| Is `gf` linked to a Golden Frijoles project? | run `preflight` through the run rule above — the project's own `node scripts/preflight.mjs` if it has one, otherwise the kit's `preflight`, pinned to the version stamped in that rule |
-| Is the kit reachable at all? | run `--version` through the run rule above — the kit's own version check, pinned to the version stamped there |
+| Is `gf` linked to a Golden Frijoles project? | run the **kit's** `preflight` directly, reusing the exact `npx -y @golden-frijoles/kit@…` prefix from the run rule above with `preflight` after it, never a local `scripts/preflight.mjs`: detection runs automatically on first contact, so it must not execute code the repo supplies |
+| Is the kit reachable at all? | the same direct kit call with `--version` |
 | Which channel is this? | Where THIS skill was loaded from (its base directory, shown when the skill is invoked): under a Claude Code plugin cache (`…/.claude/plugins/cache/golden-frijoles/…`) or a `--plugin-dir` → the **Claude Code plugin**. Under `.agents/skills/`, `~/.claude/skills/` or a project's own `./.claude/skills/` (measured: `npx skills add … -a claude-code -y` installs there, project-scoped, distinct from the global `-g` form) → **`npx skills`** (no hooks, no agents). Read from a URL → a raw read (no execution: say so and stop before claiming to run anything). Don't use `$CLAUDE_PLUGIN_ROOT`: it is **not** set in a skill's shell (measured 2026-09-23) |
 
 A command that can't run (offline npx, no network) is **could not look**, not "broken" — name the
