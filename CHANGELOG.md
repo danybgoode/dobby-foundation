@@ -15,7 +15,8 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
   `"egress": null`: unanswered. `null` behaves like `false` (the regex guards decide; the review guard's fallback reason reads
   `jev could not look (egress not answered)`, and the prose guard reports it as `why`), and the first run that would use Jev asks you once
   (`GF-NEEDS-SETTING jev.egress`). Answer with `gf-kit config set jev.egress true` or `false`. A project whose
-  committed file says `"egress": true` keeps working exactly as before.
+  committed file says `"egress": true` keeps working exactly as before. A `jev.config.json` that leaves `egress`
+  out used to mean `true`; it now means unanswered, so set it explicitly if you want Jev to keep deciding.
 - The umbrella skill's setup asks at most three questions (what you're working on, where you're starting, and
   whether to connect an account now). Each one says its default, only the first is required, and every answer is
   saved through the kit's config core. The next step follows your answers: `gf-kit init` for a repo, nothing but
