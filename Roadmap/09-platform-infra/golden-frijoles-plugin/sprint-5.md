@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 5
 title: "Setup and adjust"
 risk: high
-phase: Locking architecture
+phase: In review
 stories_total: 5
 stories:
   - id: S5.1
@@ -12,28 +12,28 @@ stories:
     i_want: "to answer at most five questions, each with a default"
     so_that: "I'm configured in about two minutes"
     risk: low
-    status: planned
+    status: in-progress
   - id: S5.2
     title: "`gf setup` and `gf config`"
     as_a: "a terminal user"
     i_want: "`gf setup` and `gf config list|get|set`"
     so_that: "I can configure without asking an agent"
     risk: high
-    status: planned
+    status: in-progress
   - id: S5.3
     title: "Doctor names every module's state"
     as_a: "a user"
     i_want: "`gf doctor` to show each module as configured, not configured or could not look"
     so_that: "I know exactly what's missing and how to fix it"
     risk: low
-    status: planned
+    status: in-progress
   - id: S5.4
     title: "Jev egress is the user's explicit choice"
     as_a: "a stranger"
     i_want: "to be asked before my diffs are sent to a third party"
     so_that: "nothing leaves my machine by default"
     risk: high
-    status: planned
+    status: in-progress
   - id: S5.5
     title: "Stranger walkthrough #2: set up, then adjust"
     as_a: "a stranger"
@@ -44,7 +44,7 @@ stories:
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 5: Setup and adjust
 
-**Status:** ⬜ not started · **Wave:** 2
+**Status:** 🔍 in review · **Wave:** 2
 
 The five-question setup in the agent, `gf setup` / `gf config` in the terminal through the **same core**, one doctor line per module, and Jev egress as a stranger's explicit choice.
 
@@ -144,17 +144,44 @@ The review-scope variant runs in a template-spawned repo. **Owed to Daniel**: ru
 - **deterministic gate:** every CI check green before merge; high-risk stories → Daniel merges
 
 ## Sprint 5 — Smoke walkthrough (do these in order)
-Env: production (GitHub, npm and https://goldenfrijoles.com). Use the preview URL for golden-beans changes while pre-merge.
+Env: production (GitHub, npm and https://goldenfrijoles.com), after kit 0.5.0 and CLI 0.2.0 are published.
+Before the CLI publish, run `node <golden-beans>/packages/cli/dist/bin.js` wherever this says `gf`.
 
-1. In a fresh empty repo with the plugin installed, tell Claude: "set up golden-frijoles"
-   → At most five questions, each saying its default. Skipping all but the first still finishes.
+1. In a fresh empty repo (`mkdir s55 && cd s55 && git init`) with the plugin installed, tell your agent
+   "set up golden-frijoles"
+   → Three questions (what you're working on, where you're starting, connect an account now or later), each
+   saying its default. Only the first is required; skipping the other two still finishes.
 2. `cat golden-frijoles.config.json`
-   → One readable file with your answers. No secrets in it.
+   → One readable file with `project.mode` and `project.startPoint`, and no secrets. The account answer is
+   not in it.
 3. `npx @golden-frijoles/cli doctor`
-   → One line per module: *configured*, *not configured* (with the command to fix it) or *could not look*.
-4. `npx @golden-frijoles/cli config set review.scope every-pr`, then open a PR
-   → The next review routing uses `every-pr`.
-5. Open a PR in the fresh repo before answering the Jev question
-   → You're asked whether to send diffs to TypeSafe. Until you say yes, nothing is sent.
+   → After the sign-in checks: one line per module, each *configured*, *not configured* (with the command that
+   fixes it) or *could not look*. Plan reads *configured*; Build names `jev.egress`. The exit code is the same
+   as before you ran setup.
+4. In a template-spawned repo (its `jev.config.json` turns the rails on and ships `"egress": null`), print what
+   the prose rail would do:
+   `node --input-type=module -e "const j=await import('./scripts/lib/jev.mjs'); const c=j.jevContext('prose'); console.log(c.mode+' — '+c.why)"`
+   → `GF-NEEDS-SETTING {"key":"jev.egress",…}` on stderr, then `off — egress not answered`. Nothing is sent.
+5. `npx @golden-frijoles/cli config set jev.egress false`, run the one-liner again; then `… config set jev.egress
+   true` and run it again (X17)
+   → `off — egress disabled (jev.egress: false)`, with no question. Then, with `true`: `jev — configured jev` if a
+   `TYPESAFE_API_KEY` is set, else `off — no TYPESAFE_API_KEY`. `jev.config.json` is unchanged throughout: the
+   answer lives in `golden-frijoles.config.json`. (A kit-only repo with no `jev.config.json` has every rail
+   off, so there is nothing to ask there.)
+6. In a template-spawned repo (its `scripts/review-config.json` says `every-pr`):
+   `npx @golden-frijoles/cli config set review.reviewScope security-paths-only`, then
+   `node scripts/review-route.mjs <PR>`
+   → The plan's `review scope:` line reads `security-paths-only`: the new file won over the legacy one, and
+   `scripts/review-config.json` is unchanged (`git diff` is empty). The agent reads the scope from there
+   (WAYS-OF-WORKING → *Review & merge*).
 
 If any step fails, note the step number + what you saw — that's the bug report.
+
+**Checked by the builder, 2026-09-24** (not a substitute for step 1's clean machine, owed to Daniel):
+- Steps 2, 3 and 6's `config set` against the built CLI 0.2.0, in a temp repo: the file, the module lines and
+  a subdirectory resolving to the same root.
+- Steps 4 and 5 in a copy of `template/`: null → the ask and `egress not answered`; false; true without a key.
+- `gf setup` on a pseudo-terminal: down arrow + Enter, Esc for the default, Enter. Off a terminal without
+  `--yes` it exits 1 and writes nothing.
+- `check-onboarding-parity --exec` against CLI 0.2.0: `gf config list --json` exits 0 with JSON, with no
+  credential.
