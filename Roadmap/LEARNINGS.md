@@ -361,6 +361,17 @@ accumulate below them, same one-liner + why + date shape.
 - **A local runner that mirrors CI must sandbox CI's global installs.** One `npm i -g <pinned CLI>` step, run
   locally, downgraded the operator's own tool. Point `NPM_CONFIG_PREFIX` at a temp dir and prepend its `bin/`.
 
+## Layering config and depending on a fresh release (golden-frijoles-plugin wave 2, 2026-09-24)
+- **A new config file over old ones reopens every "absent means default" rule.** Wave 1's `egress` defaulted to
+  `true` when missing. Wave 2 made a `null` in the new file mean "unset", so the merge dropped it and the rail read
+  `true` again: a stranger's text was sent with nobody's yes. Decide the absent case at the LOADER, and spec the
+  merge path, not just the parser.
+- **A version minutes old on npm can still 404.** `npm view` listed kit 0.4.0 while the tarball 404'd in Vercel's
+  install. Wait for the tarball URL to return 200 before a consumer depends on it. A re-run fixes it, not a code
+  change.
+- **Copy the shared rails into a consumer before calling the wave done.** The consumers' own lint, Prettier and
+  reviews found five defects the source repo's gates couldn't see. The copy-in is a gate, not a chore.
+
 ## Working efficiently
 - **Running a whole multi-sprint epic in one session is the main context-cost driver.** The durable
   state (the plan file, sprint docs, team memory) makes re-entry cheap by design — compact at each

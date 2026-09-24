@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 5
 title: "Setup and adjust"
 risk: high
-phase: In review
+phase: Verifying
 stories_total: 5
 stories:
   - id: S5.1
@@ -12,28 +12,28 @@ stories:
     i_want: "to answer at most five questions, each with a default"
     so_that: "I'm configured in about two minutes"
     risk: low
-    status: in-progress
+    status: done
   - id: S5.2
     title: "`gf setup` and `gf config`"
     as_a: "a terminal user"
     i_want: "`gf setup` and `gf config list|get|set`"
     so_that: "I can configure without asking an agent"
     risk: high
-    status: in-progress
+    status: done
   - id: S5.3
     title: "Doctor names every module's state"
     as_a: "a user"
     i_want: "`gf doctor` to show each module as configured, not configured or could not look"
     so_that: "I know exactly what's missing and how to fix it"
     risk: low
-    status: in-progress
+    status: done
   - id: S5.4
     title: "Jev egress is the user's explicit choice"
     as_a: "a stranger"
     i_want: "to be asked before my diffs are sent to a third party"
     so_that: "nothing leaves my machine by default"
     risk: high
-    status: in-progress
+    status: done
   - id: S5.5
     title: "Stranger walkthrough #2: set up, then adjust"
     as_a: "a stranger"
@@ -44,7 +44,7 @@ stories:
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 5: Setup and adjust
 
-**Status:** 🔍 in review · **Wave:** 2
+**Status:** 🟦 verifying: S5.1–S5.4 are merged and deployed (golden-frijoles/skills#50 `00f5ce4`, release `v0.5.0`; danybgoode/golden-beans#164 `2e2ae50` and #166 `d37ce20`; CLI **0.2.1** hand-published by Daniel, on kit 0.5.2). S5.5, the walkthrough on a clean machine, is owed to Daniel, so the sprint isn't closed · **Wave:** 2
 
 The five-question setup in the agent, `gf setup` / `gf config` in the terminal through the **same core**, one doctor line per module, and Jev egress as a stranger's explicit choice.
 

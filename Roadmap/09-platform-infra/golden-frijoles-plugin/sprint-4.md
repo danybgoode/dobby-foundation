@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 4
 title: "One config file"
 risk: high
-phase: In review
+phase: Shipped
 stories_total: 3
 stories:
   - id: S4.1
@@ -12,25 +12,25 @@ stories:
     i_want: "one `golden-frijoles.config.json`"
     so_that: "I can read my whole setup in one place"
     risk: high
-    status: in-progress
+    status: done
   - id: S4.2
     title: "Every rail reads through the loader"
     as_a: "a rail"
     i_want: "to read my settings through one seam"
     so_that: "there's one place config is interpreted"
     risk: high
-    status: in-progress
+    status: done
   - id: S4.3
     title: "Ask once, just in time"
     as_a: "a skill"
     i_want: "to ask for an unset setting the first time I need it, then save it"
     so_that: "the user is never interviewed about things they don't use"
     risk: low
-    status: in-progress
+    status: done
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 4: One config file
 
-**Status:** 🟦 in review (S4.1–S4.3 built by the orchestrator; kit 0.4.0 publishes on merge) · **Wave:** 2
+**Status:** ✅ shipped 2026-09-24. golden-frijoles/skills#49 (`42334ad`, release `v0.4.0`, kit 0.4.0), then the copy-in review fixes #51 (`d101dff`, 0.5.1), #53 (`ad941ac`, 0.5.2) and #54 (`6438be1`); copy-ins danybgoode/golden-beans#165 (`f3e7d42`, Vercel production ✅) and danybgoode/miyagi-product-management#196 (`7a7c709`) · **Wave:** 2
 
 **Wave 2, re-bet at the boundary.** One `golden-frijoles.config.json` a person can read, one loader every rail reads through, and a just-in-time registry so nothing is asked before it's needed. The seven legacy files keep working.
 
