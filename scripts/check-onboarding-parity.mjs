@@ -60,18 +60,21 @@
 // Zero deps — Node 18+.
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readFileSync, realpathSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CLI_BIN,
   CLI_GLOBAL_INSTALL,
   CLI_NPX_INIT,
+  INSTALL_PROMPT,
   CLI_NPX_LOGIN,
   ENV_KEYS,
   KILL_SWITCH_STORY,
 } from '../template/scripts/lib/golden-onboarding.mjs';
+import { listSkills } from './check-skill-scripts.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -83,11 +86,23 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
  * story needs the creation verb and the activation check. Requiring the union would force noise
  * into each file, and noise is how a doc stops being read.
  */
-const SURFACES = [
+export const SURFACES = [
   {
     file: 'README.md',
-    why: 'the front door: how a consumer wires the provider after installing the plugin',
-    must: [CLI_NPX_LOGIN, CLI_NPX_INIT, CLI_GLOBAL_INSTALL, 'node scripts/preflight.mjs', ...KILL_SWITCH_STORY],
+    why: 'the front door: how a consumer wires the provider after installing the plugin, and the install prompt itself',
+    must: [
+      CLI_NPX_LOGIN,
+      CLI_NPX_INIT,
+      CLI_GLOBAL_INSTALL,
+      'node scripts/preflight.mjs',
+      ...KILL_SWITCH_STORY,
+      INSTALL_PROMPT,
+    ],
+  },
+  {
+    file: 'plugins/golden-frijoles/skills/golden-frijoles/SKILL.md',
+    why: 'the umbrella skill: the first thing a stranger’s agent reads must carry the same install prompt it just ran',
+    must: [INSTALL_PROMPT],
   },
   {
     file: 'template/README.md',
@@ -166,6 +181,255 @@ function probeCommand(cliPath, command, scrubbedEnv) {
   return { ok: true, why: 'unauthorized (parsed, then refused for want of a credential)' };
 }
 
+const CLAUDE_BIN = 'claude';
+
+/**
+ * Same vocabulary as the kit's own run rule (render-skill-adverts.mjs's kit block): the signs of a
+ * network/registry problem rather than a real defect. Used to decide SKIP vs FAIL for the install-
+ * prompt probes below — they hit the real network (npm's registry, GitHub), so "could not look" has
+ * to be a real, checked outcome here, not just for a missing binary (LEARNINGS: "could not look is
+ * its own exit code, never the failure one").
+ */
+function looksLikeNetworkTrouble(text) {
+  return /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ECONNRESET|EAI_AGAIN|E404|proxy|network error|could not resolve/i.test(
+    text || ''
+  );
+}
+
+/** sha256 of a file, or the literal 'absent' when it doesn't exist — the negative control's baseline. */
+function fingerprint(path) {
+  if (!existsSync(path)) return 'absent';
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
+// eslint-disable-next-line no-control-regex -- the ANSI CSI escape itself is what's being stripped.
+const ANSI_RE = /\x1b\[[0-9;?]*[A-Za-z]/g;
+
+/**
+ * Strip ANSI colour/cursor escapes from a captured CLI transcript.
+ *
+ * ⚠️ **CI red, found live.** Outside an interactive TTY `skills@1.7.0` still colours skill names
+ * (`isatty()` is true enough for it under a pty, but the real trigger is simpler: it checks for an
+ * "agent" session and colours regardless) — a listed entry actually reads
+ * `│    \x1b[36mgolden-frijoles\x1b[39m`, not the plain `│    golden-frijoles` the exact-entry regex
+ * expected. `NO_COLOR=1`/`FORCE_COLOR=0` in the child's env (below) is the honest fix — asking the
+ * tool not to colour in the first place — and this strip is the belt to that braces, for whatever
+ * a future version decides `NO_COLOR` doesn't cover.
+ */
+function stripAnsi(text) {
+  return String(text).replace(ANSI_RE, '');
+}
+
+/**
+ * The three install-prompt `--exec` probes (S3.4, D8): does `npx skills` actually list
+ * `golden-frijoles`, and does the two-command Claude Code install actually install it — in an
+ * ISOLATED config, proven isolated by a negative control against the real one.
+ *
+ * ⚠️ Same discipline as `probeCommand` above: `claude plugin marketplace add` / `plugin install` are
+ * WRITE verbs against local config state, so they run with `HOME`, `XDG_CONFIG_HOME` and
+ * `CLAUDE_CONFIG_DIR` all pointed at one empty temp dir (D8's addition to the onboarding-parity
+ * shape), and the negative control — the REAL `~/.claude/plugins/installed_plugins.json`'s hash
+ * unchanged — is asserted, not assumed, exactly as `check-onboarding-parity.mjs`'s original `gf`
+ * probe asserts `unauthorized` rather than merely accepting it.
+ *
+ * Each binary that cannot be resolved, and each command whose output looks like a network/registry
+ * problem, SKIPS with a `::warning::` — never fails for that. A real "not listed yet" (the live repo
+ * pre-merge, still under the old marketplace name) is NOT a skip: it is reported as a failure, because
+ * that is exactly the state the contract says this check must be honest about, not paper over.
+ */
+function installPromptExecChecks() {
+  let failed = false;
+  // WHICH tree the prompt's commands run against. By default, THIS checkout: that is the tree the PR ships, so the
+  // gate can go green before merge (checking the live repo made a PR that adds the umbrella skill un-mergeable
+  // under a required check: it could only pass once it had already merged). `--live` runs them against the
+  // published repo, which is the post-merge verification recorded in the sprint walkthrough.
+  const live = process.argv.includes('--live');
+  const source = live ? 'golden-frijoles/skills' : repoRoot;
+  const label = live ? 'golden-frijoles/skills' : '<this checkout>';
+
+  // ── 1. `npx skills add golden-frijoles/skills --list` lists `golden-frijoles` ─────────────────
+  const npxProbe = spawnSync('npx', ['--version'], { encoding: 'utf8', timeout: 20_000 });
+  if (npxProbe.error) {
+    console.log('::warning::check-onboarding-parity --exec: `npx skills --list` SKIPPED — no `npx` resolvable.');
+  } else {
+    const list = spawnSync('npx', ['-y', 'skills@1.7.0', 'add', source, '--list'], {
+      encoding: 'utf8',
+      timeout: 90_000,
+      // Outside an agent session skills@1.7.0 colours skill names (`\x1b[36mgolden-frijoles\x1b[39m`),
+      // which a plain-text regex never matches. Ask it not to, in both vocabularies (LEARNINGS: "a
+      // young foreign CLI's interface shape isn't what you'd assume" — this one reads NO_COLOR).
+      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    });
+    const output = stripAnsi(`${list.stdout || ''}${list.stderr || ''}`);
+    // Strip the repo argument ("golden-frijoles/skills", echoed in the CLI's own "Source: …" banner)
+    // before testing — a naive substring match on `output` was caught passing on THAT echo alone,
+    // with zero skills actually listed under the name. Presence of the repo name is not presence of
+    // the skill (LEARNINGS: presence is not execution) — only a SEPARATE "golden-frijoles" token,
+    // the skill's own list entry, counts.
+    const withoutRepoArg = output.split(source).join('').replace(/golden-frijoles\/skills/g, '');
+    if (list.error || (list.status !== 0 && looksLikeNetworkTrouble(output))) {
+      console.log(
+        `::warning::check-onboarding-parity --exec: \`npx skills --list\` SKIPPED — could not look: ` +
+          `${(list.error?.message ?? output).slice(0, 200)}`
+      );
+    } else if (!/^[│|\s]*golden-frijoles\s*$/m.test(withoutRepoArg)) {
+      // A whole list ENTRY, not a token: `\b` treats a hyphen as a boundary, so `golden-frijoles-renamed`, a path
+      // or a description passed the looser test (caught by mutation in review, the builder's own class of bug).
+      console.error(
+        `  ❌ npx skills add ${label} --list  →  "golden-frijoles" is not in the listed skills:\n` +
+          `     ${output.trim().split('\n').slice(0, 8).join('\n     ')}`
+      );
+      failed = true;
+    } else {
+      console.log(`  ✅ npx skills add ${label} --list  →  golden-frijoles listed`);
+    }
+  }
+
+  // ── 2 & 3. claude plugin marketplace add + install, isolated, with a negative control ─────────
+  const claudeProbe = spawnSync(CLAUDE_BIN, ['--version'], { encoding: 'utf8', timeout: 20_000 });
+  if (claudeProbe.error) {
+    console.log(
+      `::warning::check-onboarding-parity --exec: the \`claude plugin …\` probe SKIPPED — no \`${CLAUDE_BIN}\` resolvable.`
+    );
+    return failed ? 1 : 0;
+  }
+
+  const realInstalledPlugins = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  const before = fingerprint(realInstalledPlugins);
+
+  const isolatedHome = mkdtempSync(join(tmpdir(), 'gf-parity-claude-plugin-'));
+  const isolatedEnv = { ...process.env, HOME: isolatedHome, XDG_CONFIG_HOME: isolatedHome, CLAUDE_CONFIG_DIR: isolatedHome };
+
+  const addMarketplace = spawnSync(CLAUDE_BIN, ['plugin', 'marketplace', 'add', source], {
+    encoding: 'utf8',
+    timeout: 90_000,
+    env: isolatedEnv,
+  });
+  const install = spawnSync(CLAUDE_BIN, ['plugin', 'install', 'golden-frijoles@golden-frijoles'], {
+    encoding: 'utf8',
+    timeout: 90_000,
+    env: isolatedEnv,
+  });
+  const addOutput = `${addMarketplace.stdout || ''}${addMarketplace.stderr || ''}`;
+  const installOutput = `${install.stdout || ''}${install.stderr || ''}`;
+
+  // The negative control runs REGARDLESS of the outcome above — it is what proves the isolation
+  // held, and a leak here is the worst possible outcome of this whole mode: a documentation parity
+  // check that mutated the operator's real plugin config.
+  const after = fingerprint(realInstalledPlugins);
+  if (before !== after) {
+    console.error(
+      '  ❌ NEGATIVE CONTROL FAILED — the isolated claude-plugin probe touched the REAL ' +
+        `${realInstalledPlugins} (was ${before}, now ${after}). Do not re-run until the env scrub above is fixed.`
+    );
+    return 1; // overrides everything else: a real leak is reported on its own, nothing else matters here
+  }
+  console.log(`  ✅ negative control — ${realInstalledPlugins} unchanged (${before})`);
+
+  if (
+    (addMarketplace.error || (addMarketplace.status !== 0 && looksLikeNetworkTrouble(addOutput))) ||
+    (install.error || (install.status !== 0 && looksLikeNetworkTrouble(installOutput)))
+  ) {
+    console.log(
+      '::warning::check-onboarding-parity --exec: the `claude plugin …` probe SKIPPED — could not look: ' +
+        `${(addMarketplace.error?.message ?? install.error?.message ?? `${addOutput}${installOutput}`).slice(0, 200)}`
+    );
+    return failed ? 1 : 0;
+  }
+
+  const isolatedInstalledPlugins = join(isolatedHome, 'plugins', 'installed_plugins.json');
+  // The exact plugin id, not a substring: a checkout path or a marketplace URL can contain "golden-frijoles" too.
+  const listsIt =
+    existsSync(isolatedInstalledPlugins) &&
+    readFileSync(isolatedInstalledPlugins, 'utf8').includes('"golden-frijoles@golden-frijoles"');
+  if (!listsIt) {
+    console.error(
+      `  ❌ claude plugin marketplace add ${label} && claude plugin install golden-frijoles@golden-frijoles\n` +
+        `     → golden-frijoles is not listed in the isolated config afterwards.\n` +
+        `     marketplace add: ${addOutput.trim().slice(0, 300)}\n` +
+        `     install:         ${installOutput.trim().slice(0, 300)}`
+    );
+    failed = true;
+  } else {
+    console.log('  ✅ claude plugin marketplace add + install  →  golden-frijoles listed in the isolated config');
+  }
+
+  return failed ? 1 : 0;
+}
+
+/**
+ * The FOURTH `--exec` probe (codex should-fix, cross-review of #47): the prompt's OTHER
+ * installation method — "if you're in another agent, run `npx skills add … --skill '*'`" — must
+ * actually install every skill, not merely list them. `--list` proves the catalogue is visible;
+ * it proves nothing about the write path a real "another agent" reader takes.
+ *
+ * Runs `-a codex -y` (a real, non-interactive agent choice, skipping the picker) in a throwaway
+ * project directory, with an isolated `HOME`/`XDG_CONFIG_HOME` so it cannot read or write a real
+ * `~/.agents/skills/` (this CLI's own config lives there too). Asserts every skill directory this
+ * repo actually declares (`listSkills()` — the same registry `check-skill-scripts.mjs` walks, never
+ * a hand-typed pair) landed under `.agents/skills/<name>/SKILL.md` in the project dir — not just
+ * `golden-frijoles` and `groom`, though those two are named explicitly in the failure message since
+ * they are the ones a stranger's very first prompt depends on.
+ */
+function installPromptCodexInstallCheck() {
+  const npxProbe = spawnSync('npx', ['--version'], { encoding: 'utf8', timeout: 20_000 });
+  if (npxProbe.error) {
+    console.log(
+      "::warning::check-onboarding-parity --exec: the codex `npx skills add --skill '*'` probe SKIPPED — no `npx` resolvable."
+    );
+    return 0;
+  }
+
+  const live = process.argv.includes('--live');
+  const source = live ? 'golden-frijoles/skills' : repoRoot;
+  const label = live ? 'golden-frijoles/skills' : '<this checkout>';
+
+  const projectDir = mkdtempSync(join(tmpdir(), 'gf-parity-codex-install-'));
+  const isolatedHome = mkdtempSync(join(tmpdir(), 'gf-parity-codex-home-'));
+  const isolatedEnv = {
+    ...process.env,
+    HOME: isolatedHome,
+    XDG_CONFIG_HOME: isolatedHome,
+    NO_COLOR: '1',
+    FORCE_COLOR: '0',
+  };
+
+  const install = spawnSync('npx', ['-y', 'skills@1.7.0', 'add', source, '--skill', '*', '-a', 'codex', '-y'], {
+    cwd: projectDir,
+    encoding: 'utf8',
+    timeout: 120_000,
+    env: isolatedEnv,
+  });
+  const output = stripAnsi(`${install.stdout || ''}${install.stderr || ''}`);
+  if (install.error || (install.status !== 0 && looksLikeNetworkTrouble(output))) {
+    console.log(
+      "::warning::check-onboarding-parity --exec: the codex `npx skills add --skill '*'` probe SKIPPED — " +
+        `could not look: ${(install.error?.message ?? output).slice(0, 200)}`
+    );
+    return 0;
+  }
+
+  const expected = listSkills();
+  const missing = expected.filter((name) => !existsSync(join(projectDir, '.agents', 'skills', name, 'SKILL.md')));
+  // Named even though they're already covered by `missing` above — the failure message should say
+  // outright whether the two surfaces a stranger's FIRST prompt depends on made it, not just "3 of
+  // 11 missing" and leave the reader to go check which three.
+  const criticalMissing = ['golden-frijoles', 'groom'].filter((name) => missing.includes(name));
+  if (missing.length) {
+    console.error(
+      `  ❌ npx skills add ${label} --skill '*' -a codex -y  →  missing under .agents/skills/: ${missing.join(', ')}` +
+        (criticalMissing.length ? ` (including ${criticalMissing.join(' and ')}, the prompt's own setup path)` : '') +
+        `\n     ${output.trim().split('\n').slice(-15).join('\n     ')}`
+    );
+    return 1;
+  }
+  console.log(
+    `  ✅ npx skills add ${label} --skill '*' -a codex -y  →  all ${expected.length} skill(s) installed under ` +
+      '.agents/skills/, including golden-frijoles and groom'
+  );
+  return 0;
+}
+
 function execCheck() {
   const candidates = [CLI_BIN, join(repoRoot, 'node_modules', '.bin', CLI_BIN)];
   const cliPath = candidates.find((candidate) => {
@@ -216,37 +480,73 @@ function execCheck() {
   return 1;
 }
 
-if (process.argv.includes('--exec')) process.exit(execCheck());
-
-const problems = [];
-for (const surface of SURFACES) {
-  let text;
-  try {
-    text = readFileSync(join(repoRoot, surface.file), 'utf8');
-  } catch {
-    problems.push({ file: surface.file, missing: ['(the file itself)'], why: surface.why });
-    continue;
+/**
+ * Pure (given `read`) — every surface whose `must` strings are not all present, verbatim, in its
+ * file. `[]` means every surface agrees with `template/scripts/lib/golden-onboarding.mjs`.
+ *
+ * Exported and side-effect-free (no `console`, no `process.exit`) so
+ * `check-onboarding-parity.test.mjs` can import this module for its logic alone — the CLI half
+ * below is `isMain`-guarded specifically so that import never runs a network probe or exits the
+ * test process (LEARNINGS: a script with a co-located test file must guard its `main()` call).
+ */
+export function findParityProblems({ surfaces = SURFACES, read = readFileSync, root = repoRoot } = {}) {
+  const problems = [];
+  for (const surface of surfaces) {
+    let text;
+    try {
+      text = read(join(root, surface.file), 'utf8');
+    } catch {
+      problems.push({ file: surface.file, missing: ['(the file itself)'], why: surface.why });
+      continue;
+    }
+    const missing = surface.must.filter((needle) => !text.includes(needle));
+    if (missing.length) problems.push({ file: surface.file, missing, why: surface.why });
   }
-  const missing = surface.must.filter((needle) => !text.includes(needle));
-  if (missing.length) problems.push({ file: surface.file, missing, why: surface.why });
+  return problems;
 }
 
-if (!problems.length) {
-  console.log(
-    `check-onboarding-parity: clean (${SURFACES.length} surfaces carry the canonical commands from template/scripts/lib/golden-onboarding.mjs).`
-  );
-  process.exit(0);
+/** Print `findParityProblems`'s result and return the exit code. The only place this file prints it. */
+function reportParityProblems(problems, surfaceCount) {
+  if (!problems.length) {
+    console.log(
+      `check-onboarding-parity: clean (${surfaceCount} surfaces carry the canonical commands from template/scripts/lib/golden-onboarding.mjs).`
+    );
+    return 0;
+  }
+  console.error('\ncheck-onboarding-parity: the onboarding surfaces have drifted apart.\n');
+  for (const problem of problems) {
+    console.error(`  ${problem.file}`);
+    console.error(`  ${'-'.repeat(problem.file.length)}`);
+    console.error(`  ${problem.why}\n`);
+    for (const missing of problem.missing) console.error(`    missing: ${missing}`);
+    console.error('');
+  }
+  console.error('  These strings are defined ONCE, in template/scripts/lib/golden-onboarding.mjs, and');
+  console.error('  printed from there by scripts/preflight.mjs. If a command genuinely changed, change');
+  console.error('  it in the module and update every surface — not the other way around.\n');
+  return 1;
 }
 
-console.error('\ncheck-onboarding-parity: the onboarding surfaces have drifted apart.\n');
-for (const problem of problems) {
-  console.error(`  ${problem.file}`);
-  console.error(`  ${'-'.repeat(problem.file.length)}`);
-  console.error(`  ${problem.why}\n`);
-  for (const missing of problem.missing) console.error(`    missing: ${missing}`);
-  console.error('');
+function main(argv) {
+  if (argv.includes('--exec')) {
+    const gfExit = execCheck();
+    console.log('\n  — the install prompt itself (npx skills --list, claude plugin marketplace add + install) —\n');
+    const installPromptExit = installPromptExecChecks();
+    console.log("\n  — the OTHER install path actually installs (npx skills add --skill '*' -a codex -y) —\n");
+    const codexInstallExit = installPromptCodexInstallCheck();
+    return gfExit || installPromptExit || codexInstallExit ? 1 : 0;
+  }
+  return reportParityProblems(findParityProblems(), SURFACES.length);
 }
-console.error('  These strings are defined ONCE, in template/scripts/lib/golden-onboarding.mjs, and');
-console.error('  printed from there by scripts/preflight.mjs. If a command genuinely changed, change');
-console.error('  it in the module and update every surface — not the other way around.\n');
-process.exit(1);
+
+// realpath, not resolve: on macOS a temp or symlinked path (/var → /private/var) never equals the
+// module URL, and a plain comparison makes the CLI a silent no-op (same pattern as
+// render-skill-adverts.mjs / check-release.mjs).
+const isMain = (() => {
+  try {
+    return !!process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+if (isMain) process.exitCode = main(process.argv.slice(2));

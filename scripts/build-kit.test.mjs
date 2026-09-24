@@ -63,3 +63,31 @@ test('a rebuild removes a file that is no longer declared (dist/ is wiped, never
 test('the real manifest carries the path module every converted script imports', () => {
   assert.ok(kitManifest().includes('lib/project-root.mjs'));
 });
+
+test('the S3.2 skeleton is copied into dist/skeleton/, preserving its Roadmap/ layout', () => {
+  const manifest = ['x.mjs'];
+  const src = sourceFixture(manifest);
+  const templateDir = mkdtempSync(join(tmpdir(), 'build-kit-template-'));
+  const skeleton = ['Roadmap/README.md', 'Roadmap/00-ideas/seeds/.gitkeep'];
+  for (const rel of skeleton) {
+    mkdirSync(join(templateDir, rel, '..'), { recursive: true });
+    writeFileSync(join(templateDir, rel), `skeleton: ${rel}\n`);
+  }
+  const kitDir = mkdtempSync(join(tmpdir(), 'build-kit-out-'));
+  const { dist } = buildKit({ manifest, sourceDir: src, templateDir, skeleton, kitDir, legalDir: src });
+  for (const rel of skeleton) {
+    assert.equal(readFileSync(join(dist, 'skeleton', rel), 'utf8'), `skeleton: ${rel}\n`);
+  }
+});
+
+test('a skeleton file declared but absent from template/ fails the build, names it, writes nothing', () => {
+  const manifest = ['x.mjs'];
+  const src = sourceFixture(manifest);
+  const templateDir = mkdtempSync(join(tmpdir(), 'build-kit-template-'));
+  const kitDir = mkdtempSync(join(tmpdir(), 'build-kit-out-'));
+  assert.throws(
+    () => buildKit({ manifest, sourceDir: src, templateDir, skeleton: ['Roadmap/GONE.md'], kitDir, legalDir: src }),
+    /template\/Roadmap\/GONE\.md/
+  );
+  assert.equal(existsSync(join(kitDir, 'dist')), false, 'nothing may be written when the skeleton has a hole');
+});

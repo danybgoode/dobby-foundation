@@ -128,13 +128,17 @@ jobs:
       # so it is written the way this repo's own doctrine says to: an install that cannot happen
       # SKIPS rather than failing. A red check because npm was having a bad day is precisely the
       # dependency `preflight.mjs` refuses to be.
+      # S3.4 also weighs the INSTALL PROMPT itself into --exec: `npx skills --list` and the two
+      # `claude plugin …` commands. Both binaries are installed here (best-effort, one not gating the
+      # other) so the script's own internal skip logic — never the shell — decides what ran; each
+      # missing binary prints its own `::warning::` rather than silently skipping the whole step.
       - name: Advertised gf commands actually exist
         run: |
-          if npm i -g @golden-frijoles/cli --no-audit --no-fund; then
-            node scripts/check-onboarding-parity.mjs --exec
-          else
-            echo "::warning::could not install @golden-frijoles/cli — the --exec check was SKIPPED, not passed."
-          fi
+          npm i -g @golden-frijoles/cli --no-audit --no-fund \
+            || echo "::warning::could not install @golden-frijoles/cli — the gf probes were SKIPPED, not passed."
+          npm i -g @anthropic-ai/claude-code@2.1.278 --no-audit --no-fund \
+            || echo "::warning::could not install @anthropic-ai/claude-code — the claude-plugin probe was SKIPPED, not passed."
+          node scripts/check-onboarding-parity.mjs --exec
 
       # The repo-tooling scripts. check-plugin-leaks.test.mjs fires the guard's own rules against
       # FIXTURES: until golden-flags-by-default S1.3 this guard had no test at all, and its
@@ -150,7 +154,8 @@ jobs:
             scripts/check-release.test.mjs \
             scripts/build-kit.test.mjs \
             scripts/kit-tarball.test.mjs \
-            scripts/kit-bin.test.mjs
+            scripts/kit-bin.test.mjs \
+            scripts/check-onboarding-parity.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the
       # only way `groom` — which is written FOR Cowork — reaches it is a .skill archive. The zip
