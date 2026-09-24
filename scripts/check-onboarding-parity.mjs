@@ -442,9 +442,14 @@ const LOCAL_CONFIG_COMMAND = 'gf config list --json';
  * `::warning::`, returns null) when the resolved `gf` predates the command: the docs and the CLI ship
  * separately (D14), and an older CLI on PATH is "could not look", not a defect.
  */
-function localConfigProbe(cliPath, version, scrubbedEnv) {
+/** Pure — does the resolved `gf` carry `gf config`? An unknown or unparseable version is "could not tell": skip. */
+export function carriesLocalConfig(version) {
   const cmp = version ? compareVersions(version, LOCAL_CONFIG_SINCE) : null;
-  if (cmp === null || cmp < 0) {
+  return cmp !== null && cmp >= 0;
+}
+
+function localConfigProbe(cliPath, version, scrubbedEnv) {
+  if (!carriesLocalConfig(version)) {
     console.log(
       `::warning::check-onboarding-parity --exec: \`${LOCAL_CONFIG_COMMAND}\` SKIPPED — the resolved \`${CLI_BIN}\` ` +
         `is ${version ?? 'of an unknown version'}, and the command ships in ${LOCAL_CONFIG_SINCE}.`

@@ -238,7 +238,7 @@ test('jevContext: egress:true (existing consumers) and egress:false (today) are 
     write: () => assert.fail('egress:false must never emit GF-NEEDS-SETTING'),
   });
   assert.equal(falseCtx.mode, 'off');
-  assert.equal(falseCtx.why, 'egress disabled in jev.config.json');
+  assert.equal(falseCtx.why, 'egress disabled (jev.egress: false)');
 });
 
 test('readApiKey: env wins, else .env.local at the root', () => {
@@ -376,4 +376,40 @@ test('logDecision writes the log owner-only (it can quote private code)', () => 
   const dir = mkdtempSync(join(tmpdir(), 'jev-'));
   logDecision({ rail: 'review', mode: 'jev', decider: 'jev', text: 't' }, { root: dir });
   assert.equal(statSync(join(dir, '.jev', 'decisions.jsonl')).mode & 0o777, 0o600);
+});
+
+// ── D12 through the loader: the new file's null must not become `true` (review of the S5 diff) ──────────────
+test('loadJevConfig: egress:null in golden-frijoles.config.json with no legacy file is unanswered — fetch is never called', async () => {
+  _resetAsked();
+  const dir = mkdtempSync(join(tmpdir(), 'jev-'));
+  writeFileSync(
+    join(dir, 'golden-frijoles.config.json'),
+    JSON.stringify({ jev: { egress: null, rails: { review: { mode: 'jev' }, prose: { mode: 'jev' } } } })
+  );
+  const config = loadJevConfig({ root: dir });
+  assert.equal(config.egress, null);
+  let fetches = 0;
+  const writes = [];
+  const ctx = jevContext('prose', {
+    config,
+    key: 'k',
+    root: dir,
+    fetch: async () => {
+      fetches += 1;
+      throw new Error('must not send');
+    },
+    write: (s) => writes.push(s),
+  });
+  assert.equal(ctx.mode, 'off');
+  assert.equal(fetches, 0);
+  assert.equal(writes.length, 1, 'the question is asked once');
+  _resetAsked();
+});
+
+test('loadJevConfig: a section that never mentions egress is unanswered too; an explicit true still sends', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'jev-'));
+  writeFileSync(join(dir, 'golden-frijoles.config.json'), JSON.stringify({ jev: { rails: { review: { mode: 'jev' } } } }));
+  assert.equal(loadJevConfig({ root: dir }).egress, null);
+  writeFileSync(join(dir, 'jev.config.json'), JSON.stringify({ egress: true, rails: { review: { mode: 'jev' } } }));
+  assert.equal(loadJevConfig({ root: dir }).egress, true, 'a consumer committed true: unchanged');
 });

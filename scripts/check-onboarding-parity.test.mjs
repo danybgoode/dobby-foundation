@@ -7,7 +7,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findParityProblems, SURFACES } from './check-onboarding-parity.mjs';
+import { carriesLocalConfig, findParityProblems, SURFACES } from './check-onboarding-parity.mjs';
 
 const FIXTURE_ROOT = '/fixture';
 
@@ -82,4 +82,13 @@ test('importing this module runs nothing — SURFACES is just data, no side effe
     assert.ok(typeof surface.file === 'string' && surface.file.length > 0);
     assert.ok(Array.isArray(surface.must) && surface.must.length > 0);
   }
+});
+
+test('the gf config probe runs only on a gf that carries it (S5.2): older or unknown is a skip, never a fail', () => {
+  assert.equal(carriesLocalConfig('0.1.0'), false);
+  assert.equal(carriesLocalConfig('0.2.0-rc.1'), false);
+  assert.equal(carriesLocalConfig(null), false);
+  assert.equal(carriesLocalConfig('not a version'), false);
+  assert.equal(carriesLocalConfig('0.2.0'), true);
+  assert.equal(carriesLocalConfig('1.0.0'), true);
 });

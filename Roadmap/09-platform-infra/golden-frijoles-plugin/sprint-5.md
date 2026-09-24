@@ -158,13 +158,16 @@ Before the CLI publish, run `node <golden-beans>/packages/cli/dist/bin.js` where
    → After the sign-in checks: one line per module, each *configured*, *not configured* (with the command that
    fixes it) or *could not look*. Plan reads *configured*; Build names `jev.egress`. The exit code is the same
    as before you ran setup.
-4. `npx @golden-frijoles/cli config set jev.egress false`, then run a report through the agent (for example
-   "draft this sprint's recap"); then `config set jev.egress true` and run it again (X17)
-   → With `false`, the prose guard's fallback reads *egress disabled*, and nothing goes to TypeSafe. With
-   `true` and a `TYPESAFE_API_KEY`, Jev is asked. With no key, the reason is *no TYPESAFE_API_KEY*.
-5. Before answering the Jev question at all, open a PR in the fresh repo and ask the agent to review it
-   → The agent asks whether to send PR text to TypeSafe (`GF-NEEDS-SETTING jev.egress`), once. Until you say
-   yes, nothing is sent: the fallback reads *jev could not look (egress not answered)*.
+4. In a template-spawned repo (its `jev.config.json` turns the rails on and ships `"egress": null`), print what
+   the prose rail would do:
+   `node --input-type=module -e "const j=await import('./scripts/lib/jev.mjs'); const c=j.jevContext('prose'); console.log(c.mode+' — '+c.why)"`
+   → `GF-NEEDS-SETTING {"key":"jev.egress",…}` on stderr, then `off — egress not answered`. Nothing is sent.
+5. `npx @golden-frijoles/cli config set jev.egress false`, run the one-liner again; then `… config set jev.egress
+   true` and run it again (X17)
+   → `off — egress disabled (jev.egress: false)`, with no question. Then, with `true`: `jev — configured jev` if a
+   `TYPESAFE_API_KEY` is set, else `off — no TYPESAFE_API_KEY`. `jev.config.json` is unchanged throughout: the
+   answer lives in `golden-frijoles.config.json`. (A kit-only repo with no `jev.config.json` has every rail
+   off, so there is nothing to ask there.)
 6. In a template-spawned repo (its `scripts/review-config.json` says `every-pr`):
    `npx @golden-frijoles/cli config set review.reviewScope security-paths-only`, then
    `node scripts/review-route.mjs <PR>`
@@ -177,6 +180,7 @@ If any step fails, note the step number + what you saw — that's the bug report
 **Checked by the builder, 2026-09-24** (not a substitute for step 1's clean machine, owed to Daniel):
 - Steps 2, 3 and 6's `config set` against the built CLI 0.2.0, in a temp repo: the file, the module lines and
   a subdirectory resolving to the same root.
+- Steps 4 and 5 in a copy of `template/`: null → the ask and `egress not answered`; false; true without a key.
 - `gf setup` on a pseudo-terminal: down arrow + Enter, Esc for the default, Enter. Off a terminal without
   `--yes` it exits 1 and writes nothing.
 - `check-onboarding-parity --exec` against CLI 0.2.0: `gf config list --json` exits 0 with JSON, with no

@@ -19,8 +19,8 @@
 //      until they say so. `null` and `false` both make the effective mode `off`; `null` ADDITIONALLY
 //      emits the D11 ask (`needSetting('jev.egress', { blocking: false })`) once per process, so an agent
 //      asks the question instead of the guard silently staying off forever. The fallback reason for `null`
-//      is `egress not answered`, which `review-guard.mjs` / `prose-guard.mjs` wrap into the exact sentence
-//      `jev could not look (egress not answered)`. Existing consumers keep their committed `egress: true`.
+//      is `egress not answered`: `review-guard.mjs` wraps it into the reason `jev could not look (egress not
+//      answered)`, and `prose-guard.mjs`'s judgeProse returns it as `why`. Existing consumers keep their committed `egress: true`.
 //
 // Zero deps — Node 18+ (global fetch). Everything with I/O takes injectable deps, so specs never touch the
 // network.
@@ -134,8 +134,16 @@ export function loadJevConfig({ root = repoRoot(), read = readFileSync, exists =
       throw new JevConfigError(`jev.config.json: unparseable (${e.message})`);
     },
   });
-  // Absent everywhere → the defaults. A PRESENT legacy file holding JSON null is malformed: the parser throws.
-  return parseJevConfig(present ? raw : {});
+  // Absent everywhere → the defaults (every rail off). A PRESENT legacy file holding JSON null is malformed: the
+  // parser throws.
+  if (!present) return parseJevConfig({});
+  // D12: a section that never gives egress a non-null value is UNANSWERED, never `true`. readSection treats a
+  // `null` in golden-frijoles.config.json as unset, so without this a new-file `egress: null` (or a migrated
+  // template config) reached parseJevConfig as a MISSING key and became `true` — sending with nobody's yes
+  // (review of the S5 diff). Only parseJevConfig called directly keeps the absent → true fallback.
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && (raw.egress === undefined || raw.egress === null))
+    return parseJevConfig({ ...raw, egress: null });
+  return parseJevConfig(raw);
 }
 
 /** Parse `KEY=value` lines. Enough for .env.local; quotes stripped. */
@@ -179,7 +187,7 @@ export function effectiveMode(config, rail, { key } = {}) {
   // Unanswered (D12): distinct from a deliberate `false` so the caller can ask once instead of
   // staying silently off forever. `unanswered: true` is jevContext's cue to fire the D11 protocol.
   if (config.egress === null) return { mode: 'off', configured, why: 'egress not answered', unanswered: true };
-  if (!config.egress) return { mode: 'off', configured, why: 'egress disabled in jev.config.json' };
+  if (!config.egress) return { mode: 'off', configured, why: 'egress disabled (jev.egress: false)' };
   if (!key) return { mode: 'off', configured, why: 'no TYPESAFE_API_KEY' };
   return { mode: configured, configured, why: `configured ${configured}` };
 }
