@@ -12,6 +12,9 @@ import {
 } from './review-guard.mjs';
 import { parseJevConfig } from './jev.mjs';
 import { _resetAsked } from './config.mjs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const PROSE_FINDING =
   'The new check exits 1 on a 5xx, but triage treats exit 1 as spec drift (smoke-triage-scope.mjs:41), so a real outage is filed as drift and nobody is paged. Return 2 for HTTP 5xx.';
@@ -72,10 +75,13 @@ test('egress not answered (null): behaves as off, names the reason, asks once, n
   };
   const writes = [];
   const config = parseJevConfig({ egress: null, rails: { review: { mode: 'jev' } } });
+  // Its own empty project: needSetting asks only when the PROJECT has not answered, and the repo running this test
+  // may have (a consumer commits egress: true), which made the ask count depend on where the test ran.
+  const root = mkdtempSync(join(tmpdir(), 'jev-null-'));
   const v1 = await judgeReviewOutput(
     PROSE_FINDING,
     {},
-    { config, key: 'k', fetch: fetchSpy, write: (s) => writes.push(s), log: () => {} }
+    { config, key: 'k', root, fetch: fetchSpy, write: (s) => writes.push(s), log: () => {} }
   );
   assert.equal(v1.ok, false, "today's regex rejects the prose finding");
   assert.equal(v1.mode, 'off');
@@ -88,10 +94,11 @@ test('egress not answered (null): behaves as off, names the reason, asks once, n
   await judgeReviewOutput(
     PROSE_FINDING,
     {},
-    { config, key: 'k', fetch: fetchSpy, write: (s) => writes.push(s), log: () => {} }
+    { config, key: 'k', root, fetch: fetchSpy, write: (s) => writes.push(s), log: () => {} }
   );
   assert.equal(writes.length, 1, 'GF-NEEDS-SETTING is emitted once per process, not once per call');
   _resetAsked();
+  rmSync(root, { recursive: true, force: true });
 });
 
 test('shadow: the regex decides, Jev is asked, both verdicts are logged', async () => {
