@@ -18,7 +18,8 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
   legacy file. Secrets are refused: put the env var's NAME in the file.
 - `@golden-frijoles/kit/config`: the same core for other tools (the `gf` CLI), with types.
 - The settings registry, and the ask protocol: a script that needs an unset setting prints `GF-NEEDS-SETTING`,
-  and the skill asks you once.
+  and the skill asks you once. The answer is
+  saved through the kit, never through a project's own `scripts/config.mjs`, which may be unrelated code.
 
 ### Security
 
