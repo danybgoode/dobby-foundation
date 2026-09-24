@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 3
 title: "The front door"
 risk: high
-phase: In review
+phase: Verifying
 stories_total: 5
 stories:
   - id: S3.1
@@ -12,28 +12,28 @@ stories:
     i_want: "one `golden-frijoles` skill that knows where to start"
     so_that: "I don't need to know ten skill names before I'm useful"
     risk: low
-    status: in-progress
+    status: done
   - id: S3.2
     title: "Adopt any repo: `gf-kit init`"
     as_a: "a stranger with an existing repo"
     i_want: "`gf-kit init` to add the Roadmap skeleton"
     so_that: "groom has somewhere to write on day one"
     risk: low
-    status: in-progress
+    status: done
   - id: S3.3
     title: "The install prompt as one module on three surfaces"
     as_a: "a visitor or a new signup"
     i_want: "the install prompt in a copy box on the landing's closing CTA, `/install` and my onboarding page"
     so_that: "I can paste it into my agent from wherever I am"
     risk: low
-    status: in-progress
+    status: done
   - id: S3.4
     title: "The prompt is checked by running it"
     as_a: "Daniel"
     i_want: "every surface's install prompt to agree and to execute"
     so_that: "no surface advertises a command that doesn't exist"
     risk: low
-    status: in-progress
+    status: done
   - id: S3.5
     title: "The two stranger walkthroughs"
     as_a: "a stranger"
@@ -44,7 +44,7 @@ stories:
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 3: The front door
 
-**Status:** ⬜ not started · **Wave:** 1
+**Status:** ✅ S3.1–S3.4 shipped 2026-09-23. golden-frijoles/skills#47 (`3a06aa0`, release `v0.3.0` + kit 0.3.0 with provenance), danybgoode/golden-beans#163 (`d32fde9`, Vercel production ✅). 🟡 S3.5: both stranger walkthroughs owed to Daniel · **Wave:** 1
 
 One name to start from, a way to adopt any repo, and the install prompt, from one module and checked by running it, on the landing's closing CTA, `/install` and signed-in onboarding. It ends with the two stranger walkthroughs.
 
@@ -240,5 +240,14 @@ Then, in Codex: **"set it up, then groom this idea: a dark mode toggle"**
 → Same as walkthrough A: `gf-kit init` (via `npx`) writes `Roadmap/`, `groom` runs, a seed lands in
 `Roadmap/00-ideas/seeds/`, and `ls` shows no `scripts/` folder. The umbrella skill states plainly, before doing
 anything else, that this channel lacks the build-view hook and the `pr-reviewer` agent.
+
+**Run by the orchestrator after the merges, 2026-09-23:**
+- Steps 1–2 ✅: `https://goldenfrijoles.com/` and `/install` serve the EXACT `INSTALL_PROMPT`, checked against the
+  loaded constant, not by eye.
+- `check-onboarding-parity --exec --live` against the published repo is all ✅:
+  - `npx skills add golden-frijoles/skills --list` lists `golden-frijoles`;
+  - the isolated `claude plugin marketplace add` + `install` succeeds;
+  - `--skill '*' -a codex -y` installs all 11 skills.
+- **Owed to Daniel:** step 3 (signed-in onboarding) and stranger walkthroughs A and B on a clean machine.
 
 If any step fails, note the step number + what you saw — that's the bug report.

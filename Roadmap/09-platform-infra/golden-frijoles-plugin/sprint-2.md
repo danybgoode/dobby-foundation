@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 2
 title: "The kit"
 risk: high
-phase: In review
+phase: Shipped
 stories_total: 5
 stories:
   - id: S2.1
@@ -12,39 +12,39 @@ stories:
     i_want: "to find the user's project and my own templates separately"
     so_that: "I work the same whether I was copied into `scripts/` or installed as a package"
     risk: high
-    status: in-progress
+    status: done
   - id: S2.2
     title: "Build the kit from the skills' closure"
     as_a: "a maintainer"
     i_want: "`@golden-frijoles/kit` generated from `requires_scripts`"
     so_that: "there's one list of what the skills need and no second copy of any script"
     risk: high
-    status: in-progress
+    status: done
   - id: S2.3
     title: "Tag publishes the kit with provenance"
     as_a: "Daniel"
     i_want: "a pushed `v*` tag to publish the kit from CI"
     so_that: "a release needs no npm token on any machine"
     risk: high
-    status: in-progress
+    status: done
   - id: S2.4
     title: "Skills run the kit unless the project has its own copy"
     as_a: "a skill"
     i_want: "to run a local `scripts/<x>.mjs` when the project has one, and the pinned kit otherwise"
     so_that: "strangers are served and deliberate forks keep working"
     risk: high
-    status: in-progress
+    status: done
   - id: S2.5
     title: "golden-beans runs on the kit (the dogfood)"
     as_a: "Daniel"
     i_want: "golden-beans to run its skills through the kit"
     so_that: "the release is proven in a real repo before a stranger meets it"
     risk: high
-    status: planned
+    status: done
 ---
 # One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo — Sprint 2: The kit
 
-**Status:** 🟡 in review. S2.1–S2.4 built by the orchestrator; S2.3's bootstrap owed to Daniel; S2.5 follows the 0.2.0 publish · **Wave:** 1
+**Status:** ✅ shipped 2026-09-23. golden-frijoles/skills#45 (`088512d`, S2.1–S2.4) + #46 (`8dca371`, the publish-auth fix) → `@golden-frijoles/kit@0.2.0` on npm with verified provenance, release `v0.2.0` cut by CI; danybgoode/golden-beans#162 (`e6f748c`, S2.5, Vercel production ✅) · **Wave:** 1
 
 Scripts reach any repo. `@golden-frijoles/kit` is built from the skills' declared closure, learns to tell the project apart from itself, and is published by a tag. golden-beans proves it by deleting its copies.
 
@@ -239,5 +239,15 @@ rest runs after it merges.
    → This one stays **local** (`node scripts/build-order-sync.mjs`). golden-beans' extractor is a fork, and through the
      kit the board would differ (measured in S2.5, see golden-beans `scripts/README.md`). It reports no drift, or opens
      its PR as before.
+
+**Run by the orchestrator, 2026-09-23:**
+- Steps 1–3 were done by Daniel (the bootstrap `0.0.0` exists and is deprecated, and the trusted publisher is attached).
+- **Two npm-side settings were also needed, and they're not in the steps above:** the trusted publisher's *Allowed actions* must include `npm publish` (it was stage-only), and npm validates a publish asynchronously (`PUT 202`, live minutes later). Both are recorded in `release.yml`.
+- Step 4 ✅ (run 35933854829 re-run: publish ✅, release ✅).
+- Step 5 ✅ `latest` = 0.2.0, with a verified attestation (`npm audit signatures`). Now 0.3.0.
+- Step 6 ✅ `v0.2.0` → `8dca371`.
+- Steps 7–8 ✅, via `gf-kit` in empty repos: the tarball spec plus a live `npx`.
+- Step 9 ✅ through the published kit: `doc-hygiene --check` is byte-identical to the old local run.
+- Step 10 ✅ `build-order-sync` stays local, by measurement.
 
 If any step fails, note the step number + what you saw — that's the bug report.
