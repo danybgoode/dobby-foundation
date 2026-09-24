@@ -22,6 +22,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { projectRoot } from './project-root.mjs';
+import { readSection } from './config.mjs';
 
 export const JEV_ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const DEFAULT_MODEL = 'jev-1.13.0';
@@ -112,15 +113,17 @@ export function parseJevConfig(json) {
 
 /** Read `<root>/jev.config.json`. Missing ⇒ defaults; unreadable or malformed ⇒ throws. */
 export function loadJevConfig({ root = repoRoot(), read = readFileSync, exists = existsSync } = {}) {
-  const path = join(root, 'jev.config.json');
-  if (!exists(path)) return parseJevConfig({});
-  let json;
-  try {
-    json = JSON.parse(read(path, 'utf8'));
-  } catch (e) {
-    throw new JevConfigError(`jev.config.json: unparseable (${e.message})`);
-  }
-  return parseJevConfig(json);
+  // The `jev` section of golden-frijoles.config.json over the legacy jev.config.json (D9); validation stays here.
+  const { raw, present } = readSection('jev', {
+    root,
+    legacyRead: read,
+    legacyExists: exists,
+    onLegacyError: (_path, e) => {
+      throw new JevConfigError(`jev.config.json: unparseable (${e.message})`);
+    },
+  });
+  // Absent everywhere → the defaults. A PRESENT legacy file holding JSON null is malformed: the parser throws.
+  return parseJevConfig(present ? raw : {});
 }
 
 /** Parse `KEY=value` lines. Enough for .env.local; quotes stripped. */

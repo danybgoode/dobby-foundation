@@ -3,7 +3,7 @@ epic: golden-frijoles-plugin
 sprint: 5
 title: "Setup and adjust"
 risk: high
-phase: Shaping
+phase: Locking architecture
 stories_total: 5
 stories:
   - id: S5.1
@@ -47,6 +47,64 @@ stories:
 **Status:** ⬜ not started · **Wave:** 2
 
 The five-question setup in the agent, `gf setup` / `gf config` in the terminal through the **same core**, one doctor line per module, and Jev egress as a stranger's explicit choice.
+
+## Build contract (locked by the architect before the builder started)
+
+Cites the epic README's D9–D14 and deviations X17, X18. **Builder:** a Sonnet builder, per the routing. **Branches:**
+`feat/golden-frijoles-plugin-s5` here (stacked on `-s4`), which releases kit **0.5.0**; `feat/golden-frijoles-plugin-s5`
+in golden-beans (the CLI).
+
+**S5.1: setup in the umbrella skill (X18).** The umbrella skill's setup asks **Q1 mode** (required: existing repo /
+new project / planning only), **Q2 start point** (idea / know what to build / already building) and **Q4 account**
+(later / now). Every question says its default, and only Q1 is required.
+- Answers are written with `gf-kit config set` through the kit core. Q4 "now" is `gf login` + `gf init` (it
+  writes `.env.local`, never the config file).
+- Next steps:
+  - Q1 "existing repo" runs `gf-kit init`. "Planning only" writes nothing but the config file.
+  - The first skill offered follows Q2: idea and "know what to build" → `groom` (the Think chain is a displaced
+    seed; say so); "already building" → `live-smoke`.
+- The skill stays ≤ its budget. **QA:** a conversation-level check in the S5.5 walkthrough.
+
+**S5.2: `gf setup` / `gf config` in `packages/cli` (D10, D14).**
+- `gf config list | get <key> | set <key> <value>` and `gf setup` (the same three questions, arrow-key choices on a
+  TTY, `--yes` for defaults; a non-TTY without `--yes` is a usage error).
+- Both load the core with `await import('@golden-frijoles/kit/config')` (the CLI is CommonJS). Add
+  `@golden-frijoles/kit` as a dependency at the **exact** released version.
+- `ConfigError` → `EXIT.USAGE`, and success → `EXIT.OK`. `--json` works everywhere. Add golden help files for the
+  new commands, plus unit tests.
+- It never writes a secret: `set` goes through the core's secret guard.
+- CLI version bump to **0.2.0**. **Publishing it is owed (D14)**: ask the product owner once the PR is green.
+- `check-onboarding-parity --exec`: add a local-command probe (`gf config list --json` in a temp project with a
+  scrubbed HOME → exit 0 + parseable JSON). It **skips** when the resolved `gf` is < 0.2.0, which is true until the
+  release.
+
+**S5.3: doctor module lines (D13).**
+- One line per module (Plan, Build, Ship, Measure, Spend, Operate), derived from the registry plus presence checks.
+  The states are *configured* / *not configured* (with the fix command) / *could not look*.
+- **Exit code unchanged by module states.**
+- Golden tests cover each of the three states.
+
+**S5.4: Jev egress is the user's explicit choice (D12).**
+- `template/jev.config.json`: `"egress": null` with a `$comment` saying what null means.
+- `lib/jev.mjs`: the tri-state. `null` and `false` never call the network, and `null` emits a non-blocking
+  `needSetting('jev.egress')`. The fallback reason is `jev could not look (egress not answered)`.
+- **Tests:** a fresh (null) config never calls `fetch` (a stub asserts zero calls) and emits the marker once;
+  `egress: true` behaves as before; `false` behaves as today.
+- `node template/scripts/jev-eval.mjs` stays green. Consumers keep `true`. The golden-beans / medusa copy-in follows
+  the wave-1 rule and never touches their `jev.config.json`.
+
+**S5.5: stranger walkthrough #2 (X17).** Written as this sprint's walkthrough:
+1. install via the prompt;
+2. run setup;
+3. `gf config set jev.egress false` then `true`, and on the next report run observe the change (the fallback
+   reason names it);
+4. `gf doctor` shows the module lines.
+
+The review-scope variant runs in a template-spawned repo. **Owed to Daniel**: running it on a clean machine.
+
+**Release:** 0.5.0 on merge; the CLI 0.2.0 publish is owed (D14).
+
+**Stop and escalate** on any trigger in WAYS-OF-WORKING → *Escalate, don't guess*.
 
 ## Stories
 

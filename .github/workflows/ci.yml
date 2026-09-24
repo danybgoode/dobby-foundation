@@ -59,6 +59,11 @@ jobs:
       - name: Skill script contract
         run: node scripts/check-skill-scripts.mjs
 
+      # golden-frijoles-plugin S4.2: every template rail reads its config through lib/config.mjs, so a user's
+      # golden-frijoles.config.json reaches it. A rail that goes back to reading its legacy file directly fails here.
+      - name: Rails read config through the one loader
+        run: node scripts/check-config-reads.mjs
+
       # @golden-frijoles/kit is BUILT from the skills' declared closure, never committed (golden-frijoles-plugin
       # D1). Build it the way release.yml will, assert the built package holds every declared file and whole
       # import closures, and dry-run the publish so the package shape cannot rot between releases. The dry run
@@ -155,6 +160,7 @@ jobs:
             scripts/build-kit.test.mjs \
             scripts/kit-tarball.test.mjs \
             scripts/kit-bin.test.mjs \
+            scripts/check-config-reads.test.mjs \
             scripts/check-onboarding-parity.test.mjs
 
       # The Cowork install path. Cowork does NOT read a project's .claude/settings.json, so the

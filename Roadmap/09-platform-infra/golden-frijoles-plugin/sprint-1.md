@@ -179,6 +179,6 @@ Env: production (GitHub). Nothing here is pre-merge: run it after the S1 PR **an
 7. Same in `~/dobby/medusa-bonsai` (**owed to Daniel**)
    → Same result: `golden-frijoles:groom` is available.
 
-**Run by the orchestrator, 2026-09-23 after the merges:** step 1 ✅ (the API reports license `Apache-2.0`) · step 2 ✅ (`git ls-remote` on both URLs → the same SHA) · step 3 ✅ (`v0.1.0` → `0c33e53`, created by the `Release` run 35932042074) · step 6 ✅, run in an isolated `CLAUDE_CONFIG_DIR` against golden-beans' merged settings: `golden-frijoles@golden-frijoles` Version 0.1.0, enabled, all ten skills. **Still owed to Daniel: step 7** (medusa-bonsai, private repo). Steps 4–5 are covered by S3.4's `--exec`, re-run after the S3 merge.
+**Run by the orchestrator, 2026-09-23 after the merges:** step 1 ✅ (the API reports license `Apache-2.0`) · step 2 ✅ (`git ls-remote` on both URLs → the same SHA) · step 3 ✅ (`v0.1.0` → `0c33e53`, created by the `Release` run 35932042074) · step 6 ✅, run in an isolated `CLAUDE_CONFIG_DIR` against golden-beans' merged settings: `golden-frijoles@golden-frijoles` Version 0.1.0, enabled, all ten skills. Step 7 ✅, confirmed by Daniel 2026-09-24 (medusa-bonsai loads `golden-frijoles@golden-frijoles`). Steps 4–5 are covered by S3.4's `--exec`, re-run after the S3 merge.
 
 If any step fails, note the step number + what you saw — that's the bug report.

@@ -100,6 +100,10 @@ export function renderKitBlock(version) {
     "> look: the kit is unreachable**, not a broken project, and offer to retry online or to copy the script into",
     "> `scripts/`. This covers the scripts the kit carries (`gf-kit --list`). Any other `scripts/` command here is",
     '> project tooling: if the project lacks it, say so and stop. Never re-implement a script\'s logic inline.',
+    '> If a script prints `GF-NEEDS-SETTING {"key",…}`, ask the user that question once, save the answer with',
+    `> \`npx -y @golden-frijoles/kit@${version} config set <key> <value>\` (always the kit, never local-wins: a project`,
+    '> may own an unrelated `scripts/config.mjs`), tell them they can change it later the same way, and run the',
+    '> script again if it exited 7.',
     KIT_END,
   ].join('\n');
 }

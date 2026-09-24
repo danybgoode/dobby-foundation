@@ -1,6 +1,6 @@
 ---
 status: in-progress  # AUTHORITATIVE epic status (SSOT) — scaffolded | in-progress | shipped | archived. Set shipped at epic close.
-phase: Verifying      # the executive ladder — Shaping | Locking architecture | Building | Verifying | In review | Shipped.
+phase: Building       # the executive ladder — Shaping | Locking architecture | Building | Verifying | In review | Shipped.
                      # WRITTEN at each cadence event, never inferred. Shipped = merged AND deployed.
 slug: golden-frijoles-plugin
 title: "One plugin, one install — Golden Frijoles ships as a public plugin whose skills run in anyone's repo"
@@ -21,9 +21,8 @@ build_order: 8       # integer position in the ONE global build sequence
 
 > **Wave 1 ("install") shipped 2026-09-23; its closing verification (S3.5) is owed**: releases `v0.1.0`–`v0.3.0`, `@golden-frijoles/kit@0.3.0` on npm with
 > verified provenance, and the install prompt live on goldenfrijoles.com and proven by running it. See
-> [`WAVE-1-RETROSPECTIVE.md`](WAVE-1-RETROSPECTIVE.md). **Wave 2 ("configure", S4–S5) is NOT started**: it's re-bet
-> at the boundary. Still owed to Daniel: the stranger walkthroughs (S3.5), the signed-in onboarding smoke, and the
-> medusa-bonsai session check.
+> [`WAVE-1-RETROSPECTIVE.md`](WAVE-1-RETROSPECTIVE.md). **Wave 2 ("configure", S4–S5) was bet 2026-09-24** and is locked below (D9–D14). Still owed to Daniel: the stranger walkthroughs (S3.5) and the signed-in onboarding
+> smoke. The medusa-bonsai session check passed on 2026-09-24.
 
 ## Why
 
@@ -198,10 +197,88 @@ re-deriving repo state (`git diff`, the gate) before trusting it.
 The full per-sprint contract lives in each sprint file under **"Build contract (locked by the architect before the
 builder started)"**. It cites D1–D8 above and restates none of them.
 
-## Wave 2 (not locked; re-bet at the boundary)
+## Wave 2 lock: D9–D14, verified 2026-09-24 against live code
 
-- **D9 (draft): Config precedence.** The new file wins per key, legacy files fill gaps, and a duplicate is reported. A malformed file is a *configuration* failure and an absent one is a fallback. After S4.2 no rail parses a config file itself.
-- **D10 (draft): One config core.** The CLI (`gf setup` / `gf config`) imports the kit's config module. The kit ships `.d.ts` for it, and the CLI never re-implements precedence.
+Bet on 2026-09-24 ([`bets/wave-2026-09-24.md`](../../bets/wave-2026-09-24.md)). Checked against golden-frijoles/skills
+`e129433`, golden-beans `d32fde9`, medusa-bonsai `5394a96`, and `@golden-frijoles/cli@0.1.0` / kit `0.3.0` on npm.
+**Builders cite these, and never restate them.**
+
+### Live state the lock was taken against
+
+| Fact | Value on 2026-09-24 |
+|---|---|
+| Legacy config files | `jev.config.json` (template, gb, medusa) · `reporting.config.json` (gb, medusa) · `live-smoke.config.json` (gb) · `smoke-triage.config.json` (medusa) · `perf-probe.config.json` (medusa) · `scripts/review-config.json` (all three) · `Roadmap/fill-ins.yml` (all three) |
+| Their parsers | Each rail already validates its own shape and throws its own error: `parseJevConfig` / `JevConfigError`, `loadReportingConfig` / `ReportingConfigError`, live-smoke `validateConfig`, `loadPolicy`, `loadProbeConfig`, `parseReviewConfig`, `parseFillIns` |
+| Consumer forks | medusa forks `lib/reporting-config.mjs`, `live-smoke.mjs`, `roadmap-extract.mjs` and the review rail; golden-beans forks the review rail and `roadmap-extract.mjs` (wave-1 `cmp`) |
+| The kit | 15 entry scripts. The review rails (`review-route`, `cross-review`), `smoke-triage-scope`, `perf-probe` and `render-ways-of-working` are **not** in it; they're project-local |
+| The CLI | `packages/cli` in golden-beans: TypeScript compiled to **CommonJS**, depends on `@golden-frijoles/sdk`, `EXIT` codes 0–6, `doctor` reports every check and exits non-zero on the first failing one, golden help files in `src/__golden__/`. **Published by hand** (0.1.0); no publish workflow |
+| Template Jev | `egress: true`, both rails `mode: jev`: a spawned project that gains a `TYPESAFE_API_KEY` starts sending text to TypeSafe without ever being asked |
+
+### The decisions
+
+- **D9: Config precedence, with validation left where it lives.** `golden-frijoles.config.json` sits at `projectRoot()`
+  (D2). `template/scripts/lib/config.mjs` resolves **where each section comes from**, and nothing else:
+  - The new file's section wins **per top-level key**. The legacy file fills the keys the new file doesn't set.
+  - A key set in both is reported as a *duplicate* (a warning, never a failure).
+  - The merged raw object goes to **the rail's existing parser**, which stays the one place its shape is validated
+    ("import the shipped rule, never restate it").
+  - A present but malformed file is a **configuration** failure: it throws a `ConfigError` naming the file. An
+    absent file is a silent fallback. A section whose rail forbids secrets (all of them) rejects any key whose
+    *value* looks like a secret: only env var **names** are allowed.
+- **D10: One config core, two front ends.**
+  - The kit's `gf-kit config list|get|set|migrate` (`template/scripts/config.mjs`) and the CLI's
+    `gf setup` / `gf config` both call `lib/config.mjs`. Neither re-implements precedence.
+  - The kit gains `"exports": { "./config": "./dist/lib/config.mjs", "./package.json": "./package.json" }` and a
+    hand-written `lib/config.d.mts`.
+  - The CLI (CommonJS) loads it with **`await import('@golden-frijoles/kit/config')`** and depends on
+    `@golden-frijoles/kit` at the exact wave-2 release version.
+- **D11: "Ask once" is a protocol between a script and an agent, not a prompt inside a script.** Scripts never read
+  stdin.
+  - A script that needs an unset registered setting prints one line to stderr,
+    `GF-NEEDS-SETTING {"key":…,"question":…,"default":…}`, and exits **7** (new; it doesn't clash with the CLI's
+    0–6).
+  - The generated run rule (render-skill-adverts) tells the agent to ask that question once, write the answer with
+    `gf-kit config set <key> <value>`, say *"change this later with `gf config set <key>`"*, and re-run.
+  - The registry is `lib/config-registry.mjs`: `{ key, section, askWhen, default, question, secret? }`, the audit
+    §4.3 table in code. `doctor` (D13) reads it too.
+- **D12: Jev egress is a tri-state, and "unanswered" behaves as no.**
+  - `jev.egress` ∈ `true | false | null`. The template ships `null`. `null` and `false` never send. `null`
+    additionally emits the D11 ask on the first run that would have used Jev.
+  - The fallback reason names it: `jev could not look (egress not answered)`.
+  - Consumers keep their committed `egress: true`, and `jev-eval` (recorded replays) is unaffected.
+- **D13: Doctor's module lines are information, not failure.**
+  - `gf doctor` gains one line per module (Plan, Build, Ship, Measure, Spend, Operate), each **configured / not
+    configured / could not look**, with the fix command beside anything not configured. The states are derived
+    from the registry plus a presence check.
+  - Doctor's exit code stays governed by its existing checks only: an unconfigured module is not a broken tool.
+- **D14: A CLI release is a hand publish, owed.** S5.2 ships only when `@golden-frijoles/cli` is republished. It has no
+  workflow, and adding trusted publishing to golden-beans is a new external setup: the owner's call, asked when S5
+  reaches it. Until then S5.2 is merged, not shipped.
+
+### Deviations from the scaffolded docs, decided here
+
+| # | The doc said | The live system says | Decided |
+|---|---|---|---|
+| X15 | S4.1: `ways` section replaces `Roadmap/fill-ins.yml` | The fill-ins are pages of Markdown prose; as JSON strings they'd make the one file *less* readable, and `render-ways-of-working` is a byte-shared rail | `ways.fillIns` is a **path** (default `Roadmap/fill-ins.yml`). The file stays the prose's home |
+| X16 | S4.2: "no rail parses a config file itself", in every repo | Consumers run **forked** review, reporting and live-smoke rails, which will keep reading their legacy files | The guard and conversion apply to the **template/kit**. Consumers keep legacy files: that's D9's fallback working as designed, and it's stated in each consumer's `scripts/README.md` |
+| X17 | S5.5: `gf config set review.scope every-pr` changes the next PR's routing | The review rails aren't in the kit, so a kit-only stranger has no routing to change | The walkthrough adjusts a setting a stranger's kit **reads** (`jev.egress`) and checks the next run honours it; the review-scope version runs in a template-spawned repo |
+| X18 | S5.1: five questions, Q3 board sink + Q5 proof depth | Board sinks and the Verify module are epic **no-gos**, so nothing would read those answers | Setup asks **Q1 mode, Q2 start point, Q4 account** (still "at most five, only Q1 required"). Q3/Q5 stay in the registry as `askWhen: 'never-yet'` so the schema is ready |
+| X19 | S4.3: "a skill asks one question" | Scripts run non-interactively under an agent | D11's `GF-NEEDS-SETTING` + exit 7 protocol |
+| X20 | (not in the docs) | Review of medusa#195: `projectAsset()` follows a symlink out of the project; `loadPersonaAndTask(scriptsDir)` ignores an explicit `scriptsDir` | Fixed in S4.1 (same seam), shipped in the wave-2 kit release, copied into both consumers |
+
+### Model routing, wave 2
+
+| Work | Model | Why |
+|---|---|---|
+| **S4** (the config core, precedence, the ask protocol, the rail conversions, X20) | **Opus 5.5, the orchestrator, built directly** | It defines the contract S5's CLI imports, and it touches every rail |
+| **S5** (setup, `gf config`/`gf setup`/doctor in the CLI, the Jev egress default) | Sonnet 5 builder in its own worktrees | mechanical over D9–D14 |
+| Fresh reviewer, each PR | a fresh Opus agent + `pr-reviewer.md` | as in wave 1 |
+
+### Owed to Daniel in wave 2
+
+1. **S5.2/D14**: republishing `@golden-frijoles/cli` (asked when S5 reaches it).
+2. **S5.5**: stranger walkthrough #2 on a clean machine.
+3. Still from wave 1: **S3.5**, both stranger walkthroughs.
 
 ## Scope — stories
 
