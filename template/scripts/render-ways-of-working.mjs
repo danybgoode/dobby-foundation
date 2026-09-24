@@ -22,7 +22,7 @@
 //
 // Zero deps — Node 18+.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSection } from './lib/config.mjs';
@@ -37,10 +37,15 @@ const fillInsPath = () => {
   const moved = readSection('ways', { root: REPO }).raw?.fillIns;
   if (!moved) return FILLINS_PATH;
   const abs = resolve(REPO, moved);
-  if (!abs.startsWith(REPO + sep)) {
+  // Lexically AND through symlinks: an in-project link to ../.env.local passes the first check alone (security lens
+  // on #49). A missing file is left to the reader, which reports it as missing.
+  const realRepo = realpathSync(REPO);
+  const real = existsSync(abs) ? realpathSync(abs) : abs;
+  const inside = (p, root) => p.startsWith(root + sep);
+  if (!inside(abs, REPO) || (existsSync(abs) && !inside(real, realRepo))) {
     throw new Error(`ways.fillIns "${moved}" resolves outside the project; refusing to read it.`);
   }
-  return abs;
+  return real;
 };
 export const OUT_PATH = join(REPO, 'Roadmap', 'WAYS-OF-WORKING.md');
 
@@ -226,5 +231,13 @@ function main() {
   );
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// realpath on both sides: through a symlinked dir (macOS /var → /private/var) a lexical compare is false and the
+// script silently does nothing, exit 0.
+const isMain = (() => {
+  try {
+    return !!process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+})();
 if (isMain) main();
