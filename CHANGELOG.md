@@ -7,6 +7,21 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-09-24
+
+### Fixed
+
+- `REPORTING_CONFIG` may again name a file outside the project (0.5.0 refused it when the reporting rail passed it).
+- In installed mode, the kit's own bundled defaults are readable; the containment check is for the checkout's files.
+- `config migrate` refuses a section that isn't an object instead of silently replacing it with `{}`.
+- `config list` fails on a legacy file holding JSON `null` instead of reporting no settings.
+
+### Security
+
+- `config list` and `config get` (and `gf config`/`gf doctor`, which use them) print secret-looking values as
+  `<redacted…>`. A legacy file may still hold a literal token that the write guard never saw. Rails read the real
+  value, as before.
+
 ## [0.5.1] - 2026-09-24
 
 ### Security
