@@ -17,8 +17,8 @@
 //
 // Zero deps. Imported by the kit's `gf-kit config` and, via `@golden-frijoles/kit/config`, by the `gf` CLI (D10).
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 import { projectRoot } from './project-root.mjs';
 import { REGISTRY } from './config-registry.mjs';
 
@@ -94,10 +94,25 @@ const configFail = (path, e) => {
   throw new ConfigError(`${path}: not valid JSON (${e.message})`);
 };
 
+/**
+ * A config file on the real filesystem must RESOLVE inside the project. `config list` prints what it reads, so a
+ * checkout whose golden-frijoles.config.json (or a legacy file) is a symlink to ~/.npmrc or a cloud credentials file
+ * would otherwise print or migrate that file (security lens on #49). Injected IO (tests) is not a filesystem: skipped.
+ */
+function assertContained(path, root, read) {
+  if (read !== readFileSync) return;
+  const realRoot = realpathSync(root);
+  const real = realpathSync(path);
+  if (real !== realRoot && !real.startsWith(realRoot + sep)) {
+    throw new ConfigError(`${path} resolves outside the project (${real}); refusing to read it.`);
+  }
+}
+
 /** The project's `golden-frijoles.config.json`, parsed; `null` when absent. Malformed → ConfigError. */
 export function readConfigFile({ root = projectRoot(), read = readFileSync, exists = existsSync } = {}) {
   const path = join(root, CONFIG_FILENAME);
   if (!exists(path)) return null;
+  assertContained(path, root, read);
   const json = parseJsonFile(path, { read, onError: configFail });
   if (!isObject(json)) throw new ConfigError(`${path}: must be a JSON object of sections`);
   // An unknown section is IGNORED here, never thrown: a file written by a newer kit or CLI must not break the
@@ -159,7 +174,11 @@ export function readSection(
 
   const legacyAbs = legacyPath ? resolve(root, legacyPath) : legacyPathFor(name, { root, env });
   let fromLegacy;
-  if (legacyAbs && legacyExists(legacyAbs)) fromLegacy = parseJsonFile(legacyAbs, { read: legacyRead, onError: onLegacyError });
+  if (legacyAbs && legacyExists(legacyAbs)) {
+    // REPORTING_CONFIG is the operator's env, not the checkout's: it may name a file anywhere.
+    if (!(name === 'reporting' && env.REPORTING_CONFIG && !legacyPath)) assertContained(legacyAbs, root, legacyRead);
+    fromLegacy = parseJsonFile(legacyAbs, { read: legacyRead, onError: onLegacyError });
+  }
 
   const sources = [];
   if (fromLegacy !== undefined) sources.push(legacyAbs);
