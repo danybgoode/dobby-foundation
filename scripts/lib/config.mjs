@@ -236,8 +236,11 @@ const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
  * Pure — does this key/value pair look like a credential rather than the NAME of an env var? A token prefix only
  * counts on a value long enough to be a token (`sk-shop` or `npm_utils` is a name, not a key).
  */
-export function looksLikeSecret(key, value) {
-  if (typeof value !== 'string') return false;
+export function looksLikeSecret(key, raw) {
+  if (typeof raw !== 'string') return false;
+  // Trimmed: the patterns are anchored, so ' sk-…' or a pasted token with a trailing newline slipped past them
+  // (security lens on golden-beans #164). Whitespace is never what makes a value safe.
+  const value = raw.trim();
   if (TOKEN_PREFIXES.test(value) && value.length >= 20) return true;
   if (TELEGRAM_BOT_TOKEN.test(value) || SLACK_WEBHOOK.test(value) || URL_WITH_PASSWORD.test(value)) return true;
   const leaf = key.split('.').pop();

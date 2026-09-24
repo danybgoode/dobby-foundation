@@ -7,6 +7,13 @@ newest heading are always the same number — `scripts/check-release.mjs` enforc
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-24
+
+### Security
+
+- The config secret guard trims before it matches: a token with a leading space or a trailing newline
+  (`' sk-…'`) was written to `golden-frijoles.config.json` instead of being refused.
+
 ## [0.5.0] - 2026-09-24
 
 ### Changed

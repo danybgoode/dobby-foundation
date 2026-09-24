@@ -311,3 +311,10 @@ test('migrate refuses a legacy file that is a symlink out of the project (securi
   symlinkSync(join(outside, 'creds.json'), join(root, 'jev.config.json'));
   assert.throws(() => migrate({ root, dryRun: true }), /outside the project/);
 });
+
+test('looksLikeSecret: surrounding whitespace does not hide a token (security lens on golden-beans #164)', () => {
+  assert.equal(looksLikeSecret('reporting.destination', ` sk-${'a'.repeat(20)}`), true);
+  assert.equal(looksLikeSecret('reporting.destination', `gf_pat_${'a'.repeat(32)}\n`), true);
+  assert.equal(looksLikeSecret('reporting.destination', '\t postgres://u:pw@db/x'), true);
+  assert.equal(looksLikeSecret('reporting.tokenEnv', ' TELEGRAM_BOT_TOKEN '), false, 'an env NAME is still a name');
+});
