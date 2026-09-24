@@ -319,6 +319,7 @@ export function migrate({
   for (const name of Object.keys(LEGACY)) {
     const abs = legacyPathFor(name, { root, env });
     if (!exists(abs)) continue;
+    if (!(name === 'reporting' && env.REPORTING_CONFIG)) assertContained(abs, root, read);
     const legacy = parseJsonFile(abs, { read, onError: configFail });
     if (!isObject(legacy)) continue;
     const [head, sub] = name.split('.');

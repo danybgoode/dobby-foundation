@@ -286,3 +286,8 @@ test('decideSecurityPass: a PR that edits the trigger config gets the lens, what
   }
   assert.equal(decideSecurityPass({ files: ['README.md'], securityPaths: [] }).run, false);
 });
+
+test('decideSecurityPass: the config loader and the router trigger the lens too (security lens on #49, round 4)', () => {
+  for (const file of ['scripts/lib/config.mjs', 'scripts/lib/review-guard.mjs', 'scripts/review-route.mjs', 'scripts/cross-review.mjs'])
+    assert.equal(decideSecurityPass({ files: [file], securityPaths: [] }).run, true, file);
+});
